@@ -1,0 +1,12 @@
+.upload {
+    cursor: pointer;
+}
+
+.upload-dialog {
+    background-image: url('/static_media/plupload/examples/bg.jpg') !important;
+}
+
+h2 .ss_sprite {
+	float: right;
+	margin: 4px;
+}
