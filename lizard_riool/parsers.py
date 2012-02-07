@@ -11,20 +11,30 @@ import logging
 import sys
 
 logger = logging.getLogger(__name__)
-logger.setLevel('INFO')
 
 handlers = {
     '*MRIO': 'RioolmetingHandler',
-    '*PUT' : 'PutHandler',
+#    '*PUT' : 'PutHandler',
     '*RIOO': 'RioolHandler',
 }
 
 
-class PutHandler(object):
+class Handler(object):
 
-    @staticmethod
-    def handle(record):
+    @classmethod
+    def check_record_length(cls, record):
+        if len(record.splitlines()[0]) != cls.RECORD_LENGTH:
+            raise Exception("Unexpected record length")
+
+
+class PutHandler(Handler):
+
+    RECORD_LENGTH = 498
+
+    @classmethod
+    def handle(cls, i, record):
         logger.debug("Parsing a *PUT record")
+        cls.check_record_length(record)
         record = ' ' + record
         put = Put()
         put.CAA = record[6:6 + 30].strip()
@@ -33,34 +43,40 @@ class PutHandler(object):
         return put
 
 
-class RioolHandler(object):
+class RioolHandler(Handler):
 
-    @staticmethod
-    def handle(record):
+    RECORD_LENGTH = 635
+
+    @classmethod
+    def handle(cls, i, record):
         logger.debug("Parsing a *RIOO record")
+        cls.check_record_length(record)
         record = ' ' + record
         riool = Riool()
-        riool.AAA = record[7:7 + 30]
-        riool.AAD = record[89:89 + 30]
-        riool.AAE = record[120:120 + 19]
-        riool.AAF = record[140:140 + 30]
-        riool.AAG = record[171:171 + 19]
-        riool.ACR = record[623:623 + 6]
-        riool.ACS = record[630:630 + 6]
+        riool.AAA = record[7:7 + 30].strip()
+        riool.AAD = record[89:89 + 30].strip()
+        riool.AAE = record[120:120 + 19].strip()
+        riool.AAF = record[140:140 + 30].strip()
+        riool.AAG = record[171:171 + 19].strip()
+        riool.ACR = record[623:623 + 6].strip()
+        riool.ACS = record[630:630 + 6].strip()
         riool.save()
         return riool
 
 
-class RioolmetingHandler(object):
+class RioolmetingHandler(Handler):
 
-    @staticmethod
-    def handle(record):
+    RECORD_LENGTH = 270
+
+    @classmethod
+    def handle(cls, i, record):
         logger.debug("Parsing a *MRIO record")
+        cls.check_record_length(record)
         record = ' ' + record
         meting = Rioolmeting()
         meting.ZYA = record[7:7 + 8]
         meting.ZYB = record[16:16 + 1]
-        meting.ZYE = record[18:18 + 30].strip()
+        meting.ZYE = record[18:18 + 30]
         meting.ZYR = record[98:98 + 1]
         meting.ZYS = record[100:100 + 1]
         meting.ZYT = record[102:102 + 10]
@@ -69,13 +85,13 @@ class RioolmetingHandler(object):
         return meting
 
 
-def process(file):
+def parse(file):
     ""
     with open(file) as f:
-        for line in f:
+        for i, line in enumerate(f):
             for record, handler in handlers.iteritems():
                 if line.startswith(record):
-                    globals()[handler].handle(line)
+                    globals()[handler].handle(i + 1, line)
 
 
 def main():
@@ -100,7 +116,7 @@ def main():
 
     # process arguments
     for arg in args:
-        process(arg)
+        parse(arg)
 
 if __name__ == '__main__':
     main()

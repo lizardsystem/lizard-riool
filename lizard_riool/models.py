@@ -9,9 +9,22 @@ This serves as a long usage message.
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
+from os.path import basename
 
 RDNEW = 28992
 SRID = RDNEW
+
+
+class Upload(models.Model):
+    ""
+    the_upload = models.FileField(upload_to='upload')
+    the_time = models.DateTimeField(auto_now=True)
+
+    def filename(self):
+        return basename(self.the_upload.name)
+
+    class Meta:
+        ordering = ("the_upload",)
 
 
 class Put(models.Model):
