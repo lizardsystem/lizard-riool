@@ -15,6 +15,7 @@ install_requires = [
     'django-nose',
     'lizard-ui >= 3.0',
     'pkginfo',
+    'networkx >= 1.6',
     ],
 
 tests_require = [
@@ -38,7 +39,7 @@ setup(name='lizard-riool',
       zip_safe=False,
       install_requires=install_requires,
       tests_require=tests_require,
-      extras_require = {'test': tests_require},
+      extras_require={'test': tests_require},
       entry_points={
           'console_scripts': [
           ]},
