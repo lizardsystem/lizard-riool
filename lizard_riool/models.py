@@ -14,6 +14,8 @@ from os.path import basename
 RDNEW = 28992
 SRID = RDNEW
 
+logger = logging.getLogger(__name__)
+
 
 class Upload(models.Model):
     ""
@@ -27,8 +29,44 @@ class Upload(models.Model):
         ordering = ("the_upload",)
 
 
-class Put(models.Model):
+class RioolBestandObject(models.Model):
+    "common behaviour to all sewage objects"
+
+    @classmethod
+    def check_record_length(cls, record):
+        if len(record.strip("\n\r")) != cls.suf_record_length:
+            raise Exception("Unexpected record length")
+
+    @classmethod
+    def check_fields_count(cls, record):
+        field_count = record.count("|") + 1
+        if field_count != cls.suf_fields_count:
+            raise Exception("record defines %s fields, %s expects %s" %
+                            (field_count, cls.suf_record_type, cls.suf_fields_count))
+
+    @classmethod
+    def parse_line_from_rioolbestand(cls, record):
+        logger.debug("Parsing a " + cls.suf_record_type + " record")
+        cls.check_record_length(record)
+        cls.check_field_count(record)
+        record = ' ' + record  # makes counting positions easier
+        dbobj = cls()
+        for name, start, length in cls.suf_fields:
+            setattr(dbobj, name, record[start:start + length])
+        return dbobj
+
+
+class Put(RioolBestandObject):
     "*PUT record"
+
+    suf_record_length = 498
+    suf_fields_count = 40
+    suf_record_type = '*PUT'
+    suf_fields = [
+        ('CAA', 6, 30),
+        ('CAB', 37, 19),
+        ]
+
     CAA = models.CharField(
         help_text="Knooppuntreferentie",
         max_length=30)
@@ -36,6 +74,14 @@ class Put(models.Model):
         db_column='CAB',
         help_text="Knooppuntcoördinaat",
         srid=SRID)
+
+    @property
+    def suf_id(self):
+        return self.CAA
+
+    @property
+    def point(self):
+        return self.__CAB
 
     @property
     def CAB(self):
@@ -50,8 +96,20 @@ class Put(models.Model):
         return self.CAA
 
 
-class Riool(models.Model):
+class Riool(RioolBestandObject):
     "*RIOO record"
+    suf_record_length = 635
+    suf_fields_count = 49
+    suf_record_type = '*RIOO'
+    suf_fields = [
+        ('AAA', 7, 30),
+        ('AAD', 89, 30),
+        ('AAE', 120, 19),
+        ('AAF', 140, 30),
+        ('AAG', 171, 19),
+        ('ACR', 623, 6),
+        ('ACS', 630, 6),
+        ]
     AAA = models.CharField(
         help_text="Strengreferentie",
         max_length=30)
@@ -81,6 +139,26 @@ class Riool(models.Model):
         db_column='the_geom',
         help_text="LineString AAE -> AAG",
         srid=SRID)
+
+    @property
+    def suf_id(self):
+        return self.AAA
+
+    @property
+    def suf_fk_node1(self):
+        return self.AAD
+
+    @property
+    def suf_fk_node2(self):
+        return self.AAF
+
+    @property
+    def suf_fk_point1(self):
+        return self.__AAE
+
+    @property
+    def suf_fk_point2(self):
+        return self.__AAG
 
     @property
     def AAE(self):
@@ -134,8 +212,20 @@ class Riool(models.Model):
         return self.AAA
 
 
-class Rioolmeting(models.Model):
+class Rioolmeting(RioolBestandObject):
     "*MRIO record"
+    suf_record_length = 270
+    suf_fields_count = 20
+    suf_record_type = '*MRIO'
+    suf_fields = [
+        ('ZYA', 7, 8),
+        ('ZYB', 16, 1),
+        ('ZYE', 18, 30),
+        ('ZYR', 98, 1),
+        ('ZYS', 100, 1),
+        ('ZYT', 102, 10),
+        ('ZYU', 113, 3),
+        ]
     __ZYA = models.FloatField(
         db_column='ZYA',
         help_text="Afstand")
@@ -182,3 +272,9 @@ class Rioolmeting(models.Model):
     @ZYU.setter
     def ZYU(self, value):
         self.__ZYU = int(value)
+
+class Rioolwaarneming(RioolBestandObject):
+    "*WAAR record"
+    suf_record_length = 399
+    suf_fields_count = 23
+    suf_record_type = '*WAAR'
