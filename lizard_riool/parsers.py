@@ -23,11 +23,11 @@ def parse(file_name, objects=[]):
         }
 
     with open(file_name) as f:
-        for line in f:
+        for i, line in enumerate(f):
             record_type = line.split('|')[0]
             if record_type not in classes:
                 continue
-            obj = classes[record_type].parse_line_from_rioolbestand(line)
+            obj = classes[record_type].parse_line_from_rioolbestand(line, i)
             objects.append(obj)
 
 

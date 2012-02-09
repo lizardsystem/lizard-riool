@@ -51,8 +51,9 @@ class RioolBestandObject(models.Model):
                 (field_count, cls.suf_record_type, cls.suf_fields_count))
 
     @classmethod
-    def parse_line_from_rioolbestand(cls, record):
-        logger.debug("Parsing a " + cls.suf_record_type + " record")
+    def parse_line_from_rioolbestand(cls, record, line_number=0):
+        logger.debug("#%d: Parsing a %s record" %
+                     (line_number, cls.suf_record_type))
         cls.check_record_length(record)
         cls.check_field_count(record)
         record = ' ' + record  # makes counting positions easier
