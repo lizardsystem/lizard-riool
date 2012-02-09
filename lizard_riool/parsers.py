@@ -5,9 +5,8 @@
 This serves as a long usage message.
 """
 
-from models import Put, Riool, Rioolmeting, Waarneming
+from models import Put, Riool, Rioolmeting
 import logging
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ def parse(file_name):
         '*MRIO': Rioolmeting,
         '*PUT': Put,
         '*RIOO': Riool,
-        '*WAAR': Waarneming,
+        ## '*WAAR': Waarneming,
         }
 
     with open(file_name) as f:
@@ -31,7 +30,6 @@ def parse(file_name):
             obj = classes[record_type].parse_line_from_rioolbestand(line)
             if record_type in ['*PUT', '*RIOO']:
                 obj.save()
-
 
 
 def main(options, args):
