@@ -11,6 +11,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
 from os.path import basename, splitext
 import logging
+import math
 
 RDNEW = 28992
 SRID = RDNEW
@@ -62,7 +63,7 @@ class RioolBestandObject(object):
             setattr(dbobj, name, record[start:start + length])
         return dbobj
 
-    def update_coordinates(prev_obj):
+    def update_coordinates(self, prev_obj):
         """override this function if xyz information of `self` is
         related to the immediately preceding object from the input
         file
@@ -321,7 +322,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
     def ZYU(self, value):
         self.__ZYU = int(value)
 
-    def update_coordinates(prev):
+    def update_coordinates(self, prev):
         """compute 3D coordinates of self
 
         the 3D coordinates of self can be computed using the
