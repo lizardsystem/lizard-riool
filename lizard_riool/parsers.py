@@ -23,17 +23,18 @@ def parse(file_name, objects=[]):
         }
 
     prev_obj = None
-    for line_no, line in enumerate(file(file_name).readlines()):
-        line = line.strip("\r\n")
-        record_type = line.split('|')[0]
-        if record_type not in classes:
-            continue
-        obj = classes[record_type].parse_line_from_rioolbestand(line, line_no)
-        obj.update_coordinates(prev_obj)
-        if record_type in ['*PUT', '*RIOO']:
-            obj.save()
-        objects.append(obj)
-        prev_obj = obj
+    with open(file_name) as f:
+        for i, line in enumerate(f):
+            line_no = i + 1
+            line = line.strip("\r\n")
+            record_type = line.split('|')[0]
+            if record_type not in classes:
+                continue
+            obj = classes[record_type].\
+                parse_line_from_rioolbestand(line, line_no)
+            obj.update_coordinates(prev_obj)
+            objects.append(obj)
+            prev_obj = obj
 
 
 def main(options, args):

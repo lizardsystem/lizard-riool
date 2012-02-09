@@ -85,10 +85,11 @@ class Put(RioolBestandObject, models.Model):
 
     upload = models.ForeignKey('Upload')
     CAA = models.CharField(
+        db_column='caa',
         help_text="Knooppuntreferentie",
         max_length=30)
     __CAB = models.PointField(
-        db_column='CAB',
+        db_column='cab',
         help_text="Knooppuntcoördinaat",
         srid=SRID)
 
@@ -130,28 +131,31 @@ class Riool(RioolBestandObject, models.Model):
 
     upload = models.ForeignKey('Upload')
     AAA = models.CharField(
+        db_column='aaa',
         help_text="Strengreferentie",
         max_length=30)
     AAD = models.CharField(
+        db_column='aad',
         help_text="Knooppuntreferentie 1",
         max_length=30)
     __AAE = models.PointField(
-        db_column='AAE',
+        db_column='aae',
         help_text="Knooppuntcoördinaat knooppunt 1",
         srid=SRID)
     AAF = models.CharField(
+        db_column='aaf',
         help_text="Knooppuntreferentie 2",
         max_length=30)
     __AAG = models.PointField(
-        db_column='AAG',
+        db_column='aag',
         help_text="Knooppuntcoördinaat knooppunt 2",
         srid=SRID)
     __ACR = models.FloatField(
-        db_column='ACR',
+        db_column='acr',
         help_text="BOB bij beginknoop absoluut",
         null=True)
     __ACS = models.FloatField(
-        db_column='ACS',
+        db_column='acs',
         help_text="BOB bij eindknoop absoluut",
         null=True)
     __the_geom = models.LineStringField(
@@ -259,25 +263,29 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     upload = models.ForeignKey('Upload')
     __ZYA = models.FloatField(
-        db_column='ZYA',
+        db_column='zya',
         help_text="Afstand")
     ZYB = models.CharField(
+        db_column='zyb',
         help_text="Referentie",
         max_length=1)
     ZYE = models.CharField(
+        db_column='zye',
         help_text="ID",  # id of the referenced object
         max_length=30)
     ZYR = models.CharField(
+        db_column='zyr',
         help_text="Type meting",
         max_length=1)
     ZYS = models.CharField(
+        db_column='zys',
         help_text="Eenheid meetwaarde",
         max_length=1)
     __ZYT = models.FloatField(
-        db_column='ZYT',
+        db_column='zyt',
         help_text="Meetwaarde")
     __ZYU = models.IntegerField(
-        db_column='ZYU',
+        db_column='zyu',
         default=0,
         help_text="Macht van de vermenigvuldigingsfactor 10")
 
