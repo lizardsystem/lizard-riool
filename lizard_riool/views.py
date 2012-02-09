@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class FileView(AppView):
-    """
-    """
+    "View file uploads."
     template_name = 'lizard_riool/beheer.html'
 
     def files(self):
@@ -25,16 +24,9 @@ class FileView(AppView):
 
 
 class UploadView(TemplateView):
-    """
-    """
+    "Process file uploads."
     template_name = "lizard_riool/plupload.html"
     dtemp = tempfile.mkdtemp()
-
-    @classmethod
-    def store(cls, source):
-        with open(source) as f:
-            upload = Upload()
-            upload.the_upload.save(os.path.basename(source), File(f))
 
     @classmethod
     def process(cls, request):
@@ -66,8 +58,15 @@ class UploadView(TemplateView):
 
         if chunk == chunks - 1:
             with transaction.commit_on_success():
-                parse(fullpath)
-                cls.store(fullpath)
+                objects = []
+                parse(fullpath, objects)
+                f = open(fullpath)
+                upload = Upload()
+                upload.the_file.save(filename, File(f))
+                f.close()
+                for o in objects:
+                    o.upload = upload
+                    o.save()
 
     @classmethod
     def post(cls, request, *args, **kwargs):

@@ -19,7 +19,10 @@
   <h2 class="upload">Bestandsbeheer<span class="ss_sprite ss_add"/></h2>
   <ul class="without-bullets">
   {% for file in view.files %}
-  	<li class="workspace-acceptable">{{ file.filename }}
+  	<li class="workspace-acceptable"
+  		data-name="{{ file.filename }}"
+  	    data-adapter-class="{{ file.suffix|lower }}"
+  	    data-adapter-layer-json='{"id": "{{ file.pk }}"}'>{{ file.filename }}
   {% endfor %}
   </ul>
 </div>
