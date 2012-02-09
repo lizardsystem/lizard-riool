@@ -65,7 +65,6 @@ class UploadView(TemplateView):
                 upload.the_file.save(filename, File(f))
                 f.close()
                 for o in objects:
-                    print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSs"
                     o.upload = upload
                     o.save()
 
