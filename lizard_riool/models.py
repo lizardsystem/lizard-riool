@@ -62,6 +62,14 @@ class RioolBestandObject(models.Model):
             setattr(dbobj, name, record[start:start + length])
         return dbobj
 
+    def update_coordinates(prev_obj):
+        """override this function if xyz information of `self` is
+        related to the immediately preceding object from the input
+        file
+        """
+
+        pass
+
 
 class Put(RioolBestandObject):
     "*PUT record"
@@ -161,11 +169,22 @@ class Riool(RioolBestandObject):
 
     @property
     def suf_fk_point1(self):
-        return self.__AAE
+        "start point, a 3D object"
+        return Point(self.__AAE.x, self.__AAE.x, self.__ACR or 0)
 
     @property
     def suf_fk_point2(self):
-        return self.__AAG
+        "end point, a 3D object"
+        return Point(self.__AAG.x, self.__AAG.x, self.__ACS or 0)
+
+    @property
+    def point(self):
+        return self.suf_fk_point1
+
+    @property
+    def direction(self):
+        "2D direction of segment"
+        return self.__AAG - self.__AAE / abs(self.__AAG - self.__AAE)
 
     @property
     def AAE(self):
@@ -257,6 +276,19 @@ class Rioolmeting(RioolBestandObject):
         help_text="Macht van de vermenigvuldigingsfactor 10")
 
     @property
+    def distance(self):
+        return self.__ZYA
+
+    @property
+    def value(self):
+        return self.__ZYT * 10 ** self.__ZYU
+
+    @property
+    def measurement_type(self):
+        "combined codes for type and unit"
+        return self.ZYR + self.ZYS
+
+    @property
     def ZYA(self):
         return self.__ZYA
 
@@ -266,7 +298,7 @@ class Rioolmeting(RioolBestandObject):
 
     @property
     def ZYT(self):
-        return self.__ZYT * 10 ** self.__ZYU
+        return self.__ZYT
 
     @ZYT.setter
     def ZYT(self, value):
@@ -279,6 +311,36 @@ class Rioolmeting(RioolBestandObject):
     @ZYU.setter
     def ZYU(self, value):
         self.__ZYU = int(value)
+
+    def update_coordinates(prev):
+        """compute 3D coordinates of self
+
+        the 3D coordinates of self can be computed using the
+        coordinates of the preceding object and the measurement
+        contained at self.  the measurement itself can be specified in
+        various ways.  we do not support all of them.
+        """
+
+        self.direction = prev.direction
+
+        if self.measurement_type == 'AE': 
+            # Slope|Degrees
+            self.point = prev.point + (
+                self.distance - prev.distance) * (
+                self.direction.x, self.direction.y, math.sin(self.value / 180.0 * math.pi))
+            pass
+        elif self.measurement_type == 'AF':
+            # Slope|Percent
+            self.point = prev.point + (
+                self.distance - prev.distance) * (
+                self.direction.x, self.direction.y, self.value)
+            pass
+        elif self.measurement_type == 'CB':
+            # Relative|metres
+            pass
+        else:
+            # unrecognized, not supported
+            pass
 
 
 class Rioolwaarneming(RioolBestandObject):

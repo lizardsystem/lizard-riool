@@ -22,13 +22,18 @@ def parse(file_name, objects=[]):
         ## '*WAAR': None,  # no action
         }
 
-    with open(file_name) as f:
-        for i, line in enumerate(f):
-            record_type = line.split('|')[0]
-            if record_type not in classes:
-                continue
-            obj = classes[record_type].parse_line_from_rioolbestand(line, i)
-            objects.append(obj)
+    prev_obj = None
+    for line in file(file_name).readlines():
+        line = line.strip("\r\n")
+        record_type = line.split('|')[0]
+        if record_type not in classes:
+            continue
+        obj = classes[record_type].parse_line_from_rioolbestand(line)
+        obj.update_coordinates(prev_obj)
+        if record_type in ['*PUT', '*RIOO']:
+            obj.save()
+        objects.append(obj)
+        prev_obj = obj
 
 
 def main(options, args):
