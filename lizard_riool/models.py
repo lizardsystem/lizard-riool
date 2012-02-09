@@ -51,9 +51,9 @@ class RioolBestandObject(object):
                 (field_count, cls.suf_record_type, cls.suf_fields_count))
 
     @classmethod
-    def parse_line_from_rioolbestand(cls, record, line_number=0):
-        logger.debug("Parsing a %s record at line %d" %
-                     (cls.suf_record_type, line_number))
+    def parse_line_from_rioolbestand(cls, record, line_number):
+        logger.debug("Parsing %s:%s at line %d" %
+                     (cls.suf_record_type, cls.suf_id, line_number))
         cls.check_record_length(record)
         cls.check_field_count(record)
         record = ' ' + record  # makes counting positions easier
@@ -264,7 +264,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
         help_text="Referentie",
         max_length=1)
     ZYE = models.CharField(
-        help_text="ID",
+        help_text="ID",  # id of the referenced object
         max_length=30)
     ZYR = models.CharField(
         help_text="Type meting",
@@ -279,6 +279,10 @@ class Rioolmeting(RioolBestandObject, models.Model):
         db_column='ZYU',
         default=0,
         help_text="Macht van de vermenigvuldigingsfactor 10")
+
+    @property
+    def suf_id(self):
+        return '%s:%08.2f' % (self.ZYE, self.__ZYA)
 
     @property
     def distance(self):
@@ -353,3 +357,4 @@ class Rioolwaarneming(RioolBestandObject):
     suf_record_length = 399
     suf_fields_count = 23
     suf_record_type = '*WAAR'
+    suf_id = None
