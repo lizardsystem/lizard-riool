@@ -9,7 +9,8 @@ This serves as a long usage message.
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
-from os.path import basename
+from os.path import basename, splitext
+import logging
 
 RDNEW = 28992
 SRID = RDNEW
@@ -18,19 +19,24 @@ logger = logging.getLogger(__name__)
 
 
 class Upload(models.Model):
-    ""
-    the_upload = models.FileField(upload_to='upload')
+    "An uploaded file"
+    the_file = models.FileField(upload_to='upload')
     the_time = models.DateTimeField(auto_now=True)
 
+    @property
     def filename(self):
-        return basename(self.the_upload.name)
+        return basename(self.the_file.name)
 
-    class Meta:
-        ordering = ("the_upload",)
+    @property
+    def suffix(self):
+        return splitext(self.the_file.name)[1]
+
+    def __unicode__(self):
+        return self.filename
 
 
 class RioolBestandObject(models.Model):
-    "common behaviour to all sewage objects"
+    "Common behaviour to all sewage objects"
 
     @classmethod
     def check_record_length(cls, record):
@@ -42,7 +48,7 @@ class RioolBestandObject(models.Model):
         field_count = record.count("|") + 1
         if field_count != cls.suf_fields_count:
             raise Exception("record defines %s fields, %s expects %s" %
-                            (field_count, cls.suf_record_type, cls.suf_fields_count))
+                (field_count, cls.suf_record_type, cls.suf_fields_count))
 
     @classmethod
     def parse_line_from_rioolbestand(cls, record):
@@ -272,6 +278,7 @@ class Rioolmeting(RioolBestandObject):
     @ZYU.setter
     def ZYU(self, value):
         self.__ZYU = int(value)
+
 
 class Rioolwaarneming(RioolBestandObject):
     "*WAAR record"
