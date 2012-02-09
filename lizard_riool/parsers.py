@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def parse(file_name):
+def parse(file_name, objects=[]):
     ""
 
     classes = {
@@ -19,7 +19,7 @@ def parse(file_name):
         '*MRIO': Rioolmeting,
         '*PUT': Put,
         '*RIOO': Riool,
-        ## '*WAAR': Waarneming,
+        ## '*WAAR': None,  # no action
         }
 
     with open(file_name) as f:
@@ -28,8 +28,7 @@ def parse(file_name):
             if record_type not in classes:
                 continue
             obj = classes[record_type].parse_line_from_rioolbestand(line)
-            if record_type in ['*PUT', '*RIOO']:
-                obj.save()
+            objects.append(obj)
 
 
 def main(options, args):
