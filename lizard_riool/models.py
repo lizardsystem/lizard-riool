@@ -44,7 +44,7 @@ class RioolBestandObject(models.Model):
             raise Exception("Unexpected record length")
 
     @classmethod
-    def check_fields_count(cls, record):
+    def check_field_count(cls, record):
         field_count = record.count("|") + 1
         if field_count != cls.suf_fields_count:
             raise Exception("record defines %s fields, %s expects %s" %
