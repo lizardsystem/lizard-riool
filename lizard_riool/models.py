@@ -35,7 +35,7 @@ class Upload(models.Model):
         return self.filename
 
 
-class RioolBestandObject(models.Model):
+class RioolBestandObject(object):
     "Common behaviour to all sewage objects"
 
     @classmethod
@@ -71,7 +71,7 @@ class RioolBestandObject(models.Model):
         pass
 
 
-class Put(RioolBestandObject):
+class Put(RioolBestandObject, models.Model):
     "*PUT record"
 
     suf_record_length = 498
@@ -82,6 +82,7 @@ class Put(RioolBestandObject):
         ('CAB', 37, 19),
         ]
 
+    upload = models.ForeignKey('Upload')
     CAA = models.CharField(
         help_text="Knooppuntreferentie",
         max_length=30)
@@ -111,7 +112,7 @@ class Put(RioolBestandObject):
         return self.CAA
 
 
-class Riool(RioolBestandObject):
+class Riool(RioolBestandObject, models.Model):
     "*RIOO record"
     suf_record_length = 635
     suf_fields_count = 49
@@ -125,6 +126,8 @@ class Riool(RioolBestandObject):
         ('ACR', 623, 6),
         ('ACS', 630, 6),
         ]
+
+    upload = models.ForeignKey('Upload')
     AAA = models.CharField(
         help_text="Strengreferentie",
         max_length=30)
@@ -238,7 +241,7 @@ class Riool(RioolBestandObject):
         return self.AAA
 
 
-class Rioolmeting(RioolBestandObject):
+class Rioolmeting(RioolBestandObject, models.Model):
     "*MRIO record"
     suf_record_length = 270
     suf_fields_count = 20
@@ -252,6 +255,8 @@ class Rioolmeting(RioolBestandObject):
         ('ZYT', 102, 10),
         ('ZYU', 113, 3),
         ]
+
+    upload = models.ForeignKey('Upload')
     __ZYA = models.FloatField(
         db_column='ZYA',
         help_text="Afstand")
