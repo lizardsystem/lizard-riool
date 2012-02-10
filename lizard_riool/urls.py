@@ -10,6 +10,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^beheer/$', login_required(FileView.as_view())),
+    (r'^beheer/files/$', login_required(FileView.as_view(template_name="lizard_riool/files.html"))),
     (r'^upload/$', login_required(UploadView.as_view())),
 )
 

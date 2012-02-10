@@ -1,0 +1,6 @@
+{% for file in view.files %}
+  <li class="workspace-acceptable"
+      data-name="{{ file.filename }}"
+  	  data-adapter-class="{{ file.suffix|lower }}"
+  	  data-adapter-layer-json='{"id": "{{ file.pk }}"}'>{{ file.filename }}</li>
+{% endfor %}

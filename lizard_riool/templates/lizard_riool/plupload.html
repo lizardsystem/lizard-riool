@@ -26,7 +26,7 @@ JQuery is already included by lizard. Including it twice will cause CSRF errors.
 $(function () {
     $("#uploader").plupload({
         // General settings
-        //runtimes : 'html4,flash,browserplus,silverlight,gears,html5',
+        //runtimes : 'html5,flash,browserplus,silverlight,gears,html4',
         runtimes : 'html5',
         url : '/riolering/upload/',
         //max_file_size : '4mb',
@@ -117,8 +117,7 @@ $(function () {
 
     //
     uploader.bind('UploadComplete', function (up, files) {
-        //refreshWorkspaceLayers();
-        alert("UploadComplete");
+        $('#uploaded-files').load('/riolering/beheer/files/');
     });
 
 });
