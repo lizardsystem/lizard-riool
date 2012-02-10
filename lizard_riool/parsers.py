@@ -32,9 +32,10 @@ def parse(file_name, objects=[]):
                 continue
             obj = classes[record_type].\
                 parse_line_from_rioolbestand(line, line_no)
-            obj.update_coordinates(prev_obj)
-            objects.append(obj)
-            prev_obj = obj
+            if obj is not None:
+                obj.update_coordinates(prev_obj)
+                objects.append(obj)
+                prev_obj = obj
 
 
 def main(options, args):

@@ -12,6 +12,7 @@ from django.contrib.gis.geos import LineString, Point
 from os.path import basename, splitext
 import logging
 import math
+import numpy
 
 RDNEW = 28992
 SRID = RDNEW
@@ -53,17 +54,22 @@ class RioolBestandObject(object):
 
     @classmethod
     def parse_line_from_rioolbestand(cls, record, line_number):
-        logger.debug("Parsing %s:%s at line %d" %
-                     (cls.suf_record_type, cls.suf_id, line_number))
+        logger.debug("line %d starting with '%s...'" %
+                     (line_number, record[:32]))
         cls.check_record_length(record)
         cls.check_field_count(record)
         record = ' ' + record  # makes counting positions easier
         dbobj = cls()
         for name, start, length in cls.suf_fields:
-            setattr(dbobj, name, record[start:start + length])
+            try:
+                setattr(dbobj, name, record[start:start + length])
+            except ValueError:
+                logger.warning("can't set attribute %s, using %s" % (
+                        name, record[start:start + length]))
+                return None
         return dbobj
 
-    def update_coordinates(self, prev_obj):
+    def update_coordinates(self, prev):
         """override this function if xyz information of `self` is
         related to the immediately preceding object from the input
         file
@@ -178,21 +184,34 @@ class Riool(RioolBestandObject, models.Model):
     @property
     def suf_fk_point1(self):
         "start point, a 3D object"
-        return Point(self.__AAE.x, self.__AAE.x, self.__ACR or 0)
+        return numpy.array((self.__AAE.x, self.__AAE.y, (self.__ACR or 0)))
 
     @property
     def suf_fk_point2(self):
         "end point, a 3D object"
-        return Point(self.__AAG.x, self.__AAG.x, self.__ACS or 0)
+        return numpy.array((self.__AAG.x, self.__AAG.y, (self.__ACS or 0)))
 
     @property
     def point(self):
-        return self.suf_fk_point1
+        """return the reference point during inspection
+
+        ZYB is set by the MRIO record following a RIOO object.
+        """
+        return {'1': self.suf_fk_point1,
+                '2': self.suf_fk_point2}[getattr(self, 'ZYB', '1')]
 
     @property
     def direction(self):
         "2D direction of segment"
-        return self.__AAG - self.__AAE / abs(self.__AAG - self.__AAE)
+        line_vector = (self.suf_fk_point2 - self.suf_fk_point1)[: 2]
+        length = math.sqrt(sum(line_vector * line_vector))
+        result = line_vector / length
+        logger.debug("direction of segment is %s" % result)
+        return result
+
+    @property
+    def distance(self):
+        return 0
 
     @property
     def AAE(self):
@@ -328,7 +347,10 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     @ZYU.setter
     def ZYU(self, value):
-        self.__ZYU = int(value)
+        try:
+            self.__ZYU = int(value)
+        except ValueError:
+            self.__ZYU = 0
 
     def update_coordinates(self, prev):
         """compute 3D coordinates of self
@@ -340,18 +362,26 @@ class Rioolmeting(RioolBestandObject, models.Model):
         """
 
         self.direction = prev.direction
+        self.point = None
+        if hasattr(self, 'ZYB') and not hasattr(prev, 'ZYB'):
+            prev.ZYB = self.ZYB
+
+        logger.debug("examining measurement %s:%s" % (self.measurement_type, self.distance))
+
+        ## should check whether *RIOO being referenced to could be
+        ## read correctly, otherwise can skip this *MRIO object
 
         if self.measurement_type == 'AE': 
             # Slope|Degrees
             self.point = prev.point + (
-                self.distance - prev.distance) * (
-                self.direction.x, self.direction.y, math.sin(self.value / 180.0 * math.pi))
+                self.distance - prev.distance) * numpy.array((
+                self.direction[0], self.direction[1], math.sin(self.value / 180.0 * math.pi)))
             pass
         elif self.measurement_type == 'AF':
             # Slope|Percent
             self.point = prev.point + (
-                self.distance - prev.distance) * (
-                self.direction.x, self.direction.y, self.value)
+                self.distance - prev.distance) * numpy.array((
+                self.direction[0], self.direction[1], self.value))
             pass
         elif self.measurement_type == 'CB':
             # Relative|metres
@@ -359,6 +389,8 @@ class Rioolmeting(RioolBestandObject, models.Model):
         else:
             # unrecognized, not supported
             pass
+
+        logger.debug("updated to %s" % self.point)
 
 
 class Rioolwaarneming(RioolBestandObject):
