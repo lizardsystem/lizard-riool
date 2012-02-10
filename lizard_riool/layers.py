@@ -1,7 +1,7 @@
 from django.conf import settings
 from lizard_map.coordinates import RD
 from lizard_map.workspace import WorkspaceItemAdapter
-from lizard_riool.models import Upload
+from lizard_riool.models import Put, Upload
 import mapnik
 
 
@@ -21,11 +21,13 @@ class RibAdapter(WorkspaceItemAdapter):
 
         style = mapnik.Style()
         rule = mapnik.Rule()
-        symbol = mapnik.PointSymbolizer()
+#        symbol = mapnik.PointSymbolizer()
+        symbol = mapnik.LineSymbolizer(mapnik.Color('brown'), 2)
         rule.symbols.append(symbol)
         style.rules.append(rule)
 
-        query = '(select cab as "CAB" from lizard_riool_put where upload_id=%d) data' % upload.pk
+#        query = '(select cab as "CAB" from lizard_riool_put where upload_id=%d) data' % upload.pk
+        query = '(select the_geom as "AAE" from lizard_riool_riool where upload_id=%d) data' % upload.pk
 
         default_database = settings.DATABASES['default']
         datasource = mapnik.PostGIS(
@@ -46,6 +48,10 @@ class RibAdapter(WorkspaceItemAdapter):
 
         return layers, styles
 
+    def extent(self, identifiers=None):
+        ""
+        return {'north': None, 'south': None, 'east': None, 'west': None}
+
 
 class RmbAdapter(WorkspaceItemAdapter):
     "WorkspaceItemAdapter for SUFRMB files."
@@ -60,3 +66,7 @@ class RmbAdapter(WorkspaceItemAdapter):
         styles = {}
 
         return layers, styles
+
+    def extent(self, identifiers=None):
+        ""
+        return {'north': None, 'south': None, 'east': None, 'west': None}
