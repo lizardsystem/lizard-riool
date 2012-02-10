@@ -65,7 +65,7 @@ class RioolBestandObject(object):
             try:
                 setattr(dbobj, name, record[start:start + length])
             except ValueError:
-                logger.warning("can't set attribute %s, using %s" % (
+                logger.warning("can't set attribute %s from string '%s'" % (
                         name, record[start:start + length]))
                 return None
         return dbobj
@@ -74,6 +74,14 @@ class RioolBestandObject(object):
         """override this function if xyz information of `self` is
         related to the immediately preceding object from the input
         file
+        """
+
+        pass
+
+    def add_to_graph(self, graph):
+        """add this object to a networkx graph
+
+        this object can be a node or an edge
         """
 
         pass
@@ -103,7 +111,7 @@ class Put(RioolBestandObject, models.Model):
 
     @property
     def suf_id(self):
-        return self.CAA
+        return self.CAA.strip()
 
     @property
     def point(self):
@@ -119,7 +127,10 @@ class Put(RioolBestandObject, models.Model):
         self.__CAB = Point(float(x), float(y))
 
     def __unicode__(self):
-        return self.CAA
+        return self.suf_id
+
+    def add_to_graph(self, graph):
+        graph.add_node(self.suf_id, obj=self)
 
 
 class Riool(RioolBestandObject, models.Model):
@@ -174,15 +185,15 @@ class Riool(RioolBestandObject, models.Model):
 
     @property
     def suf_id(self):
-        return self.AAA
+        return self.AAA.strip()
 
     @property
     def suf_fk_node1(self):
-        return self.AAD
+        return self.AAD.strip()
 
     @property
     def suf_fk_node2(self):
-        return self.AAF
+        return self.AAF.strip()
 
     @property
     def suf_fk_point1(self):
@@ -194,14 +205,32 @@ class Riool(RioolBestandObject, models.Model):
         "end point, a 3D object"
         return numpy.array((self.__AAG.x, self.__AAG.y, (self.__ACS or 0)))
 
+    def node(self, which=None, opposite=False):
+        """return the id of either end point
+
+        if not explicitly specified which end point to consider, look
+        for the non-standard extra ZYB field.  a *MRIO object might
+        have set it, based on the end point used during inspection.
+        """
+
+        if not opposite:
+            return {'1': self.suf_fk_node1,
+                    '2': self.suf_fk_node2}.get(which or getattr(self, 'ZYB'))
+        else:
+            return {'1': self.suf_fk_node2,
+                    '2': self.suf_fk_node1}.get(which or getattr(self, 'ZYB'))
+
     @property
     def point(self):
-        """return the reference point during inspection
+        """return the coordinates of the reference end point
 
-        ZYB is set by the MRIO record following a RIOO object.
+        which end point to consider, we look for the non-standard
+        extra ZYB field, we have it set by the *MRIO object
+        immediately following this *RIOO.
         """
+
         return {'1': self.suf_fk_point1,
-                '2': self.suf_fk_point2}[getattr(self, 'ZYB', '1')]
+                '2': self.suf_fk_point2}.get(getattr(self, 'ZYB'))
 
     @property
     def direction(self):
@@ -215,6 +244,9 @@ class Riool(RioolBestandObject, models.Model):
     @property
     def distance(self):
         return 0
+
+    def add_to_graph(self, graph):
+        graph.add_edge(self.suf_fk_node1, self.suf_fk_node2, obj=self)
 
     @property
     def AAE(self):
@@ -265,7 +297,7 @@ class Riool(RioolBestandObject, models.Model):
         super(Riool, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return self.AAA
+        return self.suf_id
 
 
 class Rioolmeting(RioolBestandObject, models.Model):
@@ -312,13 +344,24 @@ class Rioolmeting(RioolBestandObject, models.Model):
         default=0,
         help_text="Macht van de vermenigvuldigingsfactor 10")
 
+    def __unicode__(self):
+        return self.suf_id
+
     @property
     def suf_id(self):
-        return '%s:%08.2f' % (self.ZYE, self.__ZYA)
+        return '%s:%08.2f' % (self.ZYE.strip(), self.__ZYA)
+
+    @property
+    def suf_fk_edge(self):
+        return self.ZYE.strip()
 
     @property
     def distance(self):
         return self.__ZYA
+
+    @property
+    def reference(self):
+        return self.ZYB.strip()
 
     @property
     def value(self):
@@ -328,6 +371,9 @@ class Rioolmeting(RioolBestandObject, models.Model):
     def measurement_type(self):
         "combined codes for type and unit"
         return self.ZYR + self.ZYS
+
+    def add_to_graph(self, graph):
+        graph.add_node(self.suf_id, obj=self)
 
     @property
     def ZYA(self):
@@ -370,17 +416,18 @@ class Rioolmeting(RioolBestandObject, models.Model):
         various ways.  we do not support all of them.
         """
 
+        ## `self`, as a MRIO object, should check whether *RIOO being
+        ## referenced could be read correctly, otherwise we cannot do
+        ## anything here.
+
         self.direction = prev.direction
         self.point = None
-        if hasattr(self, 'ZYB') and not hasattr(prev, 'ZYB'):
+        if not hasattr(prev, 'ZYB'):
             prev.ZYB = self.ZYB
 
         logger.debug("examining measurement %s:%s" % (self.measurement_type, self.distance))
 
-        ## should check whether *RIOO being referenced to could be
-        ## read correctly, otherwise can skip this *MRIO object
-
-        if self.measurement_type == 'AE': 
+        if self.measurement_type == 'AE':
             # Slope|Degrees
             self.point = prev.point + (
                 self.distance - prev.distance) * numpy.array((
@@ -408,3 +455,6 @@ class Rioolwaarneming(RioolBestandObject):
     suf_fields_count = 23
     suf_record_type = '*WAAR'
     suf_id = None
+
+    def __unicode__(self):
+        return self.suf_id
