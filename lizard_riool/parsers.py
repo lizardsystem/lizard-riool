@@ -10,7 +10,6 @@ import logging
 import networkx as nx
 
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +45,43 @@ def post_process_rmb(graph, obj, prev):
             prev.reference,
             opposite=True)
         graph.add_edge(prev.suf_id, opposite_end)
+
+
+def examine_graph(graph, sink):
+    """calculate lost water depth for each node
+
+    starting from the given `sink` explore the graph in all possible
+    directions and identify the points where the level starts going
+    down, use these points to populate a todo list (or priority heap).
+    from the lowest turning point virtually fill the network with
+    water as long as the nodes are connected and at a level lower than
+    the turning point, then continue up to identify and add to the
+    todo list the following level turning points.
+    """
+
+    
+    todo = []  # a priority queue
+    done = set()  # keeping track of explored nodes
+
+    x, y, z = graph.node[sink]['obj'].point
+    heappush(todo, (z, sink))
+
+    while todo:
+        (water_level, item) = heappop(todo)
+        done.add(item)
+
+        ## pour water in the nodes at level lower than `water_level`
+        ## and that are reachable from `item`.  when we reach a node
+        ## at a level that is above the `water_level`, stop pouring
+        ## water in the graph, do a search for turning point and put
+        ## the turning points in the todo heap.
+
+        for candidate in graph.adj[item]:
+            pass
+        ## 
+
+        heappush(todo, ())
+        pass
 
 
 def post_process_rib(graph, obj, prev):

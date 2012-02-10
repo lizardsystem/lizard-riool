@@ -209,28 +209,28 @@ class Riool(RioolBestandObject, models.Model):
         """return the id of either end point
 
         if not explicitly specified which end point to consider, look
-        for the non-standard extra ZYB field.  a *MRIO object might
-        have set it, based on the end point used during inspection.
+        for the `reference` field.  a *MRIO object might have set it,
+        based on the end point used during inspection.
         """
 
         if not opposite:
-            return {'1': self.suf_fk_node1,
-                    '2': self.suf_fk_node2}.get(which or getattr(self, 'ZYB'))
+            return {1: self.suf_fk_node1,
+                    2: self.suf_fk_node2}.get(which or getattr(self, 'reference'))
         else:
-            return {'1': self.suf_fk_node2,
-                    '2': self.suf_fk_node1}.get(which or getattr(self, 'ZYB'))
+            return {1: self.suf_fk_node2,
+                    2: self.suf_fk_node1}.get(which or getattr(self, 'reference'))
 
     @property
     def point(self):
         """return the coordinates of the reference end point
 
-        which end point to consider, we look for the non-standard
-        extra ZYB field, we have it set by the *MRIO object
-        immediately following this *RIOO.
+        which end point to consider, we look for the `reference`
+        field, we have it set from the *MRIO object immediately
+        following this *RIOO.
         """
 
-        return {'1': self.suf_fk_point1,
-                '2': self.suf_fk_point2}.get(getattr(self, 'ZYB'))
+        return {1: self.suf_fk_point1,
+                2: self.suf_fk_point2}.get(getattr(self, 'reference'))
 
     @property
     def direction(self):
@@ -361,7 +361,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     @property
     def reference(self):
-        return self.ZYB.strip()
+        return int(self.ZYB.strip())
 
     @property
     def value(self):
@@ -422,8 +422,8 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
         self.direction = prev.direction
         self.point = None
-        if not hasattr(prev, 'ZYB'):
-            prev.ZYB = self.ZYB
+        if not hasattr(prev, 'reference'):
+            prev.reference = self.reference
 
         logger.debug("examining measurement %s:%s" % (self.measurement_type, self.distance))
 
@@ -439,11 +439,18 @@ class Rioolmeting(RioolBestandObject, models.Model):
                 self.distance - prev.distance) * numpy.array((
                 self.direction[0], self.direction[1], self.value))
             pass
+        elif self.measurement_type == 'BB':
+            logger.warning("Absolute|metres - not supported")
+            pass
         elif self.measurement_type == 'CB':
             # Relative|metres
+            self.point = prev.point + (
+                self.distance - prev.distance) * numpy.array((
+                self.direction[0], self.direction[1], 0)) + (
+                    0, 0, self.value)
             pass
         else:
-            # unrecognized, not supported
+            logger.warning("unrecognized, not supported")
             pass
 
         logger.debug("updated to %s" % self.point)
