@@ -109,13 +109,21 @@ class Put(RioolBestandObject, models.Model):
         help_text="Knooppuntcoördinaat",
         srid=SRID)
 
-    @property
-    def suf_id(self):
-        return self.CAA.strip()
+    def __init__(self, suf_id=None, x=None, y=None, z=None):
+        """initialize object with optional properties
+        """
+
+        self.__CAB = Point(x, y)
+        self.CAA = suf_id
+        self.z = z
 
     @property
     def point(self):
-        return self.__CAB
+        return numpy.array(self.__CAB.x, self.__CAB.y, self.z)
+
+    @property
+    def suf_id(self):
+        return self.CAA.strip()
 
     @property
     def CAB(self):

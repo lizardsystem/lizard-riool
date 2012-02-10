@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 def post_process_rmb(graph, obj, prev):
     if obj.suf_record_type == '*RIOO':
-        graph.add_node(obj.suf_fk_node1, obj=obj)
-        graph.add_node(obj.suf_fk_node2, obj=obj)
+        graph.add_node(obj.suf_fk_node1, obj=Put())
+        graph.add_node(obj.suf_fk_node2, obj=Put())
     elif obj.suf_record_type == '*MRIO':
         if obj.suf_fk_edge not in graph:
             logger.debug("did not find %s in graph", obj.suf_fk_edge)
@@ -73,12 +73,41 @@ def examine_graph(graph, sink):
         ## pour water in the nodes at level lower than `water_level`
         ## and that are reachable from `item`.  when we reach a node
         ## at a level that is above the `water_level`, stop pouring
-        ## water in the graph, do a search for turning point and put
-        ## the turning points in the todo heap.
+        ## water in the graph in that direction and mark the node as
+        ## emerging.  when done pouring water, do a search for turning
+        ## points starting at all emerging points and put the new
+        ## turning points in the todo heap.
 
-        for candidate in graph.adj[item]:
+        ## first we pour water in the network
+        reachable = graph.adj[item]
+        emerging = []
+        while reachable:
+            candidate = reachable.pop()
+            if candidate in done:
+                ## do not walk back
+                continue
+
+            ## mark as examined and initialize its flooded state.
+            done.add(candidate)
+            obj = graph.node[candidate]['obj']
+            obj.flooded = 0
+
+            if obj.point[2] < water_level:
+                ## mark candidate as under water
+                obj.flooded = water_level
+                reachable.extend(graph.adj[candidate])
+            else:
+                emerging.append(reachable)
             pass
-        ## 
+
+        ## now from the emerging nodes, walk up to the turning points.
+        for candidate in emerging:
+            if candidate in done:
+                continue
+
+            done.add(candidate)
+            obj = graph.node[candidate]['obj']
+            
 
         heappush(todo, ())
         pass
