@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class Upload(models.Model):
     "An uploaded file"
+    objects = models.GeoManager()
     the_file = models.FileField(upload_to='upload')
     the_time = models.DateTimeField(auto_now=True)
 
@@ -89,6 +90,7 @@ class Put(RioolBestandObject, models.Model):
         ('CAB', 37, 19),
         ]
 
+    objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
     CAA = models.CharField(
         db_column='caa',
@@ -135,6 +137,7 @@ class Riool(RioolBestandObject, models.Model):
         ('ACS', 630, 6),
         ]
 
+    objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
     AAA = models.CharField(
         db_column='aaa',
@@ -280,6 +283,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
         ('ZYU', 113, 3),
         ]
 
+    objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
     __ZYA = models.FloatField(
         db_column='zya',
@@ -351,6 +355,11 @@ class Rioolmeting(RioolBestandObject, models.Model):
             self.__ZYU = int(value)
         except ValueError:
             self.__ZYU = 0
+
+    def save(self, *args, **kwargs):
+        ## Not sure whether we want to save these into the database.
+        ## It takes a long time, because it involves many records.
+        pass
 
     def update_coordinates(self, prev):
         """compute 3D coordinates of self
