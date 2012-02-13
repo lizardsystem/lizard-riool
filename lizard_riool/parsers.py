@@ -8,44 +8,38 @@ This serves as a long usage message.
 from models import Put, Riool, Rioolmeting
 import logging
 import networkx as nx
+from heapq import heappush, heappop
 
 
 logger = logging.getLogger(__name__)
 
 
-def post_process_rmb(graph, obj, prev):
-    if obj.suf_record_type == '*RIOO':
-        graph.add_node(obj.suf_fk_node1, obj=Put())
-        graph.add_node(obj.suf_fk_node2, obj=Put())
-    elif obj.suf_record_type == '*MRIO':
-        if obj.suf_fk_edge not in graph:
-            logger.debug("did not find %s in graph", obj.suf_fk_edge)
-            return
+def convert_to_graph(pool, graph):
+    """inspect the pool of objects and produce a nx.Graph
 
-    graph.add_node(obj.suf_id, obj=obj)
-    obj.update_coordinates(prev)
+    assume the pool has been populated from a RMB file, that is:
+    assume the pool only contains as many lists as there were *RIOO
+    objects and that each list starts with the *RIOO object and
+    continues with the measurements along that object in the same
+    order as in the file.
+    """
 
-    if (obj.suf_record_type == '*MRIO' and
-        prev.suf_record_type == '*RIOO'):
-        ## leaving a manhole and starting an inspection line
-        graph.add_edge(prev.node(obj.reference), obj.suf_id)
-    elif (obj.suf_record_type == '*MRIO' and
-          prev.suf_record_type == '*MRIO'):
-        ## following an inspection line
-        graph.add_edge(prev.suf_id, obj.suf_id)
-    elif (obj.suf_record_type == '*RIOO' and
-          prev is not None and
-          prev.suf_record_type == '*MRIO' and
-          prev.suf_fk_edge in graph):
-        ## previous inspection line ended and its supporting edge was
-        ## completely specified (current obj is possibly unrelated to
-        ## it).
-        referenced_segment = graph.node[prev.suf_fk_edge]['obj']
-        opposite_end = referenced_segment.node(
-            prev.reference,
-            opposite=True)
-        graph.add_edge(prev.suf_id, opposite_end)
+    for suf_id in pool:
+        riool = pool[suf_id][0]
+        reference = inspection[0].reference
+        start_point = riool.point(reference, opposite=False)
+        end_point = riool.point(reference, opposite=True)
 
+        inspection = [start_point, Put(suf_id + '_start', start_point)]
+
+        previos_coordinates = start_point
+        for obj in pool[suf_id][1:]:
+            obj.update_coordinates(previos_coordinates)
+            previos_coordinates = obj.point
+            inspection.append(obj.point, obj)
+
+        inspection = [end_point, Put(suf_id + '_end', end_point)]
+        
 
 def examine_graph(graph, sink):
     """calculate lost water depth for each node
@@ -59,7 +53,6 @@ def examine_graph(graph, sink):
     todo list the following level turning points.
     """
 
-    
     todo = []  # a priority queue
     done = set()  # keeping track of explored nodes
 
@@ -107,50 +100,69 @@ def examine_graph(graph, sink):
 
             done.add(candidate)
             obj = graph.node[candidate]['obj']
-            
 
         heappush(todo, ())
         pass
 
 
-def post_process_rib(graph, obj, prev):
-    pass
+def parse(file_name, pool=None):
+    """parse the RxB file
 
+    inspect the file one record at a time.  categorize objects into
+    the optional pool dictionary for later further examination.
+    """
 
-def parse(file_name, objects=[]):
-    ""
+    def action_for_riool(pool, obj):
+        "add the object to the pool as a container for its measurements"
+
+        pool[obj.suf_id] = [obj]
+
+    def action_for_rioolmeting(pool, obj):
+        "add the object to the owning RIOO object"
+
+        if obj.suf_fk_edge not in pool:
+            logger.warn('rioolmeting %s refers to missing riool %s' % (
+                    obj.suf_id, obj.suf_fk_edge))
+        else:
+            pool[obj.suf_fk_edge].append(obj)
+
+    def action_for_put(pool, obj):
+        "add the object to the owning PUT object"
+
+        pass
 
     classes = {
-        ## '*ALGE': None,  # no action
-        '*MRIO': Rioolmeting,
+        '*ALGE': None,  # no action
         '*PUT': Put,
         '*RIOO': Riool,
-        ## '*WAAR': None,  # no action
+        '*WAAR': None,  # no action
+        '*MPUT': None,  # no action
+        '*MRIO': Rioolmeting,
         }
 
-    prev_obj = None
-    global graph
-    graph = nx.Graph()
+    action = {
+        '*ALGE': None,  # no action
+        '*PUT': action_for_put,
+        '*RIOO': action_for_riool,
+        '*WAAR': None,  # no action
+        '*MPUT': None,  # no action
+        '*MRIO': action_for_rioolmeting,
+        }
+
     with open(file_name) as f:
         ## using `with` makes sure the file is closed.
-        for i, line in enumerate(f):
-            line_no = i + 1
+        for line_no, line in enumerate(f):
             line = line.strip("\r\n")
             record_type = line.split('|')[0]
-            if record_type not in classes:
+            if classes.get(record_type) is None:
                 continue
             obj = (classes[record_type].
-                   parse_line_from_rioolbestand(line, line_no))
+                   parse_line_from_rioolbestand(line, line_no + 1))
             if obj is not None:
-                if file_name.lower().endswith('.rmb'):
-                    post_process_rmb(graph, obj, prev_obj)
-                elif file_name.lower().endswith('.rib'):
-                    post_process_rib(graph, obj, prev_obj)
-
-                objects.append(obj)
-                prev_obj = obj
-
-    return graph
+                if hasattr(pool, 'append'):
+                    pool.append(obj)
+                elif action.get(record_type) is not None and pool is not None:
+                    action[record_type](pool, obj)
 
 
 def main(options, args):

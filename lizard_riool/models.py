@@ -109,13 +109,13 @@ class Put(RioolBestandObject, models.Model):
         help_text="Knooppuntcoördinaat",
         srid=SRID)
 
-    def __init__(self, suf_id=None, x=None, y=None, z=None):
+    def __init__(self, suf_id=None, coords=None):
         """initialize object with optional properties
         """
 
-        self.__CAB = Point(x, y)
+        self.__CAB = Point(coords[0], coords[1])
         self.CAA = suf_id
-        self.z = z
+        self.z = coords[2]
 
     @property
     def point(self):
@@ -228,17 +228,14 @@ class Riool(RioolBestandObject, models.Model):
             return {1: self.suf_fk_node2,
                     2: self.suf_fk_node1}.get(which or getattr(self, 'reference'))
 
-    @property
-    def point(self):
-        """return the coordinates of the reference end point
-
-        which end point to consider, we look for the `reference`
-        field, we have it set from the *MRIO object immediately
-        following this *RIOO.
+    def point(self, which, opposite):
+        """return the coordinates of either end point
         """
 
+        if opposite:
+            which = 3 - which
         return {1: self.suf_fk_point1,
-                2: self.suf_fk_point2}.get(getattr(self, 'reference'))
+                2: self.suf_fk_point2}[which]
 
     @property
     def direction(self):
