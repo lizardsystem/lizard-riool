@@ -7,7 +7,7 @@ This serves as a long usage message.
 
 from models import Put, Riool, Rioolmeting
 import logging
-import networkx as nx
+import math
 from heapq import heappush, heappop
 
 
@@ -26,20 +26,27 @@ def convert_to_graph(pool, graph):
 
     for suf_id in pool:
         riool = pool[suf_id][0]
-        reference = inspection[0].reference
+        reference = pool[suf_id][1].reference  # choice
         start_point = riool.point(reference, opposite=False)
         end_point = riool.point(reference, opposite=True)
+        logger.debug("start-end: %s-%s" % (start_point, end_point))
 
-        inspection = [start_point, Put(suf_id + '_start', start_point)]
+        prev_point = start_point
+        direction = (end_point - start_point)
+        direction = direction / math.sqrt(sum(pow(direction, 2)))
 
-        previos_coordinates = start_point
+        prev_distance = 0
         for obj in pool[suf_id][1:]:
-            obj.update_coordinates(previos_coordinates)
-            previos_coordinates = obj.point
-            inspection.append(obj.point, obj)
+            obj.update_coordinates(start_point, direction, prev_distance)
+            logger.debug("adding edge %s-%s" % (prev_point, obj.point))
+            graph.add_edge(tuple(prev_point), tuple(obj.point),
+                           obj=obj, segment=riool)
+            prev_point = obj.point
 
-        inspection = [end_point, Put(suf_id + '_end', end_point)]
-        
+        logger.debug("adding edge %s-%s" % (obj.point, end_point))
+        graph.add_edge(tuple(obj.point), tuple(end_point),
+                       obj=None, segment=riool)
+
 
 def examine_graph(graph, sink):
     """calculate lost water depth for each node

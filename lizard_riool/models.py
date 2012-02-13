@@ -70,7 +70,7 @@ class RioolBestandObject(object):
                 return None
         return dbobj
 
-    def update_coordinates(self, prev):
+    def update_coordinates(self, reference_coordinates):
         """override this function if xyz information of `self` is
         related to the immediately preceding object from the input
         file
@@ -414,46 +414,37 @@ class Rioolmeting(RioolBestandObject, models.Model):
         ## It takes a long time, because it involves many records.
         pass
 
-    def update_coordinates(self, prev):
+    def update_coordinates(self, base, direction, prev_distance):
         """compute 3D coordinates of self
 
-        the 3D coordinates of self can be computed using the
-        coordinates of the preceding object and the measurement
-        contained at self.  the measurement itself can be specified in
-        various ways.  we do not support all of them.
+        the 3D coordinates of self can be specified in quite a few
+        different ways. we do not support all of them.
+
+        TODO: check and fix the calculation.
         """
-
-        ## `self`, as a MRIO object, should check whether *RIOO being
-        ## referenced could be read correctly, otherwise we cannot do
-        ## anything here.
-
-        self.direction = prev.direction
-        self.point = None
-        if not hasattr(prev, 'reference'):
-            prev.reference = self.reference
 
         logger.debug("examining measurement %s:%s" % (self.measurement_type, self.distance))
 
         if self.measurement_type == 'AE':
             # Slope|Degrees
-            self.point = prev.point + (
-                self.distance - prev.distance) * numpy.array((
-                self.direction[0], self.direction[1], math.sin(self.value / 180.0 * math.pi)))
+            self.point = base + (
+                self.distance - prev_distance) * numpy.array((
+                direction[0], direction[1], math.sin(self.value / 180.0 * math.pi)))
             pass
         elif self.measurement_type == 'AF':
             # Slope|Percent
-            self.point = prev.point + (
-                self.distance - prev.distance) * numpy.array((
-                self.direction[0], self.direction[1], self.value))
+            self.point = base + (
+                self.distance - prev_distance) * numpy.array((
+                direction[0], direction[1], self.value))
             pass
         elif self.measurement_type == 'BB':
             logger.warning("Absolute|metres - not supported")
             pass
         elif self.measurement_type == 'CB':
             # Relative|metres
-            self.point = prev.point + (
-                self.distance - prev.distance) * numpy.array((
-                self.direction[0], self.direction[1], 0)) + (
+            self.point = base + (
+                self.distance - prev_distance) * numpy.array((
+                direction[0], direction[1], 0)) + (
                     0, 0, self.value)
             pass
         else:
