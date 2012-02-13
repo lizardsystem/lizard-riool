@@ -112,10 +112,11 @@ class Put(RioolBestandObject, models.Model):
     def __init__(self, suf_id=None, coords=None):
         """initialize object with optional properties
         """
-
-        self.__CAB = Point(coords[0], coords[1])
+        # Mario, the current parser calls __init__()
+        # without parameters and chokes on this.
+#        self.__CAB = Point(coords[0], coords[1])
         self.CAA = suf_id
-        self.z = coords[2]
+#        self.z = coords[2]
 
     @property
     def point(self):
