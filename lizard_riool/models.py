@@ -109,15 +109,21 @@ class Put(RioolBestandObject, models.Model):
         help_text="Knooppuntcoördinaat",
         srid=SRID)
 
-    def __init__(self, suf_id=None, coords=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """initialize object with optional properties
         """
+        suf_id = kwargs.get('suf_id')
+        coords = kwargs.get('coords')
+        if suf_id is not None:
+            del kwargs['suf_id']
+        if coords is not None:
+            del kwargs['coords']
         super(Put, self).__init__(*args, **kwargs)
-        # Mario, the current parser calls __init__()
-        # without parameters and chokes on this.
-#        self.__CAB = Point(coords[0], coords[1])
-        self.CAA = suf_id
-#        self.z = coords[2]
+        if suf_id is not None:
+            self.CAA = suf_id
+        if coords is not None:
+            self.__CAB = Point(coords[0], coords[1])
+            self.z = coords[2]
 
     @property
     def point(self):

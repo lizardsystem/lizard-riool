@@ -31,6 +31,13 @@ def convert_to_graph(pool, graph):
         end_point = riool.point(reference, opposite=True)
         logger.debug("start-end: %s-%s" % (start_point, end_point))
 
+        graph.add_node(tuple(start_point),
+                       obj=Put(suf_id=suf_id + '_start',
+                               coords=start_point))
+        graph.add_node(tuple(end_point),
+                       obj=Put(suf_id=suf_id + '_end',
+                               coords=end_point))
+
         prev_point = start_point
         direction = (end_point - start_point)
         direction = direction / math.sqrt(sum(pow(direction, 2)))
@@ -38,6 +45,8 @@ def convert_to_graph(pool, graph):
         prev_distance = 0
         for obj in pool[suf_id][1:]:
             obj.update_coordinates(start_point, direction, prev_distance)
+            graph.add_node(tuple(obj.point),
+                           obj=obj)
             logger.debug("adding edge %s-%s" % (prev_point, obj.point))
             graph.add_edge(tuple(prev_point), tuple(obj.point),
                            obj=obj, segment=riool)
@@ -107,8 +116,9 @@ def examine_graph(graph, sink):
 
             done.add(candidate)
             obj = graph.node[candidate]['obj']
+            ## TODO
 
-        heappush(todo, ())
+        heappush(todo, ())  # TODO
         pass
 
 
