@@ -127,7 +127,7 @@ class Put(RioolBestandObject, models.Model):
 
     @property
     def point(self):
-        return numpy.array(self.__CAB.x, self.__CAB.y, self.z)
+        return numpy.array((self.__CAB.x, self.__CAB.y, self.z))
 
     @property
     def suf_id(self):
@@ -221,7 +221,7 @@ class Riool(RioolBestandObject, models.Model):
         "end point, a 3D object"
         return numpy.array((self.__AAG.x, self.__AAG.y, (self.__ACS or 0)))
 
-    def node(self, which=None, opposite=False):
+    def suf_fk_node(self, which=None, opposite=False):
         """return the id of either end point
 
         if not explicitly specified which end point to consider, look

@@ -32,10 +32,12 @@ def convert_to_graph(pool, graph):
         logger.debug("start-end: %s-%s" % (start_point, end_point))
 
         graph.add_node(tuple(start_point),
-                       obj=Put(suf_id=suf_id + '_start',
+                       obj=Put(suf_id=riool.suf_fk_node(reference, 
+                                                        opposite=False),
                                coords=start_point))
         graph.add_node(tuple(end_point),
-                       obj=Put(suf_id=suf_id + '_end',
+                       obj=Put(suf_id=riool.suf_fk_node(reference, 
+                                                        opposite=True),
                                coords=end_point))
 
         prev_point = start_point
@@ -77,6 +79,8 @@ def examine_graph(graph, sink):
 
     while todo:
         (water_level, item) = heappop(todo)
+
+        logger.debug("%s is a start point" % (item, ))
         done.add(item)
 
         ## pour water in the nodes at level lower than `water_level`
@@ -88,7 +92,7 @@ def examine_graph(graph, sink):
         ## turning points in the todo heap.
 
         ## first we pour water in the network
-        reachable = graph.adj[item]
+        reachable = list(graph.adj[item])
         emerging = []
         while reachable:
             candidate = reachable.pop()
@@ -97,7 +101,9 @@ def examine_graph(graph, sink):
                 continue
 
             ## mark as examined and initialize its flooded state.
+            logger.debug("%s reached pouring water" % (item, ))
             done.add(candidate)
+
             obj = graph.node[candidate]['obj']
             obj.flooded = 0
 
@@ -106,20 +112,31 @@ def examine_graph(graph, sink):
                 obj.flooded = water_level
                 reachable.extend(graph.adj[candidate])
             else:
-                emerging.append(reachable)
+                emerging.append(tuple(obj.point))
             pass
 
-        ## now from the emerging nodes, walk up to the turning points.
-        for candidate in emerging:
-            if candidate in done:
-                continue
+        ## now from the emerging nodes, walk up to the turning points,
+        ## mark all nodes along the road as visited and add the
+        ## turning points to the todo heap (their priority is given by
+        ## their third coordinate).
+        for going_up in emerging:
+            reachable = list(graph.adj[going_up])
 
-            done.add(candidate)
-            obj = graph.node[candidate]['obj']
-            ## TODO
+            prev_level = graph.node[going_up]['obj'].point[2]
+            while reachable:
+                candidate = reachable.pop()
+                if candidate in done:
+                    continue
+            
+                ## mark as examined and as not flooded.
+                logger.debug("%s reached walking up" % (item, ))
+                done.add(candidate)
 
-        heappush(todo, ())  # TODO
-        pass
+                obj = graph.node[candidate]['obj']
+                obj.flooded = 0
+                ## TODO ...
+
+            heappush(todo, ())  # TODO
 
 
 def parse(file_name, pool=None):
