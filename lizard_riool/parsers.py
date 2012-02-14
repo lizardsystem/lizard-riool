@@ -32,11 +32,11 @@ def convert_to_graph(pool, graph):
         logger.debug("id of line / start-end: %s / %s-%s" % (suf_id, start_point, end_point))
 
         graph.add_node(tuple(start_point),
-                       obj=Put(suf_id=riool.suf_fk_node(reference, 
+                       obj=Put(suf_id=riool.suf_fk_node(reference,
                                                         opposite=False),
                                coords=start_point))
         graph.add_node(tuple(end_point),
-                       obj=Put(suf_id=riool.suf_fk_node(reference, 
+                       obj=Put(suf_id=riool.suf_fk_node(reference,
                                                         opposite=True),
                                coords=end_point))
 
@@ -46,7 +46,6 @@ def convert_to_graph(pool, graph):
         direction = direction / math.sqrt(sum(pow(direction[:2], 2)))
         logger.debug("'2D-unit' vector of this segment is %s" % direction)
 
-        prev_distance = 0
         for obj in pool[suf_id][1:]:
             obj.update_coordinates(start_point, direction, prev_point)
             graph.add_node(tuple(obj.point),
@@ -84,7 +83,6 @@ def examine_graph(graph, sink):
         (water_level, item) = heappop(todo)
 
         logger.debug("%s is a start point" % (item, ))
-        done.add(item)
 
         ## pour water in the nodes at level lower than `water_level`
         ## and that are reachable from `item`.  when we reach a node
@@ -95,51 +93,34 @@ def examine_graph(graph, sink):
         ## turning points in the todo heap.
 
         ## first we pour water in the network
-        reachable = list(graph.adj[item])
-        emerging = []
-        while reachable:
-            candidate = reachable.pop()
-            if candidate in done:
-                ## do not walk back
-                continue
+        under_water, shore_nodes = dfs_preorder_nodes(
+            graph, item, done,
+            lambda p, c: graph.node[c]['obj'].point[2] < water_level)
 
-            ## mark as examined and initialize its flooded state.
-            logger.debug("%s reached pouring water" % (item, ))
-            done.add(candidate)
+        logger.debug("nodes under water: %s" % under_water)
+        logger.debug("nodes reached by water: %s" % shore_nodes)
 
-            obj = graph.node[candidate]['obj']
-            obj.flooded = 0
+        done.add(item)
+        done = done.union(under_water)
+        for i in under_water:
+            graph.node[i]['obj'].flooded = water_level
 
-            if obj.point[2] < water_level:
-                ## mark candidate as under water
-                obj.flooded = water_level
-                reachable.extend(graph.adj[candidate])
-            else:
-                emerging.append(tuple(obj.point))
-            pass
+        for shore_node in shore_nodes:
+            going_up, peak_nodes = dfs_preorder_nodes(
+                graph, shore_node, done,
+                lambda p, c: (graph.node[c]['obj'].point[2] >= 
+                              graph.node[p]['obj'].point[2]))
 
-        ## now from the emerging nodes, walk up to the turning points,
-        ## mark all nodes along the road as visited and add the
-        ## turning points to the todo heap (their priority is given by
-        ## their third coordinate).
-        for going_up in emerging:
-            reachable = list(graph.adj[going_up])
+            logger.debug("nodes visited going up: %s" % going_up)
+            logger.debug("nodes that form a peak: %s" % peak_nodes)
 
-            prev_level = graph.node[going_up]['obj'].point[2]
-            while reachable:
-                candidate = reachable.pop()
-                if candidate in done:
-                    continue
-            
-                ## mark as examined and as not flooded.
-                logger.debug("%s reached walking up" % (item, ))
-                done.add(candidate)
+            done = done.union(going_up)
+            for i in going_up:
+                graph.node[i]['obj'].flooded = 0
 
-                obj = graph.node[candidate]['obj']
-                obj.flooded = 0
-                ## TODO ...
-
-            heappush(todo, ())  # TODO
+            for i in peak_nodes:
+                graph.node[i]['obj'].flooded = 0
+                heappush(todo, (i[2], i))
 
 
 def parse(file_name, pool=None):
@@ -200,6 +181,42 @@ def parse(file_name, pool=None):
                     pool.append(obj)
                 elif action.get(record_type) is not None and pool is not None:
                     action[record_type](pool, obj)
+
+
+def dfs_preorder_nodes(G, source, visited, condition):
+    """Produce nodes in a depth-first-search pre-ordering starting at
+    source and skipping the already visited nodes and while condition
+    holds.
+    """
+    # Based on http://www.ics.uci.edu/~eppstein/PADS/DFS.py
+    # by D. Eppstein, July 2004.
+    ##
+    # networkx.algorithms.traversal.depth_first_search.dfs_labeled_edges,
+    # adapted, adding the visited and condition parameters.
+
+    nodes = [source]
+    visited = set(visited)
+    visited.discard(source)
+    satisfied = []
+    border = []
+    for start in nodes:
+        if start in visited:
+            continue
+        stack = [(start, iter(G[start]))]
+        while stack:
+            parent, children = stack[-1]
+            try:
+                child = next(children)
+                if child not in visited:
+                    visited.add(child)
+                    if condition(parent, child):
+                        satisfied.append(child)
+                        stack.append((child, iter(G[child])))
+                    else:
+                        border.append(child)
+            except StopIteration:
+                stack.pop()
+    return satisfied, border
 
 
 def main(options, args):

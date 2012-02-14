@@ -145,9 +145,6 @@ class Put(RioolBestandObject, models.Model):
     def __unicode__(self):
         return self.suf_id
 
-    def add_to_graph(self, graph):
-        graph.add_node(self.suf_id, obj=self)
-
 
 class Riool(RioolBestandObject, models.Model):
     "*RIOO record"
@@ -257,9 +254,6 @@ class Riool(RioolBestandObject, models.Model):
     @property
     def distance(self):
         return 0
-
-    def add_to_graph(self, graph):
-        graph.add_edge(self.suf_fk_node1, self.suf_fk_node2, obj=self)
 
     @property
     def AAE(self):
@@ -384,9 +378,6 @@ class Rioolmeting(RioolBestandObject, models.Model):
     def measurement_type(self):
         "combined codes for type and unit"
         return self.ZYR + self.ZYS
-
-    def add_to_graph(self, graph):
-        graph.add_node(self.suf_id, obj=self)
 
     @property
     def ZYA(self):
