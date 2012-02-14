@@ -18,71 +18,87 @@ params = {
 }
 
 
-class RibAdapter(WorkspaceItemAdapter):
-    "WorkspaceItemAdapter for SUFRIB files."
+class Adapter(WorkspaceItemAdapter):
+    """Superclass for SUFRIB and SUBRMB WorkspaceItemAdapters.
+
+    Both SUFRIB and SUBRMB files may have *RIOO and/or *PUT
+    records, so visualization of these can be shared in a
+    superclass.
+    """
 
     def __init__(self, *args, **kwargs):
-        super(RibAdapter, self).__init__(*args, **kwargs)
-        self.id = int(self.layer_arguments['id'])
+        super(Adapter, self).__init__(*args, **kwargs)
+        self.id = int(self.layer_arguments['id'])  # upload_id
 
     def layer(self, layer_ids=None, request=None):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
-#
+        # Visualization of *PUT records
 
         style = mapnik.Style()
         rule = mapnik.Rule()
         symbol = mapnik.PointSymbolizer()
         rule.symbols.append(symbol)
         style.rules.append(rule)
+        styles['putStyle'] = style
 
-        query = '(select cab from lizard_riool_put ' + \
-            'where upload_id=%d) data' % self.id
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer('caa', 'DejaVu Sans Book', 10,
+            mapnik.Color('black'))
+        symbol.allow_overlap = True
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putLabelStyle'] = style
+
+        query = """(select caa, cab from lizard_riool_put
+            where upload_id=%d) data""" % self.id
         params['table'] = query
         params['geometry_field'] = 'cab'
         datasource = mapnik.PostGIS(**params)
 
-        layer = mapnik.Layer("put", RD)
+        layer = mapnik.Layer('putLayer', RD)
         layer.datasource = datasource
         layer.maxzoom = 35000
-        layer.styles.append("put")
-
+        layer.styles.append('putStyle')
+        layer.styles.append('putLabelStyle')
         layers.append(layer)
-        styles["put"] = style
 
-        #
+        # Visualization of *RIOOL records
 
         style = mapnik.Style()
         rule = mapnik.Rule()
-#        rule.max_scale = 50000
-        symbol = mapnik.LineSymbolizer(mapnik.Color('brown'), 2)
+        symbol = mapnik.LineSymbolizer(mapnik.Color('brown'), 1.5)
         rule.symbols.append(symbol)
         style.rules.append(rule)
+        styles['rioolStyle'] = style
 
+        style = mapnik.Style()
         rule = mapnik.Rule()
-        symbol = mapnik.TextSymbolizer("aaa", "DejaVu Sans Book", 10,
-                                       mapnik.Color("black"))
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer('aaa', 'DejaVu Sans Book', 10,
+            mapnik.Color('brown'))
+        symbol.allow_overlap = True
         symbol.label_placement = mapnik.label_placement.LINE_PLACEMENT
         symbol.displacement(0, 6)
         rule.symbols.append(symbol)
         style.rules.append(rule)
+        styles['rioolLabelStyle'] = style
 
-        query = '(select aaa, the_geom from lizard_riool_riool ' + \
-            'where upload_id=%d) data' % self.id
+        query = """(select aaa, the_geom from lizard_riool_riool
+            where upload_id=%d) data""" % self.id
         params['table'] = query
         params['geometry_field'] = 'the_geom'
         datasource = mapnik.PostGIS(**params)
 
-        layer = mapnik.Layer("riool", RD)
+        layer = mapnik.Layer("rioolLayer", RD)
         layer.datasource = datasource
         layer.maxzoom = 35000
-        layer.styles.append("riool")
-
+        layer.styles.append("rioolStyle")
+        layer.styles.append("rioolLabelStyle")
         layers.append(layer)
-        styles["riool"] = style
-
-        #
 
         return layers, styles
 
@@ -102,20 +118,9 @@ class RibAdapter(WorkspaceItemAdapter):
         }
 
 
-class RmbAdapter(WorkspaceItemAdapter):
+class RibAdapter(Adapter):
+    "WorkspaceItemAdapter for SUFRIB files."
+
+
+class RmbAdapter(Adapter):
     "WorkspaceItemAdapter for SUFRMB files."
-
-    def __init__(self, *args, **kwargs):
-        super(RmbAdapter, self).__init__(*args, **kwargs)
-        self.id = self.layer_arguments["id"]
-
-    def layer(self, layer_ids=None, request=None):
-        "Return Mapnik layers and styles."
-        layers = []
-        styles = {}
-
-        return layers, styles
-
-    def extent(self, identifiers=None):
-        ""
-        return {'north': None, 'south': None, 'east': None, 'west': None}
