@@ -70,7 +70,7 @@ class RioolBestandObject(object):
                 return None
         return dbobj
 
-    def update_coordinates(self, reference_coordinates):
+    def update_coordinates(self, base, direction, prev):
         """override this function if xyz information of `self` is
         related to the immediately preceding object from the input
         file
@@ -420,7 +420,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
         ## It takes a long time, because it involves many records.
         pass
 
-    def update_coordinates(self, base, direction, prev_distance):
+    def update_coordinates(self, base, direction, prev):
         """compute 3D coordinates of self
 
         the 3D coordinates of self can be specified in quite a few
@@ -429,30 +429,33 @@ class Rioolmeting(RioolBestandObject, models.Model):
         TODO: check and fix the calculation.
         """
 
-        logger.debug("examining measurement %s:%s" % (self.measurement_type, self.distance))
+        logger.debug("examining measurement %s:%s:%s" % (
+                self.measurement_type, self.distance, self.value))
+
+        prev_distance = math.sqrt(sum(pow(prev - base, 2)))
 
         if self.measurement_type == 'AE':
             # Slope|Degrees
-            self.point = base + (
+            self.point = prev + (
                 self.distance - prev_distance) * numpy.array((
                 direction[0], direction[1], math.sin(self.value / 180.0 * math.pi)))
-            pass
         elif self.measurement_type == 'AF':
             # Slope|Percent
-            self.point = base + (
+            self.point = prev + (
                 self.distance - prev_distance) * numpy.array((
                 direction[0], direction[1], self.value))
-            pass
         elif self.measurement_type == 'BB':
-            logger.warning("Absolute|metres - not supported")
-            pass
+            ## Absolute|metres (useful internally, not used by customer)
+            self.point = numpy.array(tuple(
+                    (base + self.distance * direction)[:2])
+                                     + (self.value,))
         elif self.measurement_type == 'CB':
             # Relative|metres
-            self.point = base + (
-                self.distance - prev_distance) * numpy.array((
-                direction[0], direction[1], 0)) + (
-                    0, 0, self.value)
-            pass
+            ## offset is relative to an ideal straight start-end
+            ## connection
+            self.point = (base
+                          + self.distance * direction
+                          + numpy.array((0, 0, self.value)))
         else:
             logger.warning("unrecognized, not supported")
             pass
