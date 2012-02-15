@@ -117,6 +117,9 @@ class Adapter(WorkspaceItemAdapter):
             'east': box[2], 'north': box[3],
         }
 
+    def search(self, x, y, radius=None):
+        return []
+
 
 class RibAdapter(Adapter):
     "WorkspaceItemAdapter for SUFRIB files."
