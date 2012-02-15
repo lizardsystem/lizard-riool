@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.2 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Implemented workspace item adapters for sufrib and sufrmb.
 
 
 0.1 (2012-02-10)
