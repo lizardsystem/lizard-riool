@@ -95,7 +95,7 @@ def examine_graph(graph, sink):
         ## first we pour water in the network
         under_water, shore_nodes = dfs_preorder_nodes(
             graph, item, done,
-            lambda p, c: graph.node[c]['obj'].point[2] < water_level)
+            lambda p, c: c[2] < water_level)
 
         logger.debug("nodes under water: %s" % under_water)
         logger.debug("nodes reached by water: %s" % shore_nodes)
@@ -108,8 +108,7 @@ def examine_graph(graph, sink):
         for shore_node in shore_nodes:
             going_up, peak_nodes = dfs_preorder_nodes(
                 graph, shore_node, done,
-                lambda p, c: (graph.node[c]['obj'].point[2] >= 
-                              graph.node[p]['obj'].point[2]))
+                lambda p, c: c[2] >= p[2])
 
             logger.debug("nodes visited going up: %s" % going_up)
             logger.debug("nodes that form a peak: %s" % peak_nodes)
@@ -185,8 +184,10 @@ def parse(file_name, pool=None):
 
 def dfs_preorder_nodes(G, source, visited, condition):
     """Produce nodes in a depth-first-search pre-ordering starting at
-    source and skipping the already visited nodes and while condition
-    holds.
+    source and skipping the already visited nodes and do so only while
+    condition holds.  if condition is given, also return the list of
+    edges along which the condition did not hold and where the visit
+    was interrupted.
     """
     # Based on http://www.ics.uci.edu/~eppstein/PADS/DFS.py
     # by D. Eppstein, July 2004.
@@ -196,27 +197,24 @@ def dfs_preorder_nodes(G, source, visited, condition):
 
     nodes = [source]
     visited = set(visited)
-    visited.discard(source)
     satisfied = []
     border = []
     for start in nodes:
         if start in visited:
             continue
-        stack = [(start, iter(G[start]))]
+        stack = [(start, iter([start]))]
         while stack:
-            parent, children = stack[-1]
-            try:
-                child = next(children)
-                if child not in visited:
+            parent, children = stack.pop()
+            for child in children:
+                if child in visited:
+                    continue
+                if condition(parent, child):
                     visited.add(child)
-                    if condition(parent, child):
-                        satisfied.append(child)
-                        stack.append((child, iter(G[child])))
-                    else:
-                        border.append(child)
-            except StopIteration:
-                stack.pop()
-    return satisfied, border
+                    satisfied.append(child)
+                    stack.append((child, iter(sorted(G[child]))))
+                else:
+                    border.append((parent, child))
+    return satisfied, [(p, c) for p, c in border if c not in set(satisfied)]
 
 
 def main(options, args):
