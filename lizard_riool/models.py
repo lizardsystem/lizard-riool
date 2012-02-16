@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 class Upload(models.Model):
     "An uploaded file"
     objects = models.GeoManager()
-    the_file = models.FileField(upload_to='upload')
-    the_time = models.DateTimeField(auto_now=True)
+    the_file = models.FileField(upload_to='upload', verbose_name='File')
+    the_time = models.DateTimeField(auto_now=True, verbose_name='Time')
 
     @property
     def filename(self):
@@ -43,14 +43,15 @@ class RioolBestandObject(object):
 
     @classmethod
     def check_record_length(cls, record):
-        if len(record.strip("\n\r")) != cls.suf_record_length:
+        # S.rstrip("\r\n") will remove any EOL terminator (not just Windows)
+        if len(record.rstrip("\r\n")) != cls.suf_record_length:
             raise Exception("Unexpected record length")
 
     @classmethod
     def check_field_count(cls, record):
         field_count = record.count("|") + 1
         if field_count != cls.suf_fields_count:
-            raise Exception("record defines %s fields, %s expects %s" %
+            raise Exception("Record defines %s fields, %s expects %s" %
                 (field_count, cls.suf_record_type, cls.suf_fields_count))
 
     @classmethod
@@ -100,14 +101,17 @@ class Put(RioolBestandObject, models.Model):
 
     objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
-    CAA = models.CharField(
+    __CAA = models.CharField(
         db_column='caa',
         help_text="Knooppuntreferentie",
-        max_length=30)
+        max_length=30,
+        )
     __CAB = models.PointField(
         db_column='cab',
         help_text="Knooppuntcoördinaat",
-        srid=SRID)
+        srid=SRID,
+        verbose_name='CAB',
+        )
 
     def __init__(self, *args, **kwargs):
         """initialize object with optional properties
@@ -131,7 +135,15 @@ class Put(RioolBestandObject, models.Model):
 
     @property
     def suf_id(self):
-        return self.CAA.strip()
+        return self.CAA
+
+    @property
+    def CAA(self):
+        return self.__CAA
+
+    @CAA.setter
+    def CAA(self, value):
+        self.__CAA = value.strip()
 
     @property
     def CAB(self):
@@ -144,6 +156,9 @@ class Put(RioolBestandObject, models.Model):
 
     def __unicode__(self):
         return self.suf_id
+
+    class Meta:
+        verbose_name_plural = "Putten"
 
 
 class Riool(RioolBestandObject, models.Model):
