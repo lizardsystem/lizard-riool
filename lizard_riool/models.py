@@ -116,15 +116,10 @@ class Put(RioolBestandObject, models.Model):
     def __init__(self, *args, **kwargs):
         """initialize object with optional properties
         """
-        suf_id = kwargs.get('suf_id')
         coords = kwargs.get('coords')
-        if suf_id is not None:
-            del kwargs['suf_id']
         if coords is not None:
             del kwargs['coords']
         super(Put, self).__init__(*args, **kwargs)
-        if suf_id is not None:
-            self.CAA = suf_id
         if coords is not None:
             self.__CAB = Point(coords[0], coords[1])
             self.z = coords[2]
@@ -136,6 +131,10 @@ class Put(RioolBestandObject, models.Model):
     @property
     def suf_id(self):
         return self.CAA
+
+    @suf_id.setter
+    def suf_id(self, value):
+        self.CAA = value
 
     @property
     def CAA(self):
@@ -155,7 +154,7 @@ class Put(RioolBestandObject, models.Model):
         self.__CAB = Point(float(x), float(y))
 
     def __unicode__(self):
-        return self.suf_id
+        return self.CAA
 
     class Meta:
         verbose_name_plural = "Putten"
