@@ -298,6 +298,10 @@ class Convert_To_Graph_TestSuite(TestCase):
         current = [i.__class__ for i in G.node]
         self.assertEqual(target, current)
 
+        target = [3] * len(G.node)
+        current = [len(i) for i in G.node]
+        self.assertEqual(target, current)
+
     def test001(self):
         "we empty graph before we populate it"
 
@@ -384,3 +388,53 @@ class Convert_To_Graph_TestSuite(TestCase):
                          G.edge[(5.0, 0.0, 3.0)].keys())
         self.assertEqual([(5.0, 5.0, 4.5999999999999996)],
                          G.edge[(6.0, 5.0, 5.0)].keys())
+
+
+class Examine_Graph_TestSuite(TestCase):
+
+    def test000(self):
+        "watering a simple network"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        convert_to_graph(pool, G)
+
+        examine_graph(G, (0.0, 0.0, 0.0))
+
+        target = [((0.0, 0.0, 0.0), 0),
+
+                  ((0.0, 1.0, 2.0), 0),
+                  ((0.0, 2.0, 0.0), 2.0),
+                  ((0.0, 3.0, 1.0), 1.0),
+                  ((0.0, 4.0, 2.0), 0),
+                  ((0.0, 5.0, 3.0), 0),
+
+                  ((0.0, 6.0, 4.0), 0),
+                  ((0.0, 7.0, 3.0), 1.0),
+                  ((0.0, 8.0, 4.0), 0),
+
+                  ((0.8, 5.6, 4.0), 0),
+                  ((1.6, 6.2, 3.0), 1.0),
+                  ((2.4000000000000004, 6.8, 3.0), 1.0),
+                  ((3.2, 7.4, 3.0), 1.0),
+                  ((4.0, 8.0, 4.0), 0),
+
+                  ((1.0, 0.0, 2.0), 0),
+                  ((2.0, 0.0, 1.0), 1.0),
+                  ((3.0, 0.0, 2.0), 0),
+                  ((4.0, 0.0, 3.0), 0),
+                  ((5.0, 0.0, 3.0), 0),
+
+                  ((1.0, 5.0, 4.0), 0),
+                  ((2.0, 5.0, 3.0), 1.0),
+                  ((3.0, 5.0, 4.0), 0),
+
+                  ((4.0, 5.0, 4.2), 0),
+                  ((5.0, 5.0, 4.6), 0),
+                  ((6.0, 5.0, 5.0), 0),
+                  ]
+
+        current = [(n, G.node[n]['obj'].flooded) for n in sorted(G.node)]
+        
+        self.assertEqual(sorted(target), current)

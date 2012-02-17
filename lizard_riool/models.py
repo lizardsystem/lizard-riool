@@ -405,6 +405,10 @@ class Rioolmeting(RioolBestandObject, models.Model):
         return self.__ZYT * 10 ** self.__ZYU
 
     @property
+    def z(self):
+        return self.point[2]
+
+    @property
     def measurement_type(self):
         "combined codes for type and unit"
         return self.ZYR + self.ZYS
