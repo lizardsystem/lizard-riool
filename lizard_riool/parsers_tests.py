@@ -115,9 +115,10 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         """
         A--B
         |  |
-        D--C
-           |
-           E
+        D--C--E
+
+        can't reach E.  D is first seen as unreachable from A, then is
+        reached from C.
         """
         G = nx.Graph()
         A = ("A", 0)
@@ -135,9 +136,10 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         """
         A--B
         |  |
-        D--C
-           |
-           E
+        D--C--E
+
+        can't reach neither D nor E.
+        D can't be reached from A and C
         """
         G = nx.Graph()
         A = ("A", 0)
@@ -153,11 +155,7 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
 
     def test200(self):
         """
-        A--B
-        |  |
-        D--C
-           |
-           E
+        A-AB1-AB2-AB3-AB4-B
         """
         G = nx.Graph()
         A = ("A", 10)
