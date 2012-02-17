@@ -34,7 +34,7 @@ class Adapter(WorkspaceItemAdapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
-        # Visualization of *PUT records
+        # Visualization of "putten"
 
         style = mapnik.Style()
         rule = mapnik.Rule()
@@ -46,17 +46,17 @@ class Adapter(WorkspaceItemAdapter):
         style = mapnik.Style()
         rule = mapnik.Rule()
         rule.max_scale = 1700
-        symbol = mapnik.TextSymbolizer('caa', 'DejaVu Sans Book', 10,
+        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
             mapnik.Color('black'))
         symbol.allow_overlap = True
         rule.symbols.append(symbol)
         style.rules.append(rule)
         styles['putLabelStyle'] = style
 
-        query = """(select caa, cab from lizard_riool_put
+        query = """(select * from lizard_riool_putten
             where upload_id=%d) data""" % self.id
         params['table'] = query
-        params['geometry_field'] = 'cab'
+        params['geometry_field'] = 'the_geom'
         datasource = mapnik.PostGIS(**params)
 
         layer = mapnik.Layer('putLayer', RD)
@@ -66,7 +66,7 @@ class Adapter(WorkspaceItemAdapter):
         layer.styles.append('putLabelStyle')
         layers.append(layer)
 
-        # Visualization of *RIOOL records
+        # Visualization of "riolen"
 
         style = mapnik.Style()
         rule = mapnik.Rule()
