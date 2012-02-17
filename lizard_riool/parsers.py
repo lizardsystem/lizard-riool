@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 def convert_to_graph(pool, graph):
     """inspect the pool of objects and produce a nx.Graph
 
-    assume the pool has been populated from a RMB file, that is:
-    assume the pool only contains as many lists as there were *RIOO
-    objects and that each list starts with the *RIOO object and
+    assume the pool dictionary has been populated from a RMB file,
+    that is: assume the pool values are lists, as many as there were
+    *RIOO objects, and that each list starts with the *RIOO object and
     continues with the measurements along that object in the same
     order as in the file.
     """
@@ -76,8 +76,7 @@ def examine_graph(graph, sink):
     todo = []  # a priority queue
     done = set()  # keeping track of explored nodes
 
-    x, y, z = graph.node[sink]['obj'].point
-    heappush(todo, (z, sink))
+    heappush(todo, (graph.node[sink]['obj'].z, sink))
 
     while todo:
         (water_level, item) = heappop(todo)
@@ -95,31 +94,31 @@ def examine_graph(graph, sink):
         ## first we pour water in the network
         under_water, shore_nodes = dfs_preorder_nodes(
             graph, item, done,
-            lambda p, c: c[2] < water_level)
+            lambda p, c: graph.node[c]['obj'].z < water_level)
 
         logger.debug("nodes under water: %s" % under_water)
-        logger.debug("nodes reached by water: %s" % shore_nodes)
+        logger.debug("links where water ends: %s" % shore_nodes)
 
-        done.add(item)
         done = done.union(under_water)
         for i in under_water:
-            graph.node[i]['obj'].flooded = water_level
+            graph.node[i]['obj'].flooded = water_level - graph.node[i]['obj'].z
 
-        for shore_node in shore_nodes:
+        for shore_from, shore_node in shore_nodes:
+            logger.debug("done=%s" % done)
             going_up, peak_nodes = dfs_preorder_nodes(
                 graph, shore_node, done,
-                lambda p, c: c[2] >= p[2])
+                lambda p, c: graph.node[c]['obj'].z >= graph.node[p]['obj'].z)
 
             logger.debug("nodes visited going up: %s" % going_up)
-            logger.debug("nodes that form a peak: %s" % peak_nodes)
+            logger.debug("links where level decreases: %s" % peak_nodes)
 
             done = done.union(going_up)
             for i in going_up:
                 graph.node[i]['obj'].flooded = 0
 
-            for i in peak_nodes:
-                graph.node[i]['obj'].flooded = 0
-                heappush(todo, (i[2], i))
+            for i_from, i_to in peak_nodes:
+                graph.node[i_from]['obj'].flooded = 0
+                heappush(todo, (graph.node[i_from]['obj'].z, i_to))
 
 
 def parse(file_name, pool=None):
@@ -195,26 +194,23 @@ def dfs_preorder_nodes(G, source, visited, condition):
     # networkx.algorithms.traversal.depth_first_search.dfs_labeled_edges,
     # adapted, adding the visited and condition parameters.
 
-    nodes = [source]
     visited = set(visited)
     satisfied = []
     border = []
-    for start in nodes:
-        if start in visited:
-            continue
-        stack = [(start, iter([start]))]
-        while stack:
-            parent, children = stack.pop()
-            for child in children:
-                if child in visited:
-                    continue
-                if condition(parent, child):
-                    visited.add(child)
-                    satisfied.append(child)
-                    stack.append((child, iter(sorted(G[child]))))
-                else:
-                    border.append((parent, child))
-    return satisfied, [(p, c) for p, c in border if c not in set(satisfied)]
+    stack = [(source, iter([source]))]
+    while stack:
+        parent, children = stack.pop()
+        for child in children:
+            if child in visited:
+                continue
+            if condition(parent, child):
+                visited.add(child)
+                satisfied.append(child)
+                stack.append((child, iter(sorted(G[child]))))
+            else:
+                border.append((parent, child))
+    return satisfied, [(p, c) for p, c in border 
+                       if c not in set(satisfied)]
 
 
 def main(options, args):

@@ -154,8 +154,7 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         self.assertEqual(target, current)
 
     def test200(self):
-        """
-        A-AB1-AB2-AB3-AB4-B
+        """A-AB1-AB2-AB3-AB4-B
         """
         G = nx.Graph()
         A = ("A", 10)
@@ -169,3 +168,39 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
                                      lambda p,c: c[1] >= p[1])
         target = ([A, AB1, ], [(AB1, AB2)])
         self.assertEqual(target, current)
+
+
+from parsers import examine_graph
+from models import Put
+
+
+class Examine_Graphtestsuite(TestCase):
+
+    def test000(self):
+        """
+        A---B---C---D---E---F
+        levels:
+        5   6   5   4   6   8
+        result:
+        0   0   1   2   0   0
+        """
+        G = nx.Graph()
+        nodes = [("A", Put(coords=(0,0,5))),
+                 ("B", Put(coords=(0,1,6))),
+                 ("C", Put(coords=(0,2,5))),
+                 ("D", Put(coords=(0,3,4))),
+                 ("E", Put(coords=(0,4,6))),
+                 ("F", Put(coords=(0,5,8)))]
+        for label, obj in nodes:
+            G.add_node(label, obj=obj)
+        for (p, x), (c, y) in zip(nodes, nodes[1:]):
+            G.add_edge(p, c)
+
+        examine_graph(G, "A")
+
+        self.assertEqual(0, G.node["A"]['obj'].flooded)
+        self.assertEqual(0, G.node["B"]['obj'].flooded)
+        self.assertEqual(1, G.node["C"]['obj'].flooded)
+        self.assertEqual(2, G.node["D"]['obj'].flooded)
+        self.assertEqual(0, G.node["E"]['obj'].flooded)
+        self.assertEqual(0, G.node["F"]['obj'].flooded)
