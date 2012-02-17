@@ -51,11 +51,11 @@ def convert_to_graph(pool, graph):
         end_point = riool.point(reference, opposite=True)
         logger.debug("id of line / start-end: %s / %s-%s" % (suf_id, start_point, end_point))
 
-        graph.add_node(tuple(start_point),
+        graph.add_node(tuple(start_point[:2]),
                        obj=Put(suf_id=riool.suf_fk_node(reference,
                                                         opposite=False),
                                coords=start_point))
-        graph.add_node(tuple(end_point),
+        graph.add_node(tuple(end_point[:2]),
                        obj=Put(suf_id=riool.suf_fk_node(reference,
                                                         opposite=True),
                                coords=end_point))
@@ -68,16 +68,16 @@ def convert_to_graph(pool, graph):
 
         for obj in pool[suf_id][1:]:
             obj.update_coordinates(start_point, direction, prev_point)
-            graph.add_node(tuple(obj.point),
+            graph.add_node(tuple(obj.point[:2]),
                            obj=obj)
             logger.debug("adding edge %s-%s" % (prev_point, obj.point))
-            graph.add_edge(tuple(prev_point), tuple(obj.point),
+            graph.add_edge(tuple(prev_point[:2]), tuple(obj.point[:2]),
                            obj=obj, segment=riool)
             prev_point = obj.point
 
         logger.debug("connecting to opposite manhole")
         logger.debug("adding edge %s-%s" % (obj.point, end_point))
-        graph.add_edge(tuple(obj.point), tuple(end_point),
+        graph.add_edge(tuple(obj.point[:2]), tuple(end_point[:2]),
                        obj=None, segment=riool)
 
 
