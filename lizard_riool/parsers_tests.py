@@ -174,7 +174,7 @@ from parsers import examine_graph
 from models import Put
 
 
-class Examine_Graphtestsuite(TestCase):
+class Examine_Graph_TestSuite(TestCase):
 
     def test000(self):
         """
@@ -203,4 +203,35 @@ class Examine_Graphtestsuite(TestCase):
         self.assertEqual(1, G.node["C"]['obj'].flooded)
         self.assertEqual(2, G.node["D"]['obj'].flooded)
         self.assertEqual(0, G.node["E"]['obj'].flooded)
+        self.assertEqual(0, G.node["F"]['obj'].flooded)
+
+    def test010(self):
+        """
+        A---B---C---D---E---F
+        levels:
+        7   6   5   4   6   8
+        result:
+        0   1   2   3   1   0
+        """
+        G = nx.Graph()
+        nodes = {"A": Put(coords=(0,0,7)),
+                 "B": Put(coords=(0,1,6)),
+                 "C": Put(coords=(0,2,5)),
+                 "D": Put(coords=(0,3,4)),
+                 "E": Put(coords=(0,4,6)),
+                 "F": Put(coords=(0,5,8)),
+                 }
+        for label, obj in nodes.items():
+            G.add_node(label, obj=obj)
+        labels = sorted(nodes)
+        for p, c in zip(labels, labels[1:]):
+            G.add_edge(p, c)
+
+        examine_graph(G, "A")
+
+        self.assertEqual(0, G.node["A"]['obj'].flooded)
+        self.assertEqual(1, G.node["B"]['obj'].flooded)
+        self.assertEqual(2, G.node["C"]['obj'].flooded)
+        self.assertEqual(3, G.node["D"]['obj'].flooded)
+        self.assertEqual(1, G.node["E"]['obj'].flooded)
         self.assertEqual(0, G.node["F"]['obj'].flooded)
