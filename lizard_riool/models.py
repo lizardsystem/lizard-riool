@@ -11,11 +11,11 @@
 #
 # lizard-riool is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with lizard-riool.  If not, see <http://www.gnu.org/licenses/>.
+# along with lizard-riool. If not, see <http://www.gnu.org/licenses/>.
 #
 
 """Module docstring.
@@ -121,6 +121,7 @@ class Put(RioolBestandObject, models.Model):
         db_column='caa',
         help_text="Knooppuntreferentie",
         max_length=30,
+        verbose_name='CAA',
         )
     __CAB = models.PointField(
         db_column='cab',
@@ -141,18 +142,6 @@ class Put(RioolBestandObject, models.Model):
             self.z = coords[2]
 
     @property
-    def point(self):
-        return numpy.array((self.__CAB.x, self.__CAB.y, self.z))
-
-    @property
-    def suf_id(self):
-        return self.CAA
-
-    @suf_id.setter
-    def suf_id(self, value):
-        self.CAA = value
-
-    @property
     def CAA(self):
         return self.__CAA
 
@@ -169,6 +158,18 @@ class Put(RioolBestandObject, models.Model):
         x, y = value.split('/')
         self.__CAB = Point(float(x), float(y))
 
+    @property
+    def suf_id(self):
+        return self.CAA
+
+    @suf_id.setter
+    def suf_id(self, value):
+        self.CAA = value
+
+    @property
+    def point(self):
+        return numpy.array((self.__CAB.x, self.__CAB.y, self.z))
+
     def __unicode__(self):
         return self.CAA
 
@@ -178,6 +179,7 @@ class Put(RioolBestandObject, models.Model):
 
 class Riool(RioolBestandObject, models.Model):
     "*RIOO record"
+
     suf_record_length = 635
     suf_fields_count = 49
     suf_record_type = '*RIOO'
@@ -193,50 +195,146 @@ class Riool(RioolBestandObject, models.Model):
 
     objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
-    AAA = models.CharField(
+    __AAA = models.CharField(
         db_column='aaa',
         help_text="Strengreferentie",
-        max_length=30)
-    AAD = models.CharField(
+        max_length=30,
+        verbose_name='AAA',
+        )
+    __AAD = models.CharField(
         db_column='aad',
         help_text="Knooppuntreferentie 1",
-        max_length=30)
+        max_length=30,
+        verbose_name='AAD',
+        )
     __AAE = models.PointField(
         db_column='aae',
         help_text="Knooppuntcoördinaat knooppunt 1",
-        srid=SRID)
-    AAF = models.CharField(
+        srid=SRID,
+        verbose_name='AAE',
+        )
+    __AAF = models.CharField(
         db_column='aaf',
         help_text="Knooppuntreferentie 2",
-        max_length=30)
+        max_length=30,
+        verbose_name='AAF',
+        )
     __AAG = models.PointField(
         db_column='aag',
         help_text="Knooppuntcoördinaat knooppunt 2",
-        srid=SRID)
+        srid=SRID,
+        verbose_name='AAG',
+        )
     __ACR = models.FloatField(
         db_column='acr',
         help_text="BOB bij beginknoop absoluut",
-        null=True)
+        null=True,
+        verbose_name='ACR',
+        )
     __ACS = models.FloatField(
         db_column='acs',
         help_text="BOB bij eindknoop absoluut",
-        null=True)
+        null=True,
+        verbose_name='ACS',
+        )
     __the_geom = models.LineStringField(
         db_column='the_geom',
         help_text="LineString AAE -> AAG",
-        srid=SRID)
+        srid=SRID,
+        verbose_name='the_geom',
+        )
+
+    @property
+    def AAA(self):
+        return self.__AAA
+
+    @AAA.setter
+    def AAA(self, value):
+        self.__AAA = value.strip()
+
+    @property
+    def AAD(self):
+        return self.__AAD
+
+    @AAD.setter
+    def AAD(self, value):
+        self.__AAD = value.strip()
+
+    @property
+    def AAE(self):
+        return self.__AAE
+
+    @AAE.setter
+    def AAE(self, value):
+        x, y = value.split('/')
+        self.__AAE = Point(float(x), float(y))
+
+    @property
+    def AAF(self):
+        return self.__AAF
+
+    @AAF.setter
+    def AAF(self, value):
+        self.__AAF = value.strip()
+
+    @property
+    def AAG(self):
+        return self.__AAG
+
+    @AAG.setter
+    def AAG(self, value):
+        x, y = value.split('/')
+        self.__AAG = Point(float(x), float(y))
+
+    @property
+    def ACR(self):
+        return self.__ACR
+
+    @ACR.setter
+    def ACR(self, value):
+        try:
+            self.__ACR = float(value)
+        except ValueError:
+            self.__ACR = None
+
+    @property
+    def ACS(self):
+        return self.__ACS
+
+    @ACS.setter
+    def ACS(self, value):
+        try:
+            self.__ACS = float(value)
+        except ValueError:
+            self.__ACS = None
+
+    @property
+    def the_geom(self):
+        return self.__the_geom
 
     @property
     def suf_id(self):
-        return self.AAA.strip()
+        return self.AAA
+
+    @suf_id.setter
+    def suf_id(self, value):
+        self.AAA = value
 
     @property
     def suf_fk_node1(self):
-        return self.AAD.strip()
+        return self.AAD
+
+    @suf_fk_node1.setter
+    def suf_fk_node1(self, value):
+        self.AAD = value
 
     @property
     def suf_fk_node2(self):
-        return self.AAF.strip()
+        return self.AAF
+
+    @suf_fk_node2.setter
+    def suf_fk_node2(self, value):
+        self.AAF = value
 
     @property
     def suf_fk_point1(self):
@@ -285,56 +383,15 @@ class Riool(RioolBestandObject, models.Model):
     def distance(self):
         return 0
 
-    @property
-    def AAE(self):
-        return self.__AAE
-
-    @AAE.setter
-    def AAE(self, value):
-        x, y = value.split('/')
-        self.__AAE = Point(float(x), float(y))
-
-    @property
-    def AAG(self):
-        return self.__AAG
-
-    @AAG.setter
-    def AAG(self, value):
-        x, y = value.split('/')
-        self.__AAG = Point(float(x), float(y))
-
-    @property
-    def ACR(self):
-        return self.__ACR
-
-    @ACR.setter
-    def ACR(self, value):
-        try:
-            self.__ACR = float(value)
-        except ValueError:
-            self.__ACR = None
-
-    @property
-    def ACS(self):
-        return self.__ACS
-
-    @ACS.setter
-    def ACS(self, value):
-        try:
-            self.__ACS = float(value)
-        except ValueError:
-            self.__ACS = None
-
-    @property
-    def the_geom(self):
-        return self.__the_geom
-
     def save(self, *args, **kwargs):
         self.__the_geom = LineString(self.__AAE, self.__AAG)
         super(Riool, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return self.suf_id
+        return self.AAA
+
+    class Meta:
+        verbose_name_plural = "Riolen"
 
 
 class Rioolmeting(RioolBestandObject, models.Model):
