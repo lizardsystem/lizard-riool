@@ -22,6 +22,7 @@ from unittest import TestCase
 import networkx as nx
 from parsers import dfs_preorder_nodes
 
+
 class Dfs_Preorder_Nodes_TestSuite(TestCase):
 
     def test000(self):
@@ -31,8 +32,8 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = (0, 2, 0)
         D = (0, 3, 0)
         E = (0, 4, 0)
-        G.add_edges_from([(A,B),(B,C),(C,D),(D,E)])
-        current = dfs_preorder_nodes(G, A, set(), lambda a,b: True)
+        G.add_edges_from([(A, B), (B, C), (C, D), (D, E)])
+        current = dfs_preorder_nodes(G, A, set(), lambda a, b: True)
         target = ([A, B, C, D, E], [])
         self.assertEqual(target, current)
 
@@ -43,8 +44,8 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = (0, 2, 0)
         D = (0, 3, 0)
         E = (0, 4, 0)
-        G.add_edges_from([(A,B),(B,C),(C,D),(D,E)])
-        current = dfs_preorder_nodes(G, D, set([A, B, C]), lambda a,b: True)
+        G.add_edges_from([(A, B), (B, C), (C, D), (D, E)])
+        current = dfs_preorder_nodes(G, D, set([A, B, C]), lambda a, b: True)
         target = ([D, E], [])
         self.assertEqual(target, current)
 
@@ -55,9 +56,9 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = (0, 2, 0)
         D = (0, 3, 1)
         E = (0, 4, 1)
-        G.add_edges_from([(A,B),(B,C),(C,D),(D,E)])
-        current = dfs_preorder_nodes(G, A, set(), 
-                                     lambda a,b: b[2] <= 0)
+        G.add_edges_from([(A, B), (B, C), (C, D), (D, E)])
+        current = dfs_preorder_nodes(G, A, set(),
+                                     lambda a, b: b[2] <= 0)
         target = ([A, B, C, ], [(C, D)])
         self.assertEqual(target, current)
 
@@ -68,9 +69,9 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = (0, 2, 4)
         D = (0, 3, 5)
         E = (0, 4, 8)
-        G.add_edges_from([(A,B),(B,C),(C,D),(D,E)])
-        current = dfs_preorder_nodes(G, A, set(), 
-                                     lambda p,c: c[2] - p[2] <= 1)
+        G.add_edges_from([(A, B), (B, C), (C, D), (D, E)])
+        current = dfs_preorder_nodes(G, A, set(),
+                                     lambda p, c: c[2] - p[2] <= 1)
         target = ([A, B, ], [(B, C)])
         self.assertEqual(target, current)
 
@@ -81,9 +82,9 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = (0, 2, 4)
         D = (0, 3, 5)
         E = (0, 4, 8)
-        G.add_edges_from([(A,B),(B,C),(C,D),(D,E)])
-        current = dfs_preorder_nodes(G, C, set([A, B]), 
-                                     lambda p,c: c[2] - p[2] <= 1)
+        G.add_edges_from([(A, B), (B, C), (C, D), (D, E)])
+        current = dfs_preorder_nodes(G, C, set([A, B]),
+                                     lambda p, c: c[2] - p[2] <= 1)
         target = ([C, D, ], [(D, E)])
         self.assertEqual(target, current)
 
@@ -101,13 +102,13 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = (1, 0, 2)
         D = (1, 1, 3)
         E = (2, 0, 4)
-        G.add_edges_from([(A,B),(A,C),(C,D),(C,E)])
-        current = dfs_preorder_nodes(G, A, set(), 
-                                     lambda p,c: c[2] - p[2] <= 1)
+        G.add_edges_from([(A, B), (A, C), (C, D), (C, E)])
+        current = dfs_preorder_nodes(G, A, set(),
+                                     lambda p, c: c[2] - p[2] <= 1)
         target = ([A, B, ], [(A, C)])
         self.assertEqual(target, current)
-        current = dfs_preorder_nodes(G, C, set([A, B]), 
-                                     lambda p,c: c[2] - p[2] <= 1)
+        current = dfs_preorder_nodes(G, C, set([A, B]),
+                                     lambda p, c: c[2] - p[2] <= 1)
         target = ([C, D, ], [(C, E)])
         self.assertEqual(target, current)
 
@@ -126,9 +127,9 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = ("C", 2)
         D = ("D", 3)
         E = ("E", 4)
-        G.add_edges_from([(A,B),(A,D),(C,D),(B,C),(C,E)])
-        current = dfs_preorder_nodes(G, A, set(), 
-                                     lambda p,c: c[1] - p[1] <= 1)
+        G.add_edges_from([(A, B), (A, D), (C, D), (B, C), (C, E)])
+        current = dfs_preorder_nodes(G, A, set(),
+                                     lambda p, c: c[1] - p[1] <= 1)
         target = ([A, B, C, D], [(C, E)])
         self.assertEqual(target, current)
 
@@ -147,9 +148,9 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         C = ("C", 2)
         D = ("D", 8)
         E = ("E", 4)
-        G.add_edges_from([(A,B),(A,D),(C,D),(B,C),(C,E)])
-        current = dfs_preorder_nodes(G, A, set(), 
-                                     lambda p,c: c[1] - p[1] <= 1)
+        G.add_edges_from([(A, B), (A, D), (C, D), (B, C), (C, E)])
+        current = dfs_preorder_nodes(G, A, set(),
+                                     lambda p, c: c[1] - p[1] <= 1)
         target = ([A, B, C], [(A, D), (C, D), (C, E)])
         self.assertEqual(target, current)
 
@@ -163,9 +164,9 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         AB3 = ("AB3", 10.00)
         AB4 = ("AB4", 10.05)
         B = ("B", 10.1)
-        G.add_edges_from([(A,AB1),(AB1,AB2),(AB2,AB3),(AB3,AB4),(AB4,B)])
-        current = dfs_preorder_nodes(G, A, set(), 
-                                     lambda p,c: c[1] >= p[1])
+        G.add_edges_from([(A, AB1), (AB1, AB2), (AB2, AB3), (AB3, AB4), (AB4, B)])
+        current = dfs_preorder_nodes(G, A, set(),
+                                     lambda p, c: c[1] >= p[1])
         target = ([A, AB1, ], [(AB1, AB2)])
         self.assertEqual(target, current)
 
@@ -185,12 +186,12 @@ class Examine_Graph_TestSuite(TestCase):
         0   0   1   2   0   0
         """
         G = nx.Graph()
-        nodes = [("A", Put(coords=(0,0,5))),
-                 ("B", Put(coords=(0,1,6))),
-                 ("C", Put(coords=(0,2,5))),
-                 ("D", Put(coords=(0,3,4))),
-                 ("E", Put(coords=(0,4,6))),
-                 ("F", Put(coords=(0,5,8)))]
+        nodes = [("A", Put(coords=(0, 0, 5))),
+                 ("B", Put(coords=(0, 1, 6))),
+                 ("C", Put(coords=(0, 2, 5))),
+                 ("D", Put(coords=(0, 3, 4))),
+                 ("E", Put(coords=(0, 4, 6))),
+                 ("F", Put(coords=(0, 5, 8)))]
         for label, obj in nodes:
             G.add_node(label, obj=obj)
         for (p, x), (c, y) in zip(nodes, nodes[1:]):
@@ -214,12 +215,12 @@ class Examine_Graph_TestSuite(TestCase):
         0   1   2   3   1   0
         """
         G = nx.Graph()
-        nodes = {"A": Put(coords=(0,0,7)),
-                 "B": Put(coords=(0,1,6)),
-                 "C": Put(coords=(0,2,5)),
-                 "D": Put(coords=(0,3,4)),
-                 "E": Put(coords=(0,4,6)),
-                 "F": Put(coords=(0,5,8)),
+        nodes = {"A": Put(coords=(0, 0, 7)),
+                 "B": Put(coords=(0, 1, 6)),
+                 "C": Put(coords=(0, 2, 5)),
+                 "D": Put(coords=(0, 3, 4)),
+                 "E": Put(coords=(0, 4, 6)),
+                 "F": Put(coords=(0, 5, 8)),
                  }
         for label, obj in nodes.items():
             G.add_node(label, obj=obj)
@@ -235,3 +236,151 @@ class Examine_Graph_TestSuite(TestCase):
         self.assertEqual(3, G.node["D"]['obj'].flooded)
         self.assertEqual(1, G.node["E"]['obj'].flooded)
         self.assertEqual(0, G.node["F"]['obj'].flooded)
+
+
+from parsers import parse
+from models import Riool, Rioolmeting
+
+
+class Parse_TestSuite(TestCase):
+
+    def test000(self):
+        "file is read into dictionary and keys are correct"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        target = ['6400001', '6400002', '6400003', '6400004', '6400005', '6400006']
+        current = sorted(pool.keys())
+        self.assertEqual(target, current)
+
+    def test010(self):
+        "file is read into dictionary and values have correct length"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        target = [5, 5, 3, 3, 3, 5]
+        current = [len(pool[k]) for k in sorted(pool.keys())]
+        self.assertEqual(target, current)
+
+    def test020(self):
+        "file is read into dictionary and first values are Riool objects"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        target = [Riool] * len(pool)
+        current = [pool[k][0].__class__ for k in sorted(pool.keys())]
+        self.assertEqual(target, current)
+
+    def test030(self):
+        "file is read into dictionary and all subsequent values are Rioolmeting objects"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        target = [[Rioolmeting] * len(pool[k][1:]) for k in sorted(pool.keys())]
+        current = [[i.__class__ for i in pool[k][1:]] for k in sorted(pool.keys())]
+        self.assertEqual(target, current)
+
+
+from parsers import convert_to_graph
+
+
+class Convert_To_Graph_TestSuite(TestCase):
+
+    def test000(self):
+        "nodes are 3D tuples"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        convert_to_graph(pool, G)
+
+        target = [tuple] * len(G.node)
+        current = [i.__class__ for i in G.node]
+        self.assertEqual(target, current)
+
+    def test001(self):
+        "we empty graph before we populate it"
+
+        pool = {}
+        G = nx.Graph()
+        G.add_node('abc')
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        convert_to_graph(pool, G)
+
+        target = [tuple] * len(G.node)
+        current = [i.__class__ for i in G.node]
+        self.assertEqual(target, current)
+
+    def test010(self):
+        "graph associates nodes with 'obj'"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        convert_to_graph(pool, G)
+
+        target = [True] * len(G.node)
+        current = ['obj' in G.node[i] for i in G.node]
+        self.assertEqual(target, current)
+
+    def test012(self):
+        "graph nodes have a Put or a Rioolmeting 'obj'"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        convert_to_graph(pool, G)
+
+        target = [True] * len(G.node)
+        current = [G.node[i]['obj'].__class__ in [Put, Rioolmeting]
+                   for i in G.node]
+        self.assertEqual(target, current)
+
+    def test020(self):
+        "graph nodes have a Put or a Rioolmeting 'obj'"
+
+        self.maxDiff = None
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        convert_to_graph(pool, G)
+
+        target = [(3.0, 0.0, 2.0), (3.0, 5.0, 4.0), (0.0, 1.0, 2.0),
+                  (3.2000000000000002, 7.4000000000000004, 3.0),
+                  (1.6000000000000001, 6.2000000000000002, 3.0),
+                  (4.0, 0.0, 3.0), (2.4000000000000004, 6.7999999999999998, 3.0),
+                  (0.0, 6.0, 4.0), (0.0, 4.0, 2.0), (0.0, 5.0, 3.0),
+                  (2.0, 0.0, 1.0), (4.0, 5.0, 4.2000000000000002),
+                  (6.0, 5.0, 5.0), (2.0, 5.0, 3.0), (0.0, 2.0, 0.0),
+                  (0.80000000000000004, 5.5999999999999996, 4.0),
+                  (0.0, 3.0, 1.0), (0.0, 0.0, 0.0), (5.0, 0.0, 3.0),
+                  (5.0, 5.0, 4.5999999999999996), (0.0, 7.0, 3.0),
+                  (1.0, 5.0, 4.0), (1.0, 0.0, 2.0), (4.0, 8.0, 4.0),
+                  (0.0, 8.0, 4.0)]
+
+        current = G.node.keys()
+        self.assertEqual(target, current)
+
+        manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
+        self.assertEqual([(0.0, 0.0, 0.0), (0.0, 5.0, 3.0), (0.0, 8.0, 4.0),
+                          (3.0, 5.0, 4.0), (4.0, 8.0, 4.0),
+                          (5.0, 0.0, 3.0), (6.0, 5.0, 5.0)],
+                         manholes)
+
+        self.assertEqual([(0.0, 1.0, 2.0), (1.0, 0.0, 2.0)],
+                         G.edge[(0.0, 0.0, 0.0)].keys())
+        self.assertEqual([(0.0, 6.0, 4.0),
+                          (0.80000000000000004, 5.5999999999999996, 4.0),
+                          (0.0, 4.0, 2.0),
+                          (1.0, 5.0, 4.0)],
+                         G.edge[(0.0, 5.0, 3.0)].keys())
+        self.assertEqual([(0.0, 7.0, 3.0)],
+                         G.edge[(0.0, 8.0, 4.0)].keys())
+        self.assertEqual([(2.0, 5.0, 3.0), (4.0, 5.0, 4.2000000000000002)],
+                         G.edge[(3.0, 5.0, 4.0)].keys())
+        self.assertEqual([(3.2000000000000002, 7.4000000000000004, 3.0)],
+                         G.edge[(4.0, 8.0, 4.0)].keys())
+        self.assertEqual([(4.0, 0.0, 3.0)],
+                         G.edge[(5.0, 0.0, 3.0)].keys())
+        self.assertEqual([(5.0, 5.0, 4.5999999999999996)],
+                         G.edge[(6.0, 5.0, 5.0)].keys())

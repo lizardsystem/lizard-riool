@@ -42,6 +42,8 @@ def convert_to_graph(pool, graph):
     order as in the file.
     """
 
+    graph.remove_nodes_from(list(graph.node))
+
     for suf_id in pool:
         riool = pool[suf_id][0]
         reference = pool[suf_id][1].reference  # choice
