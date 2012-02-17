@@ -106,10 +106,9 @@ class Adapter(WorkspaceItemAdapter):
         "Return the extent in Google projection"
         cursor = connection.cursor()
         cursor.execute("""
-            select ST_Extent(ST_Transform(the_geom, 900913)) from (
-            select the_geom from lizard_riool_riool where upload_id=%s union
-            select cab the_geom from lizard_riool_put where upload_id=%s
-            ) data""", [self.id, self.id])
+            select ST_Extent(ST_Transform(the_geom, 900913))
+            from lizard_riool_putten where upload_id=%s
+            """, [self.id])
         row = cursor.fetchone()
         box = re.compile('[(|\s|,|)]').split(row[0])[1:-1]
         return {
