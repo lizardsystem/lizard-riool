@@ -36,6 +36,27 @@ SRID = RDNEW
 logger = logging.getLogger(__name__)
 
 
+def circular_volume(obj):
+    """return internal volume of obj with diam and length
+    """
+
+    return math.pow(obj.diam, 2) / 4.0 * math.pi * obj.length
+
+
+def rectangular_volume(obj):
+    """return internal volume of obj with height, width and length
+    """
+
+    return obj.height * obj.width * math * obj.length
+
+
+def failure_function(*argv, **kwargs):
+    """log the failure and return None
+    """
+
+    logger.warn("invoking failure function!")
+
+
 class Upload(models.Model):
     "An uploaded file"
     objects = models.GeoManager()
@@ -160,11 +181,8 @@ class Put(RioolBestandObject, models.Model):
 
     @property
     def suf_id(self):
+        "constant unique id"
         return self.CAA
-
-    @suf_id.setter
-    def suf_id(self, value):
-        self.CAA = value
 
     @property
     def point(self):
@@ -189,6 +207,9 @@ class Riool(RioolBestandObject, models.Model):
         ('AAE', 120, 19),
         ('AAF', 140, 30),
         ('AAG', 171, 19),
+        ('ACA', 397, 2),
+        ('ABC', 400, 4),
+        ('ACC', 405, 4),
         ('ACR', 623, 6),
         ('ACS', 630, 6),
         ]
@@ -243,6 +264,18 @@ class Riool(RioolBestandObject, models.Model):
         srid=SRID,
         verbose_name='the_geom',
         )
+    ACA = models.CharField(
+        db_column='aca',
+        help_text="vorm",
+        max_length=2)
+    ACB = models.CharField(
+        db_column='acb',
+        help_text="hoogte",
+        max_length=4)
+    ACC = models.CharField(
+        db_column='acc',
+        help_text="breedte",
+        max_length=4)
 
     @property
     def AAA(self):
@@ -314,27 +347,16 @@ class Riool(RioolBestandObject, models.Model):
 
     @property
     def suf_id(self):
+        "constant unique id"
         return self.AAA
-
-    @suf_id.setter
-    def suf_id(self, value):
-        self.AAA = value
 
     @property
     def suf_fk_node1(self):
         return self.AAD
 
-    @suf_fk_node1.setter
-    def suf_fk_node1(self, value):
-        self.AAD = value
-
     @property
     def suf_fk_node2(self):
         return self.AAF
-
-    @suf_fk_node2.setter
-    def suf_fk_node2(self, value):
-        self.AAF = value
 
     @property
     def suf_fk_point1(self):
@@ -345,6 +367,44 @@ class Riool(RioolBestandObject, models.Model):
     def suf_fk_point2(self):
         "end point, a 3D object"
         return numpy.array((self.__AAG.x, self.__AAG.y, (self.__ACS or 0)))
+
+    @property
+    def form(self):
+        return {'A': 'circular',
+                'B': 'rectangular',
+                }.get(self.ACA.strip(), 'unknown')
+
+    @property
+    def height(self):
+        return int(self.ACB)
+
+    @property
+    def width(self):
+        try:
+            return int(self.ACC)
+        except:
+            return self.height
+
+    @property
+    def length(self):
+        line_vector = (self.suf_fk_point2 - self.suf_fk_point1)[: 2]
+        return math.sqrt(sum(line_vector * line_vector))
+
+    @property
+    def diam(self):
+        if self.form == 'circular':
+            if self.height != self.width:
+                logger.warn("circular object with different height, width")
+            return self.height
+        else:
+            raise TypeError("accessing diam of non circular object")
+
+    @property
+    def volume(self):
+        fun = {'A': circular_volume,
+               'B': rectangular_volume,
+                }.get(self.ACA.strip(), failure_function)
+        return fun(self) or 0.0
 
     def suf_fk_node(self, which=None, opposite=False):
         """return the id of either end point
@@ -374,8 +434,7 @@ class Riool(RioolBestandObject, models.Model):
     def direction(self):
         "2D direction of segment"
         line_vector = (self.suf_fk_point2 - self.suf_fk_point1)[: 2]
-        length = math.sqrt(sum(line_vector * line_vector))
-        result = line_vector / length
+        result = line_vector / self.length
         logger.debug("direction of segment is %s" % result)
         return result
 
@@ -443,7 +502,8 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     @property
     def suf_id(self):
-        return '%s:%08.2f' % (self.ZYE.strip(), self.__ZYA)
+        "constant unique id"
+        return '%s:%08.2f' % (self.suf_fk_edge, self.distance)
 
     @property
     def suf_fk_edge(self):
