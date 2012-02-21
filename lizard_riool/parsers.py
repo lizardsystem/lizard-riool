@@ -81,7 +81,7 @@ def convert_to_graph(pool, graph):
                        obj=None, segment=riool)
 
 
-def examine_graph(graph, sink):
+def compute_lost_water_depth(graph, sink):
     """calculate lost water depth for each node
 
     starting from the given `sink` explore the graph in all possible
@@ -139,6 +139,41 @@ def examine_graph(graph, sink):
             for i_from, i_to in peak_nodes:
                 graph.node[i_from]['obj'].flooded = 0
                 heappush(todo, (graph.node[i_from]['obj'].z, i_to))
+
+
+def compute_lost_volume(graph):
+    """calculate lost volume for the Riool objects
+
+    after the graph has been examined and each Rioolmeting object has
+    received its flooded field, use compute_lost_volume to aggregate
+    the values into a single volume_lost field per Riool object.
+    """
+    
+    initialized = set()
+
+    ## compute per section of each Riool the lost capacity.  a section
+    ## of a Riool, being it a graph edge, has a start and end point.
+    ## all graph edges have a 'segment' field that points to a Riool
+    ## object.  when they have no 'obj' field then we are at the end
+    ## of a string and we do as if no capacity is lost there.
+
+    for (node_1, node_2), d in graph.edge.items():
+        if d.get('obj') is None:
+            #TODO: we could try to find the surface of the section
+            #from either node
+            continue
+
+        riool = d['segment']
+
+        ## must we initialize the riool object?
+        if riool.suf_id not in initialized:
+            riool.volume_lost = 0
+            initialized.add(riool.suf_id)
+
+        support = (numpy.array(node_2) - numpy.array(node_1))
+        section_length = math.sqrt(sum(support * support))
+
+        riool.volume_lost += riool.section_water_surface * section_length
 
 
 def parse(file_name, pool=None):

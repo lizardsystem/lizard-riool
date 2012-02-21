@@ -171,11 +171,11 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         self.assertEqual(target, current)
 
 
-from parsers import examine_graph
+from parsers import compute_lost_water_depth
 from models import Put
 
 
-class Examine_Graph_TestSuite(TestCase):
+class Compute_Lost_Water_Depth_TestSuite(TestCase):
 
     def test000(self):
         """
@@ -197,7 +197,7 @@ class Examine_Graph_TestSuite(TestCase):
         for (p, x), (c, y) in zip(nodes, nodes[1:]):
             G.add_edge(p, c)
 
-        examine_graph(G, "A")
+        compute_lost_water_depth(G, "A")
 
         self.assertEqual(0, G.node["A"]['obj'].flooded)
         self.assertEqual(0, G.node["B"]['obj'].flooded)
@@ -228,7 +228,7 @@ class Examine_Graph_TestSuite(TestCase):
         for p, c in zip(labels, labels[1:]):
             G.add_edge(p, c)
 
-        examine_graph(G, "A")
+        compute_lost_water_depth(G, "A")
 
         self.assertEqual(0, G.node["A"]['obj'].flooded)
         self.assertEqual(1, G.node["B"]['obj'].flooded)
@@ -390,7 +390,7 @@ class Convert_To_Graph_TestSuite(TestCase):
                          G.edge[(6.0, 5.0)].keys())
 
 
-class Examine_Graph_TestSuite(TestCase):
+class Compute_Lost_Water_Depth_TestSuite(TestCase):
 
     def test000(self):
         "watering a simple network"
@@ -400,7 +400,7 @@ class Examine_Graph_TestSuite(TestCase):
         parse("lizard_riool/data/f3478-bb.rmb", pool)
         convert_to_graph(pool, G)
 
-        examine_graph(G, (0.0, 0.0))
+        compute_lost_water_depth(G, (0.0, 0.0))
 
         target = [((0.0, 0.0), 0.0, 0),
 
@@ -449,4 +449,4 @@ class Examine_Graph_TestSuite(TestCase):
         convert_to_graph(pool, G)
         manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         print manholes
-        examine_graph(G, (138736.31, 485299.37))
+        compute_lost_water_depth(G, (138736.31, 485299.37))

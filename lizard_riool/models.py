@@ -36,18 +36,18 @@ SRID = RDNEW
 logger = logging.getLogger(__name__)
 
 
-def circular_volume(obj):
-    """return internal volume of obj with diam and length
+def circular_surface(obj):
+    """return section surface of obj with diam
     """
 
-    return math.pow(obj.diam, 2) / 4.0 * math.pi * obj.length
+    return math.pow(obj.diam, 2) / 4.0 * math.pi
 
 
-def rectangular_volume(obj):
-    """return internal volume of obj with height, width and length
+def rectangular_surface(obj):
+    """return section surface of obj with height, width
     """
 
-    return obj.height * obj.width * math * obj.length
+    return obj.height * obj.width
 
 
 def failure_function(*argv, **kwargs):
@@ -400,11 +400,31 @@ class Riool(RioolBestandObject, models.Model):
             raise TypeError("accessing diam of non circular object")
 
     @property
-    def volume(self):
-        fun = {'A': circular_volume,
-               'B': rectangular_volume,
+    def section_surface(self):
+        fun = {'A': circular_surface,
+               'B': rectangular_surface,
                 }.get(self.ACA.strip(), failure_function)
         return fun(self) or 0.0
+
+    @property
+    def volume(self):
+        return self.length * self.section_surface
+
+    @property
+    def section_water_surface(self):
+        "the area of the section of the water rotting in the pipe"
+
+        if self.flooded > self.diam:
+            area = self.section_surface
+        elif self.flooded > self.diam / 2.0:
+            R = self.diam / 2.0
+            r = self.flooded - R
+            area = R * R * math.acos(r / R) - r * math.sqrt(R * R - r * r)
+        else:
+            R = self.diam / 2.0
+            h = self.flooded
+            area = R * R * math.acos((R - h) / R) - (R - h) * math.sqrt(2 * R * h - h * h)
+        return area
 
     def suf_fk_node(self, which=None, opposite=False):
         """return the id of either end point
