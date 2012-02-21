@@ -410,19 +410,18 @@ class Riool(RioolBestandObject, models.Model):
     def volume(self):
         return self.length * self.section_surface
 
-    @property
-    def section_water_surface(self):
+    def section_water_surface(self, flooded):
         "the area of the section of the water rotting in the pipe"
 
-        if self.flooded > self.diam:
+        if flooded > self.diam:
             area = self.section_surface
-        elif self.flooded > self.diam / 2.0:
+        elif flooded > self.diam / 2.0:
             R = self.diam / 2.0
-            r = self.flooded - R
+            r = flooded - R
             area = R * R * math.acos(r / R) - r * math.sqrt(R * R - r * r)
         else:
             R = self.diam / 2.0
-            h = self.flooded
+            h = flooded
             area = R * R * math.acos((R - h) / R) - (R - h) * math.sqrt(2 * R * h - h * h)
         return area
 
