@@ -5,7 +5,8 @@ from django.db import transaction
 from django.http import HttpResponse
 from django.utils import simplejson as json
 from django.views.generic import TemplateView
-from lizard_map.views import AppView
+## from lizard_map.views import AppView
+AppView = object
 from models import Upload
 from parsers import parse
 import logging
@@ -21,6 +22,10 @@ class FileView(AppView):
 
     def files(self):
         return Upload.objects.all()
+
+    @classmethod
+    def as_view(cls, *argv, **kwargs):
+        return None
 
 
 class UploadView(TemplateView):

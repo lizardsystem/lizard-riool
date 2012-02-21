@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.db import connection
-from lizard_map.coordinates import RD
-from lizard_map.workspace import WorkspaceItemAdapter
+## from lizard_map.coordinates import RD
+RD = None
+## from lizard_map.workspace import WorkspaceItemAdapter
+WorkspaceItemAdapter = object
 from lizard_riool.models import SRID
 import mapnik
 import re

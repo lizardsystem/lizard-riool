@@ -5,6 +5,8 @@ from lizard_ui.settingshelper import STATICFILES_FINDERS
 
 DEBUG = True
 TEMPLATE_DEBUG = True
+SKIP_SOUTH_TESTS=True
+SOUTH_TESTS_MIGRATE = False
 
 # SETTINGS_DIR allows media paths and so to be relative to this settings file
 # instead of hardcoded to c:\only\on\my\computer.
