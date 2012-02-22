@@ -27,6 +27,7 @@ from models import Put, Riool, Rioolmeting
 import logging
 import math
 from heapq import heappush, heappop
+import numpy
 
 
 logger = logging.getLogger(__name__)
@@ -157,8 +158,10 @@ def compute_lost_volume(graph):
     ## object.  when they have no 'obj' field then we are at the end
     ## of a string and we do as if no capacity is lost there.
 
-    for (node_1, node_2), d in graph.edge.items():
-        if d.get('obj') is None:
+    for (node_1, node_2) in graph.edges():
+        d = graph.edge[node_1][node_2]
+        measure = d.get('obj')
+        if measure is None:
             #TODO: we could try to find the surface of the section
             #from either node
             continue
@@ -173,7 +176,7 @@ def compute_lost_volume(graph):
         support = (numpy.array(node_2) - numpy.array(node_1))
         section_length = math.sqrt(sum(support * support))
 
-        riool.volume_lost += riool.section_water_surface * section_length
+        riool.volume_lost += riool.section_water_surface(measure.flooded) * section_length
 
 
 def parse(file_name, pool=None):

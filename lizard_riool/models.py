@@ -78,6 +78,17 @@ class Upload(models.Model):
 class RioolBestandObject(object):
     "Common behaviour to all sewage objects"
 
+    def __eq__(self, other):
+        return self.suf_id == other.suf_id
+
+    def __cmp__(self, other):
+        if self.suf_id < other.suf_id:
+            return -1
+        elif self.suf_id > other.suf_id:
+            return 1
+        else:
+            return 0
+
     @classmethod
     def check_record_length(cls, record):
         # S.rstrip("\r\n") will remove any EOL terminator (not just Windows)
@@ -376,14 +387,20 @@ class Riool(RioolBestandObject, models.Model):
 
     @property
     def height(self):
-        return int(self.ACB)
+        "height in metres (ACB is in millimetres)"
+        try:
+            return int(self.ACB) / 1000.0
+        except ValueError:
+            return self.width
 
     @property
     def width(self):
+        "width in metres (ACC is in millimetres)"
         try:
-            return int(self.ACC)
-        except:
-            return self.height
+            return int(self.ACC) / 1000.0
+        except ValueError:
+            logger.warn("object %s has no width" % self.suf_id)
+            return None
 
     @property
     def length(self):
@@ -394,7 +411,7 @@ class Riool(RioolBestandObject, models.Model):
     def diam(self):
         if self.form == 'circular':
             if self.height != self.width:
-                logger.warn("circular object with different height, width")
+                logger.warn("circular object with different height (%s) and width (%s)" % (self.height, self.width))
             return self.height
         else:
             raise TypeError("accessing diam of non circular object")
