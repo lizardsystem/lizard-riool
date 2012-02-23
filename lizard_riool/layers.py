@@ -1,9 +1,7 @@
 from django.conf import settings
 from django.db import connection
-## from lizard_map.coordinates import RD
-RD = None
-## from lizard_map.workspace import WorkspaceItemAdapter
-WorkspaceItemAdapter = object
+from lizard_map.coordinates import RD
+from lizard_map.workspace import WorkspaceItemAdapter
 from lizard_riool.models import SRID
 import mapnik
 import re
@@ -51,6 +49,9 @@ class Adapter(WorkspaceItemAdapter):
         symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
             mapnik.Color('black'))
         symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
+        symbol.displacement(0, -3)  # slightly above
         rule.symbols.append(symbol)
         style.rules.append(rule)
         styles['putLabelStyle'] = style
@@ -119,7 +120,34 @@ class Adapter(WorkspaceItemAdapter):
         }
 
     def search(self, x, y, radius=None):
-        return []
+        """Search by coordinates. Return list of dicts for matching
+        items.
+
+        {'distance': <float>,
+        'name': <name>,
+        'shortname': <short name>,
+        'workspace_item': <...>,
+        'identifier': {...},
+        'google_coords': (x, y) coordinate in google,
+        'object': <object>,
+       ['grouping_hint': ... ] (optional)
+        } of closest fews point that matches x, y, radius.
+
+        Required: distance, name, workspace_item, google_coords
+        Highly recommended (else some functions will not work):
+        identifier (for popups)
+
+        If 'grouping_hint' is given, that is used to group items,
+        otherwise the workspace_item.id. This way a single workspace
+        item can have things show up in different tabs. Please don't
+        use grouping_hints that can possible come from other workspace
+        items (use the workspace item id in the hint).
+
+
+        """
+        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        print self.id
+        return [{'distance': 0.0, 'name': str(self.id)}]
 
 
 class RibAdapter(Adapter):

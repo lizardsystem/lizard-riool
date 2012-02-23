@@ -4,9 +4,8 @@ from django.core.files import File
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import simplejson as json
-from django.views.generic import TemplateView
-## from lizard_map.views import AppView
-AppView = object
+from django.views.generic import TemplateView, View
+from lizard_map.views import AppView
 from models import Upload
 from parsers import parse
 import logging
@@ -19,13 +18,10 @@ logger = logging.getLogger(__name__)
 class FileView(AppView):
     "View file uploads."
     template_name = 'lizard_riool/beheer.html'
+    javascript_click_handler = 'my_popup_click_handler'
 
     def files(self):
         return Upload.objects.all()
-
-    @classmethod
-    def as_view(cls, *argv, **kwargs):
-        return None
 
 
 class UploadView(TemplateView):
@@ -89,3 +85,14 @@ class UploadView(TemplateView):
             result = {}
 
         return HttpResponse(json.dumps(result), mimetype="application/json")
+
+
+class PutList(View):
+    ""
+
+    def get(self, request, *args, **kwargs):
+        context = {'location': 'The Sea', 'description': 'Here be dragons'}
+        return self.render_to_response(context)
+
+    def render_to_response(self, context):
+        return HttpResponse(json.dumps(context), mimetype="application/json")
