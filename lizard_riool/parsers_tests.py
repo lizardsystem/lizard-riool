@@ -435,9 +435,9 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
                   ((6.0, 5.0), 5.0, 0),
                   ]
 
-        current = [(n, G.node[n]['obj'].z, G.node[n]['obj'].flooded) 
+        current = [(n, G.node[n]['obj'].z, G.node[n]['obj'].flooded)
                    for n in sorted(G.node)]
-        
+
         self.assertEqual(sorted(target), current)
 
     def test100(self):
@@ -450,3 +450,44 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         print manholes
         compute_lost_water_depth(G, (138736.31, 485299.37))
+
+
+from parsers import string_of_riool_to_string_of_rioolmeting
+
+
+class String_Of_Riool_To_String_Of_Rioolmeting_TestSuite(TestCase):
+
+    def test000(self):
+        "raise error on an inconsistent request"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        self.assertRaises(KeyError,
+                          string_of_riool_to_string_of_rioolmeting,
+                          pool,
+                          ['6400001', '6400003', '6400004'])
+
+    def test010(self):
+        "simple case: everything read in same direction"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        target = []
+        target.extend(pool['6400002'][1:])
+        target.extend(pool['6400003'][1:])
+        target.extend(pool['6400004'][1:])
+        current = string_of_riool_to_string_of_rioolmeting(pool, ['6400002', '6400003', '6400004'])
+        self.assertEqual(target, current)
+
+    def test020(self):
+        "less simple case: everything read in opposite direction"
+
+        pool = {}
+        parse("lizard_riool/data/f3478-bb.rmb", pool)
+        target = []
+        target.extend(pool['6400002'][1:])
+        target.extend(pool['6400003'][1:])
+        target.extend(pool['6400004'][1:])
+        target.reverse()
+        current = string_of_riool_to_string_of_rioolmeting(pool, ['6400004', '6400003', '6400002'])
+        self.assertEqual(target, current)

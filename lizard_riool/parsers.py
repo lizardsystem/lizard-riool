@@ -271,6 +271,53 @@ def dfs_preorder_nodes(G, source, visited, condition):
                        if c not in set(satisfied)]
 
 
+def string_of_riool_to_string_of_rioolmeting(pool, sequence):
+    """translate Riool sequence to Rioolmeting sequence
+
+    raise an exception on inconsistent data.
+
+    sequence is in order, but each Riool object might have been
+    examined in either direction.
+    """
+
+    ## make sure we have a sequence of Riool objects.
+    sequence = [i if isinstance(i, Riool) else pool[i][0] 
+                for i in sequence]
+
+    ## construct the sequence of internal nodes
+    s = [(tuple(i.point(1, False)[:2]), tuple(i.point(2, False)[:2]))
+         for i in sequence]
+    internal_nodes = list(set(i).intersection(set(j)).pop()
+                          for (i,j) in zip(s, s[1:]))
+
+    ## the start node is the one on sequence[0] opposite to
+    ## internal_nodes[0].
+
+    ## the end_node similarly using sequence[-1] and
+    ## internal_nodes[-1]
+
+    start_node = set(tuple(sequence[0].point(i, False)[:2]) 
+                     for i in [1, 2]
+                     ).difference([internal_nodes[0]]).pop()
+    end_node = set(tuple(sequence[-1].point(i, False)[:2])
+                   for i in [1, 2]
+                   ).difference([internal_nodes[-1]]).pop()
+
+    result = []
+    for riool, i, j in zip(sequence, 
+                           [start_node] + internal_nodes,
+                           internal_nodes + [end_node]):
+        if i == tuple(riool.point(pool[riool.suf_id][1].reference, False)[:2]):
+            result.extend(pool[riool.suf_id][1:])
+        else:
+            reverse_me = pool[riool.suf_id][1:]
+            reverse_me.reverse()
+            result.extend(reverse_me)
+
+    return result
+            
+
+
 def main(options, args):
     """
     """
