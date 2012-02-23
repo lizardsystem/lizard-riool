@@ -18,9 +18,17 @@
 # You should have received a copy of the GNU General Public License along with
 # this package. If not, see <http://www.gnu.org/licenses/>.
 
-from unittest import TestCase
 import networkx as nx
 from parsers import dfs_preorder_nodes
+
+
+import unittest
+
+
+class TestCase(unittest.TestCase):
+    def setUp(self):
+        import logging
+        logging.getLogger().setLevel(logging.INFO)
 
 
 class Dfs_Preorder_Nodes_TestSuite(TestCase):
