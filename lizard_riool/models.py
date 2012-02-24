@@ -149,13 +149,13 @@ class Put(RioolBestandObject, models.Model):
 
     objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
-    __CAA = models.CharField(
+    _CAA = models.CharField(
         db_column='caa',
         help_text="Knooppuntreferentie",
         max_length=30,
         verbose_name='CAA',
         )
-    __CAB = models.PointField(
+    _CAB = models.PointField(
         db_column='cab',
         help_text="Knooppuntcoördinaat",
         srid=SRID,
@@ -170,25 +170,25 @@ class Put(RioolBestandObject, models.Model):
             del kwargs['coords']
         super(Put, self).__init__(*args, **kwargs)
         if coords is not None:
-            self.__CAB = Point(coords[0], coords[1])
+            self._CAB = Point(coords[0], coords[1])
             self.z = coords[2]
 
     @property
     def CAA(self):
-        return self.__CAA
+        return self._CAA
 
     @CAA.setter
     def CAA(self, value):
-        self.__CAA = value.strip()
+        self._CAA = value.strip()
 
     @property
     def CAB(self):
-        return self.__CAB
+        return self._CAB
 
     @CAB.setter
     def CAB(self, value):
         x, y = value.split('/')
-        self.__CAB = Point(float(x), float(y))
+        self._CAB = Point(float(x), float(y))
 
     @property
     def suf_id(self):
@@ -197,7 +197,7 @@ class Put(RioolBestandObject, models.Model):
 
     @property
     def point(self):
-        return numpy.array((self.__CAB.x, self.__CAB.y, self.z))
+        return numpy.array((self.CAB.x, self.CAB.y, self.z))
 
     def __unicode__(self):
         return self.CAA
@@ -227,134 +227,122 @@ class Riool(RioolBestandObject, models.Model):
 
     objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
-    __AAA = models.CharField(
+    _AAA = models.CharField(
         db_column='aaa',
         help_text="Strengreferentie",
         max_length=30,
         verbose_name='AAA',
         )
-    __AAD = models.CharField(
+    _AAD = models.CharField(
         db_column='aad',
         help_text="Knooppuntreferentie 1",
         max_length=30,
         verbose_name='AAD',
         )
-    __AAE = models.PointField(
+    _AAE = models.PointField(
         db_column='aae',
         help_text="Knooppuntcoördinaat knooppunt 1",
         srid=SRID,
         verbose_name='AAE',
         )
-    __AAF = models.CharField(
+    _AAF = models.CharField(
         db_column='aaf',
         help_text="Knooppuntreferentie 2",
         max_length=30,
         verbose_name='AAF',
         )
-    __AAG = models.PointField(
+    _AAG = models.PointField(
         db_column='aag',
         help_text="Knooppuntcoördinaat knooppunt 2",
         srid=SRID,
         verbose_name='AAG',
         )
-    __ACR = models.FloatField(
+    _ACR = models.FloatField(
         db_column='acr',
         help_text="BOB bij beginknoop absoluut",
         null=True,
         verbose_name='ACR',
         )
-    __ACS = models.FloatField(
+    _ACS = models.FloatField(
         db_column='acs',
         help_text="BOB bij eindknoop absoluut",
         null=True,
         verbose_name='ACS',
         )
-    __the_geom = models.LineStringField(
+    _the_geom = models.LineStringField(
         db_column='the_geom',
         help_text="LineString AAE -> AAG",
         srid=SRID,
         verbose_name='the_geom',
         )
-    ACA = models.CharField(
-        db_column='aca',
-        help_text="vorm",
-        max_length=2)
-    ACB = models.CharField(
-        db_column='acb',
-        help_text="hoogte",
-        max_length=4)
-    ACC = models.CharField(
-        db_column='acc',
-        help_text="breedte",
-        max_length=4)
 
     @property
     def AAA(self):
-        return self.__AAA
+        return self._AAA
 
     @AAA.setter
     def AAA(self, value):
-        self.__AAA = value.strip()
+        self._AAA = value.strip()
 
     @property
     def AAD(self):
-        return self.__AAD
+        return self._AAD
 
     @AAD.setter
     def AAD(self, value):
-        self.__AAD = value.strip()
+        self._AAD = value.strip()
 
     @property
     def AAE(self):
-        return self.__AAE
+        return self._AAE
 
     @AAE.setter
     def AAE(self, value):
         x, y = value.split('/')
-        self.__AAE = Point(float(x), float(y))
+        self._AAE = Point(float(x), float(y))
 
     @property
     def AAF(self):
-        return self.__AAF
+        return self._AAF
 
     @AAF.setter
     def AAF(self, value):
-        self.__AAF = value.strip()
+        self._AAF = value.strip()
 
     @property
     def AAG(self):
-        return self.__AAG
+        return self._AAG
 
     @AAG.setter
     def AAG(self, value):
         x, y = value.split('/')
-        self.__AAG = Point(float(x), float(y))
+        self._AAG = Point(float(x), float(y))
 
     @property
     def ACR(self):
-        return self.__ACR
+        return self._ACR
 
     @ACR.setter
     def ACR(self, value):
         try:
-            self.__ACR = float(value)
+            self._ACR = float(value)
         except ValueError:
-            self.__ACR = None
+            self._ACR = None
 
     @property
     def ACS(self):
-        return self.__ACS
+        return self._ACS
 
     @ACS.setter
     def ACS(self, value):
         try:
-            self.__ACS = float(value)
+            self._ACS = float(value)
         except ValueError:
-            self.__ACS = None
+            self._ACS = None
 
     @property
     def the_geom(self):
-        return self.__the_geom
+        return self._the_geom
 
     @property
     def suf_id(self):
@@ -372,12 +360,12 @@ class Riool(RioolBestandObject, models.Model):
     @property
     def suf_fk_point1(self):
         "start point, a 3D object"
-        return numpy.array((self.__AAE.x, self.__AAE.y, (self.__ACR or 0)))
+        return numpy.array((self.AAE.x, self.AAE.y, (self.ACR or 0)))
 
     @property
     def suf_fk_point2(self):
         "end point, a 3D object"
-        return numpy.array((self.__AAG.x, self.__AAG.y, (self.__ACS or 0)))
+        return numpy.array((self.AAG.x, self.AAG.y, (self.ACS or 0)))
 
     @property
     def form(self):
@@ -479,7 +467,7 @@ class Riool(RioolBestandObject, models.Model):
         return 0
 
     def save(self, *args, **kwargs):
-        self.__the_geom = LineString(self.__AAE, self.__AAG)
+        self._the_geom = LineString(self._AAE, self._AAG)
         super(Riool, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -491,6 +479,7 @@ class Riool(RioolBestandObject, models.Model):
 
 class Rioolmeting(RioolBestandObject, models.Model):
     "*MRIO record"
+
     suf_record_length = 270
     suf_fields_count = 20
     suf_record_type = '*MRIO'
@@ -506,7 +495,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     objects = models.GeoManager()
     upload = models.ForeignKey('Upload')
-    __ZYA = models.FloatField(
+    _ZYA = models.FloatField(
         db_column='zya',
         help_text="Afstand")
     ZYB = models.CharField(
@@ -525,10 +514,10 @@ class Rioolmeting(RioolBestandObject, models.Model):
         db_column='zys',
         help_text="Eenheid meetwaarde",
         max_length=1)
-    __ZYT = models.FloatField(
+    _ZYT = models.FloatField(
         db_column='zyt',
         help_text="Meetwaarde")
-    __ZYU = models.IntegerField(
+    _ZYU = models.IntegerField(
         db_column='zyu',
         default=0,
         help_text="Macht van de vermenigvuldigingsfactor 10")
@@ -547,7 +536,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     @property
     def distance(self):
-        return self.__ZYA
+        return self.ZYA
 
     @property
     def reference(self):
@@ -555,7 +544,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     @property
     def value(self):
-        return self.__ZYT * 10 ** self.__ZYU
+        return self.ZYT * 10 ** self.ZYU
 
     @property
     def z(self):
@@ -568,30 +557,30 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
     @property
     def ZYA(self):
-        return self.__ZYA
+        return self._ZYA
 
     @ZYA.setter
     def ZYA(self, value):
-        self.__ZYA = float(value)
+        self._ZYA = float(value)
 
     @property
     def ZYT(self):
-        return self.__ZYT
+        return self._ZYT
 
     @ZYT.setter
     def ZYT(self, value):
-        self.__ZYT = float(value)
+        self._ZYT = float(value)
 
     @property
     def ZYU(self):
-        return self.__ZYU
+        return self._ZYU
 
     @ZYU.setter
     def ZYU(self, value):
         try:
-            self.__ZYU = int(value)
+            self._ZYU = int(value)
         except ValueError:
-            self.__ZYU = 0
+            self._ZYU = 0
 
     def save(self, *args, **kwargs):
         ## Not sure whether we want to save these into the database.
