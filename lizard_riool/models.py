@@ -90,24 +90,24 @@ class RioolBestandObject(object):
             return 0
 
     @classmethod
-    def check_record_length(cls, record):
+    def check_record_length(cls, record, line_number):
         # S.rstrip("\r\n") will remove any EOL terminator (not just Windows)
         if len(record.rstrip("\r\n")) != cls.suf_record_length:
-            raise Exception("Unexpected record length")
+            raise Exception("line %d: Unexpected record length" % line_number)
 
     @classmethod
-    def check_field_count(cls, record):
+    def check_field_count(cls, record, line_number):
         field_count = record.count("|") + 1
         if field_count != cls.suf_fields_count:
-            raise Exception("Record defines %s fields, %s expects %s" %
-                (field_count, cls.suf_record_type, cls.suf_fields_count))
+            raise Exception("line %d: Record defines %s fields, %s expects %s" %
+                (line_number, field_count, cls.suf_record_type, cls.suf_fields_count))
 
     @classmethod
     def parse_line_from_rioolbestand(cls, record, line_number):
         logger.debug("line %d starting with '%s...'" %
                      (line_number, record[:32]))
-        cls.check_record_length(record)
-        cls.check_field_count(record)
+        cls.check_record_length(record, line_number)
+        cls.check_field_count(record, line_number)
         record = ' ' + record  # makes counting positions easier
         dbobj = cls()
         for name, start, length in cls.suf_fields:
@@ -599,18 +599,18 @@ class Rioolmeting(RioolBestandObject, models.Model):
         logger.debug("examining measurement %s:%s:%s" % (
                 self.measurement_type, self.distance, self.value))
 
-        prev_distance = math.sqrt(sum(pow(prev - base, 2)))
+        prev_distance = math.sqrt(sum(pow(prev[:2] - base[:2], 2)))
 
         if self.measurement_type == 'AE':
             # Slope|Degrees
             self.point = prev + (
                 self.distance - prev_distance) * numpy.array((
-                direction[0], direction[1], math.sin(self.value / 180.0 * math.pi)))
+                direction[0], direction[1], math.tan(self.value / 180.0 * math.pi)))
         elif self.measurement_type == 'AF':
             # Slope|Percent
             self.point = prev + (
                 self.distance - prev_distance) * numpy.array((
-                direction[0], direction[1], self.value))
+                direction[0], direction[1], self.value / 100.0))
         elif self.measurement_type == 'BB':
             ## Absolute|metres (useful internally, not used by customer)
             self.point = numpy.array(tuple(

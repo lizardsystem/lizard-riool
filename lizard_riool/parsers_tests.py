@@ -397,6 +397,16 @@ class Convert_To_Graph_TestSuite(TestCase):
         self.assertEqual([(5.0, 5.0)],
                          G.edge[(6.0, 5.0)].keys())
 
+    def test200(self):
+        "watering a less complex network"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478.rmb", pool)
+        convert_to_graph(pool, G)
+        self.assertEqual([-4.0, -2.8452994616207485, -4.0], [i.z for i in pool['6400002'][1:]])
+        self.assertEqual([-1.8, -1.2000000000000002, -1.3000000000000003], [i.z for i in pool['6400003'][1:]])
+
 
 class Compute_Lost_Water_Depth_TestSuite(TestCase):
 
@@ -456,7 +466,6 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         parse("lizard_riool/data/4F1 asfalt werk.RMB", pool)
         convert_to_graph(pool, G)
         manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
-        print manholes
         compute_lost_water_depth(G, (138736.31, 485299.37))
 
 
