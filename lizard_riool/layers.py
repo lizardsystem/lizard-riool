@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import connection
 from lizard_map.coordinates import RD
 from lizard_map.workspace import WorkspaceItemAdapter
-from lizard_riool.models import SRID
+from lizard_riool.models import Riool, SRID
 import mapnik
 import re
 
@@ -145,9 +145,16 @@ class Adapter(WorkspaceItemAdapter):
 
 
         """
-        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-        print self.id
-        return [{'distance': 0.0, 'name': str(self.id)}]
+        print "++++++++++++++++++++++++++++++++++++++++++++++++++++"
+        from django.contrib.gis.geos import *
+        from django.contrib.gis.measure import D
+        from django.contrib.gis.geos import Point
+        pnt = Point(x, y, srid=900913)
+        riolen = Riool.objects.filter(upload__pk=self.id).filter(_AAE__distance_lte=(pnt, radius))
+        for riool in riolen:
+            print riool.AAD
+        #return [{'distance': 0.0, 'name': str(self.id), 'workspace_item': self.workspace_item, 'identifier': 'foo'}]
+        return []
 
 
 class RibAdapter(Adapter):

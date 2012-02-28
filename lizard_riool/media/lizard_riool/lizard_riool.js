@@ -21,18 +21,52 @@ $(function () {
 
 });
 
-$(function () {
-	vector_layer = new OpenLayers.Layer.Vector('Basic Vector Layer');
-	var feature_point = new OpenLayers.Feature.Vector(
-		new OpenLayers.Geometry.Point(145908.86, 485672.35), {'location': 'The Sea', 'description': 'Here be dragons'}, {'label': 'foo'}
-	);
-	vector_layer.addFeatures([feature_point]);
-	map.addLayer(vector_layer);
-	var select_feature_control = new OpenLayers.Control.SelectFeature(vector_layer);
-	map.addControl(select_feature_control);
-	select_feature_control.activate();
-});
+function put_click_handler (x, y, map) {
 
-function my_popup_click_handler() {
-	alert('foobar');
+    $("#map").css("cursor", "progress");
+    var extent, radius, url, user_workspace_id;
+    extent = map.getExtent();
+    radius = Math.abs(extent.top - extent.bottom) / 30;
+    url = '/riolering/foo/';
+    user_workspace_id = $(".workspace").attr("data-workspace-id");
+    if (url !== undefined) {
+        $.getJSON(
+            url,
+            { x: x, y: y, radius: radius, srs: map.getProjection(),
+              user_workspace_id: user_workspace_id }, draw_put
+        );
+    }
+
+}
+
+function do_nothing_click_handler () {
+    // do nothing
+}
+
+function draw_put (data) {
+
+    if (data) {
+    
+    	layers = map.getLayersByName('profileLayer');
+    	
+    	if (layers.length > 0) {
+    		layer = layers[0];
+    	} else {
+    		layer = new OpenLayers.Layer.Vector('profileLayer');
+    		map.addLayer(layer);
+			//var select_feature_control = new OpenLayers.Control.SelectFeature(layer);
+			//map.addControl(select_feature_control);
+			//select_feature_control.activate();
+    	}
+    	
+		if (!layer.getFeatureById(data.label)) {
+			var put = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(data.x, data.y));
+			put.id = data.label;
+			layer.addFeatures([put]);
+		}
+		
+    }
+
+    $("#map").css("cursor", "default");
+
 }

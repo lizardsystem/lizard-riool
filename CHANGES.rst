@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.3 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- The parser now displays the line number of an erroneous line.
 
 
 0.2 (2012-02-15)

@@ -41,6 +41,7 @@ DATABASES = {
     }
 SITE_ID = 1
 INSTALLED_APPS = [
+    #'lizard_map',
     'lizard_riool',
     'lizard_ui',
     'staticfiles',
