@@ -114,11 +114,13 @@ class RioolBestandObject(object):
             try:
                 setattr(dbobj, name, record[start:start + length])
             except ValueError:
-                logger.warning("can't set attribute %s from string '%s'" % (
-                        name, record[start:start + length]))
+                msg = "line %d can't set attribute %s from string '%s'" % (
+                    line_number, name, record[start:start + length])
+                logger.error(msg)
+
                 # Do not hide errors, because a database
                 # transaction has to be rolled back.
-                raise
+                raise ValueError(msg)
         return dbobj
 
     def update_coordinates(self, base, direction, prev):
