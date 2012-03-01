@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.3 (unreleased)
+0.3 (2012-03-01)
 ----------------
 
 - Initial version of path selection in network.
