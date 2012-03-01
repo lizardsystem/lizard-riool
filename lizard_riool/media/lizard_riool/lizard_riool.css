@@ -10,3 +10,7 @@
 .upload-dialog {
     background-image: url('/static_media/plupload/examples/bg.jpg') !important;
 }
+
+div#acties {
+	margin: 8px 0;
+}

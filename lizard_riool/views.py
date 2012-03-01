@@ -1,16 +1,18 @@
 # (c) Nelen & Schuurmans.  GPL licensed, see LICENSE.txt.
 
+from django.contrib.gis.geos import Point
 from django.core.files import File
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import simplejson as json
 from django.views.generic import TemplateView, View
-from lizard_map import coordinates
 from lizard_map.models import WorkspaceEdit
-from lizard_map.views import AppView, search
-from models import Upload
+from lizard_map.views import AppView
+from math import sqrt
+from models import Riool, Upload
 from parsers import parse
 import logging
+import networkx as nx
 import os.path
 import tempfile
 
@@ -110,61 +112,116 @@ class PutList(View):
         return HttpResponse(json.dumps(context), mimetype="application/json")
 
 
-class Foo(View):
-    ""
+class PutFinder(View):
+    """Find the nearest "put" within a certain radius around a point.
+    """
 
     def get(self, request, *args, **kwargs):
+
         x = float(request.GET.get('x'))
         y = float(request.GET.get('y'))
         radius = float(request.GET.get('radius'))
         srs = request.GET.get('srs')
-        user_workspace_id = request.GET.get('user_workspace_id')
-        workspace = WorkspaceEdit.objects.get(pk=user_workspace_id)
+        workspace_id = int(request.GET.get('workspace_id'))
+
+        # So far, only RD New has been tested.
+        # Return [] for other projections.
+
+        if srs != "EPSG:28992":
+            logger.error("%s projection not yet supported" % srs)
+            return self.render_to_response([])
+
+        workspace = WorkspaceEdit.objects.get(pk=workspace_id)
 
         upload_ids = []
         for workspace_item in workspace.workspace_items.filter(visible=True):
             upload_ids.append(workspace_item.adapter.id)
 
-        from django.contrib.gis.geos import *
-        from django.contrib.gis.measure import D
-        from django.contrib.gis.geos import Point
-        from models import Riool
-        from math import sqrt
+        # TODO: SUFRMB Only?
+
+        pnt = Point(x, y)
+        riolen = []
 
         # Cannot reliably use the QuerySet's distance method, because it will
         # always use the first geometry field for its distance calculations?
 
-        print "@@@@@@@@@@@@"
-        pnt = Point(x, y)
+        # We are only interested in "putten" that are connected, i.e. that
+        # are part of a "streng", so only Riool not Put is queried.
 
-        riolen = []
+        # Investigate AAD, i.e. "Knooppuntreferentie 1".
 
-        for riool in Riool.objects.filter(upload__pk__in=upload_ids).filter(_AAE__distance_lte=(pnt, radius)):
-            riool._put_distance = sqrt((riool.AAE.x - pnt.x)**2 + (riool.AAE.y - pnt.y)**2)
+        for riool in Riool.objects.\
+            filter(upload__pk__in=upload_ids).\
+            filter(_AAE__distance_lte=(pnt, radius)):
+            riool._put_distance = \
+                sqrt((riool.AAE.x - pnt.x) ** 2 + (riool.AAE.y - pnt.y) ** 2)
             riool._put_label = riool.AAD
             riool._put_xy = riool.AAE
             riolen.append(riool)
 
-        for riool in Riool.objects.filter(upload__pk__in=upload_ids).filter(_AAG__distance_lte=(pnt, radius)):
-            riool._put_distance = sqrt((riool.AAG.x - pnt.x)**2 + (riool.AAG.y - pnt.y)**2)
+        # Investigate AAF, i.e. "Knooppuntreferentie 2".
+
+        for riool in Riool.objects.\
+            filter(upload__pk__in=upload_ids).\
+            filter(_AAG__distance_lte=(pnt, radius)):
+            riool._put_distance = \
+                sqrt((riool.AAG.x - pnt.x) ** 2 + (riool.AAG.y - pnt.y) ** 2)
             riool._put_label = riool.AAF
             riool._put_xy = riool.AAG
             riolen.append(riool)
 
+        # Sort by distance.
+
         riolen = sorted(riolen, key=lambda riool: riool._put_distance)
-        for riool in riolen:
-            print riool._put_label, riool._put_distance, riool
+
+        # Return the nearest "put".
 
         if len(riolen) > 0:
             riool = riolen[0]
-            context = {
+            context = [{
                 'x': riool._put_xy.x,
                 'y': riool._put_xy.y,
-                'label': riool._put_label,
+                'put': riool._put_label,
                 'upload_id': riool.upload.pk,
-                }
+            }]
         else:
-            context = None
+            context = []
+
+        return self.render_to_response(context)
+
+    def render_to_response(self, context):
+        return HttpResponse(json.dumps(context), mimetype="application/json")
+
+
+class Bar(View):
+    ""
+
+    def get(self, request, *args, **kwargs):
+        ""
+        upload_id = int(request.GET.get('upload_id'))
+        source = request.GET.get('source')
+        target = request.GET.get('target')
+
+        G = nx.Graph()
+        for riool in Riool.objects.filter(upload__pk=upload_id):
+            G.add_edge(riool.AAD, riool.AAF)
+            G.node[riool.AAD]['location'] = riool.AAE
+            G.node[riool.AAF]['location'] = riool.AAG
+
+        try:
+            path = nx.shortest_path(G, source, target)
+        except nx.NetworkXNoPath:
+            logger.warning("No path from %s to %s" % (source, target))
+            path = []
+
+        context = []
+        for put in path:
+            location = G.node[put]['location']
+            context.append({
+                'put': put,
+                'x': location.x,
+                'y': location.y,
+            })
 
         return self.render_to_response(context)
 
