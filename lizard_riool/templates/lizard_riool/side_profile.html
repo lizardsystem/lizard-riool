@@ -11,12 +11,12 @@
 {% block map-javascript %}
 {{ block.super }}
 <script type="text/javascript"
-        src="{{ STATIC_URL }}lizard_riool/lizard_riool.js"></script>
+        src="{{ STATIC_URL }}lizard_riool/side_profile.js"></script>
 {% endblock map-javascript %}
 
 {% block sidebar %}
 <div class="sidebarbox sidebarbox-stretched">
-  <h2>Dwarsprofielen</h2>
+  <h2>Langsprofielen</h2>
   <ul class="without-bullets">
   {% include "lizard_riool/files.html" %}
   </ul>
@@ -25,7 +25,8 @@
   <h2>Acties</h2>
   <div id="acties">
   	<button id="route">Kies nieuwe route</button>
-  	<button id="profile">Toon dwarsprofiel</button>
+  	<button id="profile">Toon langsprofiel...</button>
+  	<button id="byrman">Don't push this button...</button>
   </div>
 </div>
 
