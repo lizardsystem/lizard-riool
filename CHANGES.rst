@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.4 (unreleased)
+0.4 (2012-03-09)
 ----------------
 
 - Initial version of side profile ("langsprofiel") functionality.
