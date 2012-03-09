@@ -13,7 +13,7 @@ install_requires = [
     'Django',
     'django-extensions',
     'django-nose',
-    'lizard-map',
+    'lizard-map >= 3.24',
     'lizard-ui >= 3.0',
     'pkginfo',
     'networkx >= 1.6',

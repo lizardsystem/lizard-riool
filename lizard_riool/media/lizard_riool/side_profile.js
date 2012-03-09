@@ -5,18 +5,45 @@
 
 "use strict";
 
-function draw_path(putten) {
+$.lizard_riool = {};
 
-    var feature, i, layer, layers, line, point, points, put;
+$.lizard_riool.init = function () {
+    $.lizard_riool.profileLayer.destroyFeatures();
+    $.lizard_riool.routeLayer.destroyFeatures();
+    $.lizard_riool.upload_id = null;
+    $.lizard_riool.putten = [];
+    $.lizard_riool.strengen = [];
+};
 
-    layers = map.getLayersByName('routeLayer');
+$(function () {
 
-    if (layers.length > 0) {
-        layer = layers[0];
-    } else {
-        layer = new OpenLayers.Layer.Vector('routeLayer');
-        map.addLayer(layer);
-    }
+    $.lizard_riool.profileLayer = new OpenLayers.Layer.Vector('profileLayer');
+    $.lizard_riool.profileLayer.displayInLayerSwitcher = false;
+    map.addLayer($.lizard_riool.profileLayer);
+
+    $.lizard_riool.routeLayer = new OpenLayers.Layer.Vector('routeLayer');
+    $.lizard_riool.routeLayer.displayInLayerSwitcher = false;
+    map.addLayer($.lizard_riool.routeLayer);
+
+    $.lizard_riool.init();
+
+});
+
+$(function () {
+
+    $('button#route').click(function () {
+        $.lizard_riool.init();
+    });
+
+});
+
+function draw_path(data) {
+
+    var feature, i, layer, line, point, points, put, putten, strengen;
+
+    layer = $.lizard_riool.routeLayer;
+
+    putten = data.putten;
 
     if (putten.length > 1) {
         points = [];
@@ -29,48 +56,47 @@ function draw_path(putten) {
         feature = new OpenLayers.Feature.Vector(line, null, {'strokeColor': '#0000ff', 'strokeWidth': 2});
         layer.addFeatures([feature]);
     }
+
+    if ($.lizard_riool.putten.length > 1) {
+        for (i = 1; i < putten.length; i += 1) {
+            $.lizard_riool.putten.push(putten[i].put);
+        }
+    } else {
+        for (i = 0; i < putten.length; i += 1) {
+            $.lizard_riool.putten.push(putten[i].put);
+        }
+    }
+
+    strengen = data.strengen;
+
+    for (i = 0; i < strengen.length; i += 1) {
+        $.lizard_riool.strengen.push(strengen[i]);
+    }
 }
 
-//
-//
-function mark_put(data) {
+$.lizard_riool.mark_put = function (put) {
 
-    var i, layer, layers, prev_put, put, routeLayer, url;
+    var layer, point, prev_put, url;
 
-    if (data.length > 0) {
+    if (!$.isEmptyObject(put)) {
 
-        // A "put" was found. We need a layer to draw it.
-
-        layers = map.getLayersByName('profileLayer');
-
-        if (layers.length > 0) {
-            layer = layers[0];
-        } else {
-            layer = new OpenLayers.Layer.Vector('profileLayer');
-            map.addLayer(layer);
-        }
+        layer = $.lizard_riool.profileLayer;
 
         if (layer.features.length === 0) {
-            put = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(data[0].x, data[0].y), {label: data[0].put});
-            layer.addFeatures([put]);
-        } else if (layer.features.length === 1) {
+            point = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(put.x, put.y), {label: put.put});
+            layer.addFeatures([point]);
+            $.lizard_riool.upload_id = put.upload_id;
+        } else if (put.upload_id === $.lizard_riool.upload_id) {
             url = '/riolering/bar/';
             prev_put = layer.features[layer.features.length - 1];
-            $.getJSON(url, {upload_id: data[0].upload_id, source: prev_put.attributes.label, target: data[0].put}, draw_path);
-            put = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(data[0].x, data[0].y), {label: data[0].put});
-            layer.addFeatures([put]);
-        } else {
-            routeLayer = map.getLayersByName('routeLayer')[0];
-            url = '/riolering/bar/';
-            prev_put = layer.features[layer.features.length - 1];
-            $.getJSON(url, {upload_id: data[0].upload_id, source: prev_put.attributes.label, target: data[0].put}, draw_path);
-            put = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(data[0].x, data[0].y), {label: data[0].put});
-            layer.addFeatures([put]);
+            $.getJSON(url, {upload_id: put.upload_id, source: prev_put.attributes.label, target: put.put}, draw_path);
+            point = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(put.x, put.y), {label: put.put});
+            layer.addFeatures([point]);
         }
 
     }
 
-}
+};
 
 // Find the nearest "put" within a certain radius
 // around a point clicked on the map and mark it.
@@ -94,49 +120,29 @@ function put_click_handler(x, y, map) {
             srs: map.getProjection(),
             workspace_id: workspace_id
         },
-        mark_put
+        $.lizard_riool.mark_put
     );
 
     $("#map").css("cursor", "default");
 
 }
 
-function do_nothing_click_handler() {
-    // do nothing
-}
-
-$(function () {
-
-    $('button#route').click(function () {
-
-        var i, layers;
-
-        layers = map.getLayersByName('routeLayer');
-        for (i = 0; i < layers.length; i += 1) {
-            layers[i].destroy();
-        }
-
-        layers = map.getLayersByName('profileLayer');
-        for (i = 0; i < layers.length; i += 1) {
-            layers[i].destroy();
-        }
-
-    });
-
-});
-
 $(function () {
 
     $('button#profile').click(function () {
 
-        var $dialog;
+        var putten, strengen, upload_id;
 
-        $dialog = $('<div class="profile-dialog"/>').dialog({
+        upload_id = $.lizard_riool.upload_id;
+        putten = $.lizard_riool.putten;
+        strengen = $.lizard_riool.strengen;
+
+        $dialog = $('<div class="profile-dialog"/>').load('/riolering/langsprofielen/popup/', {'upload_id': upload_id, 'putten[]': putten, 'strengen[]': strengen}).dialog({
             autoOpen: true,
-            height: 400,
             modal: true,
             title: 'Dwarsprofiel',
-            width: 600
+            width: 'auto',
+            zIndex: 2000
         });
 
     });

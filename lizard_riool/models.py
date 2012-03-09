@@ -64,6 +64,10 @@ class Upload(models.Model):
     the_time = models.DateTimeField(auto_now=True, verbose_name='Time')
 
     @property
+    def full_path(self):
+        return str(self.the_file.file)
+
+    @property
     def filename(self):
         return basename(self.the_file.name)
 
@@ -223,7 +227,7 @@ class Riool(RioolBestandObject, models.Model):
         ('AAF', 140, 30),
         ('AAG', 171, 19),
         ('ACA', 397, 2),
-        ('ABC', 400, 4),
+        ('ACB', 400, 4),
         ('ACC', 405, 4),
         ('ACR', 623, 6),
         ('ACS', 630, 6),
@@ -470,6 +474,22 @@ class Riool(RioolBestandObject, models.Model):
     def dist(self):  # GeoDjango already has 'distance'
         return 0
 
+    def get_knooppuntcoordinaten(self, knooppuntreferentie):
+        if self.AAD == knooppuntreferentie:
+            return self.AAE
+        elif self.AAF == knooppuntreferentie:
+            return self.AAG
+        else:
+            return None
+
+    def get_knooppuntbob(self, knooppuntreferentie):
+        if self.AAD == knooppuntreferentie:
+            return self.ACR
+        elif self.AAF == knooppuntreferentie:
+            return self.ACS
+        else:
+            return None
+
     def save(self, *args, **kwargs):
         self._the_geom = LineString(self._AAE, self._AAG)
         super(Riool, self).save(*args, **kwargs)
@@ -506,9 +526,9 @@ class Rioolmeting(RioolBestandObject, models.Model):
         db_column='zyb',
         help_text="Referentie",
         max_length=1)
-    ZYE = models.CharField(
+    _ZYE = models.CharField(
         db_column='zye',
-        help_text="ID",  # id of the referenced object
+        help_text="ID", # id of the referenced object
         max_length=30)
     ZYR = models.CharField(
         db_column='zyr',
@@ -530,13 +550,21 @@ class Rioolmeting(RioolBestandObject, models.Model):
         return self.suf_id
 
     @property
+    def ZYE(self):
+        return self._ZYE
+
+    @ZYE.setter
+    def ZYE(self, value):
+        self._ZYE = value.strip()
+
+    @property
     def suf_id(self):
         "constant unique id"
         return '%s:%08.2f' % (self.suf_fk_edge, self.dist)
 
     @property
     def suf_fk_edge(self):
-        return self.ZYE.strip()
+        return self.ZYE
 
     @property
     def dist(self):  # GeoDjango already has 'distance'
@@ -632,14 +660,3 @@ class Rioolmeting(RioolBestandObject, models.Model):
             pass
 
         logger.debug("updated to %s" % self.point)
-
-
-class Rioolwaarneming(RioolBestandObject):
-    "*WAAR record"
-    suf_record_length = 399
-    suf_fields_count = 23
-    suf_record_type = '*WAAR'
-    suf_id = None
-
-    def __unicode__(self):
-        return self.suf_id
