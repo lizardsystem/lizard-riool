@@ -140,7 +140,7 @@ $(function () {
         $dialog = $('<div class="profile-dialog"/>').load('/riolering/langsprofielen/popup/', {'upload_id': upload_id, 'putten[]': putten, 'strengen[]': strengen}).dialog({
             autoOpen: true,
             modal: true,
-            title: 'Dwarsprofiel',
+            title: 'Langsprofiel',
             width: 'auto',
             zIndex: 2000
         });
