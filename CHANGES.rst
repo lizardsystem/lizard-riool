@@ -2,8 +2,8 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5 (unreleased)
-----------------
+0.4.1 (2012-03-12)
+------------------
 
 - Filesystem caching of network graphs.
 
