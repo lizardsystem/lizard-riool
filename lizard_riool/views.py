@@ -2,7 +2,7 @@
 
 from __future__ import division
 from django.contrib.gis.geos import Point
-from django.core.cache import cache
+from django.core.cache import get_cache
 from django.core.files import File
 from django.db import transaction
 from django.http import HttpResponse
@@ -25,6 +25,7 @@ import tempfile
 import urllib
 
 logger = logging.getLogger(__name__)
+cache = get_cache('file_based_cache')
 
 
 def _get_riool_from_pool(pool, suf_id):
@@ -105,6 +106,7 @@ class SideProfileGraph(View):
         strengen = json.loads(request.GET['strengen'])
 
         # Get or create pool.
+        # Indefinite caching is not possible?
 
         key = "pool_%d" % upload_id
         pool = cache.get(key, {})
@@ -114,7 +116,7 @@ class SideProfileGraph(View):
             upload = Upload.objects.get(pk=upload_id)
             parsers.parse(upload.full_path, pool)
             parsers.convert_to_graph(pool, nx.Graph())
-            cache.set(key, pool)
+            cache.set(key, pool, 24 * 60 * 60)
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             pool, strengen)
