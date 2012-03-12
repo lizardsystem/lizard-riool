@@ -81,6 +81,18 @@ MEDIA_ROOT = os.path.join(BUILDOUT_DIR, 'var', 'media')
 STATICFILES_FINDERS = STATICFILES_FINDERS
 
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    },
+    'file_based_cache': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': BUILDOUT_DIR + '/var/cache',
+        'TIMEOUT': 0,
+    }
+}
+
+
 try:
     # Import local settings that aren't stored in svn/git.
     from lizard_riool.local_testsettings import *

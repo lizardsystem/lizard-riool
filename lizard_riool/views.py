@@ -116,7 +116,7 @@ class SideProfileGraph(View):
             upload = Upload.objects.get(pk=upload_id)
             parsers.parse(upload.full_path, pool)
             parsers.convert_to_graph(pool, nx.Graph())
-            cache.set(key, pool, 24 * 60 * 60)
+            cache.set(key, pool)
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             pool, strengen)
