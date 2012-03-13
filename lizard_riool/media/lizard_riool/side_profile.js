@@ -137,13 +137,22 @@ $(function () {
         putten = $.lizard_riool.putten;
         strengen = $.lizard_riool.strengen;
 
-        $dialog = $('<div class="profile-dialog"/>').load('/riolering/langsprofielen/popup/', {'upload_id': upload_id, 'putten[]': putten, 'strengen[]': strengen}).dialog({
-            autoOpen: true,
-            modal: true,
-            title: 'Langsprofiel',
-            width: 'auto',
-            zIndex: 2000
-        });
+        $.post(
+            '/riolering/langsprofielen/popup/',
+            {
+                upload_id: upload_id,
+                putten: putten,
+                strengen: strengen
+            },
+            function (data) {
+                $('<div/>').append(data).dialog({
+                    modal: true,
+                    title: 'Langsprofiel',
+                    width: 'auto',
+                    zIndex: 2000
+                });
+            }
+        );
 
     });
 
