@@ -328,7 +328,21 @@ class Riool(RioolBestandObject, models.Model):
 
     @property
     def ACR(self):
-        return self._ACR
+        if self._ACR:
+            return self._ACR
+        else:
+            # If SUFRMB, try to find the value in the
+            # corresponding SUFRIB, and vice versa.
+            # Quick fix: retrieve the most recent
+            # value from the database.
+            try:
+                riool = Riool.objects.\
+                    filter(_AAA=self.AAA).\
+                    filter(_ACR__isnull=False).\
+                    order_by('upload__the_time')[0:1].get()
+                return riool._ACR
+            except Riool.DoesNotExist:
+                return 0  # Or None?
 
     @ACR.setter
     def ACR(self, value):
@@ -339,7 +353,21 @@ class Riool(RioolBestandObject, models.Model):
 
     @property
     def ACS(self):
-        return self._ACS
+        if self._ACS:
+            return self._ACS
+        else:
+            # If SUFRMB, try to find the value in the
+            # corresponding SUFRIB, and vice versa.
+            # Quick fix: retrieve the most recent
+            # value from the database.
+            try:
+                riool = Riool.objects.\
+                    filter(_AAA=self.AAA).\
+                    filter(_ACS__isnull=False).\
+                    order_by('upload__the_time')[0:1].get()
+                return riool._ACS
+            except Riool.DoesNotExist:
+                return 0  # Or None?
 
     @ACS.setter
     def ACS(self, value):
