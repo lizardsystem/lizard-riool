@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.4.2 (unreleased)
+0.4.2 (2012-03-15)
 ------------------
 
 - Side profile ("langsprofiel") popup is now correctly centered on the screen.
