@@ -131,11 +131,21 @@ $(function () {
 
     $('button#profile').click(function () {
 
-        var putten, strengen, upload_id;
+        // Display a side profile ("langsprofiel")
+        // graph of the selected route.
+
+        var $dialog, putten, strengen, upload_id;
 
         upload_id = $.lizard_riool.upload_id;
         putten = $.lizard_riool.putten;
         strengen = $.lizard_riool.strengen;
+
+        if (strengen.length === 0) {
+            return;
+        }
+
+        // To properly center its dialog, jQuery
+        // first needs the resulting html.
 
         $.post(
             '/riolering/langsprofielen/popup/',
@@ -145,12 +155,33 @@ $(function () {
                 strengen: strengen
             },
             function (data) {
-                $('<div/>').append(data).dialog({
+
+                $dialog = $('<div/>').append(data).dialog({
                     modal: true,
                     title: 'Langsprofiel',
                     width: 'auto',
                     zIndex: 2000
                 });
+
+                // Load a new graph with the proper dimensions
+                // when a user resizes the dialog window.
+
+                $dialog.bind(
+                    'dialogresizestop',
+                    function () {
+                        $dialog.load(
+                            '/riolering/langsprofielen/popup/',
+                            {
+                                upload_id: upload_id,
+                                putten: putten,
+                                strengen: strengen,
+                                width: $dialog.width(),
+                                height: $dialog.height()
+                            }
+                        );
+                    }
+                );
+
             }
         );
 

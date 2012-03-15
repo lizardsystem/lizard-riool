@@ -14,3 +14,11 @@
 div#acties {
 	margin: 8px 0;
 }
+
+.ajax-loader {
+    background: url(/static_media/lizard_ui/ajax-loader.gif) no-repeat center center;
+}
+
+.ajax-loader img {
+    display: block;
+}

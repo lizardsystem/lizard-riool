@@ -5,7 +5,11 @@ Changelog of lizard-riool
 0.4.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Side profile ("langsprofiel") popup is now correctly centered on the screen.
+
+- Side profile ("langsprofiel") popup shows an ajax loader while waiting.
+
+- Side profile ("langsprofiel") popup displays a new graph upon resize.
 
 
 0.4.1 (2012-03-12)

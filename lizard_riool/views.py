@@ -75,9 +75,12 @@ class SideProfilePopup(TemplateView):
     template_name = 'lizard_riool/side_profile_popup.html'
 
     def post(self, request, *args, **kwargs):
+
         upload_id = request.POST.get('upload_id')
         putten = request.POST.getlist('putten[]')
         strengen = request.POST.getlist('strengen[]')
+        width = request.POST.get('width', 900)
+        height = request.POST.get('height', 300)
 
         # If the length of the query string appears to be a problem,
         # the above data could be cached or saved as session data.
@@ -87,7 +90,11 @@ class SideProfilePopup(TemplateView):
                 'upload_id': upload_id,
                 'putten': json.dumps(putten),
                 'strengen': json.dumps(strengen),
+                'width': width,
+                'height': height,
             }),
+            'width': width,
+            'height': height,
         }
 
         return self.render_to_response(context)
@@ -104,6 +111,8 @@ class SideProfileGraph(View):
         upload_id = int(request.GET['upload_id'])
         putten = json.loads(request.GET['putten'])
         strengen = json.loads(request.GET['strengen'])
+        width = int(request.GET['width'])
+        height = int(request.GET['height'])
 
         # Get or create pool.
         # Indefinite caching is not possible?
@@ -182,7 +191,7 @@ class SideProfileGraph(View):
 
         # Create matplotlib figure.
 
-        fig = ScreenFigure(1000, 400)
+        fig = ScreenFigure(width, height)
         ax1 = fig.add_subplot(111)
         ax1.plot(distances, bobs, color='brown')
         ax1.plot(distances, obbs, color='brown')
