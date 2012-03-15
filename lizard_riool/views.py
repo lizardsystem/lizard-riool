@@ -79,8 +79,11 @@ class SideProfilePopup(TemplateView):
         upload_id = request.POST.get('upload_id')
         putten = request.POST.getlist('putten[]')
         strengen = request.POST.getlist('strengen[]')
-        width = request.POST.get('width', 900)
-        height = request.POST.get('height', 300)
+
+        # Unlike Chromium, Firefox sends dimensions as float.
+
+        width = int(float(request.POST.get('width', 900)))
+        height = int(float(request.POST.get('height', 300)))
 
         # If the length of the query string appears to be a problem,
         # the above data could be cached or saved as session data.
