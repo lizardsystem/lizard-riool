@@ -5,7 +5,9 @@ Changelog of lizard-riool
 0.4.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fixed dialog resize problem with Firefox.
+
+- Fixed missing ACR/ACS values in SUFRMB.
 
 
 0.4.2 (2012-03-15)
