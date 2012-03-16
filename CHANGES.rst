@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.4.3 (unreleased)
+0.4.3 (2012-03-16)
 ------------------
 
 - Fixed dialog resize problem with Firefox.
