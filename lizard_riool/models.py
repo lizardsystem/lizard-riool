@@ -173,10 +173,15 @@ class Put(RioolBestandObject, models.Model):
     def __init__(self, *args, **kwargs):
         """initialize object with optional properties
         """
+        suf_id = kwargs.get('suf_id')
         coords = kwargs.get('coords')
+        if suf_id is not None:
+            del kwargs['suf_id']
         if coords is not None:
             del kwargs['coords']
         super(Put, self).__init__(*args, **kwargs)
+        if suf_id is not None:
+            self.CAA = suf_id
         if coords is not None:
             self._CAB = Point(coords[0], coords[1])
             self.z = coords[2]
