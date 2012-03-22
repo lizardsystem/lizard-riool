@@ -508,3 +508,12 @@ class String_Of_Riool_To_String_Of_Rioolmeting_TestSuite(TestCase):
         target.reverse()
         current = string_of_riool_to_string_of_rioolmeting(pool, ['6400004', '6400003', '6400002'])
         self.assertEqual(target, current)
+
+    def test030(self):
+        "testing a ZYB == 2 string"
+
+        pool = {}
+        parse("lizard_riool/data/f3478.rmb", pool)
+        mrios = string_of_riool_to_string_of_rioolmeting(pool, ['6400001', '6400002', '6400003', '6400004'])
+        self.assertEqual([mrios[-2].suf_id, mrios[-1].suf_id], ['6400004:00001.25', '6400004:00000.75'])
+
