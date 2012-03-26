@@ -46,6 +46,9 @@ function draw_path(data) {
     putten = data.putten;
 
     if (putten.length > 1) {
+
+        // Draw the path.
+
         points = [];
         for (i = 0; i < putten.length; i += 1) {
             put = putten[i];
@@ -55,6 +58,12 @@ function draw_path(data) {
         line = new OpenLayers.Geometry.LineString(points);
         feature = new OpenLayers.Feature.Vector(line, null, {'strokeColor': '#0000ff', 'strokeWidth': 2});
         layer.addFeatures([feature]);
+
+        // Mark the last "put" in the path.
+
+        point = new OpenLayers.Feature.Vector(point, {label: put.put});
+        $.lizard_riool.profileLayer.addFeatures([point]);
+
     }
 
     if ($.lizard_riool.putten.length > 1) {
@@ -80,6 +89,10 @@ $.lizard_riool.mark_put = function (put) {
 
     if (!$.isEmptyObject(put)) {
 
+        if (put.upload_id !== $.lizard_riool.upload_id) {
+            $.lizard_riool.init();
+        }
+
         layer = $.lizard_riool.profileLayer;
 
         if (layer.features.length === 0) {
@@ -90,8 +103,6 @@ $.lizard_riool.mark_put = function (put) {
             url = '/riolering/bar/';
             prev_put = layer.features[layer.features.length - 1];
             $.getJSON(url, {upload_id: put.upload_id, source: prev_put.attributes.label, target: put.put}, draw_path);
-            point = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(put.x, put.y), {label: put.put});
-            layer.addFeatures([point]);
         }
 
     }
