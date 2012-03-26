@@ -326,7 +326,7 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
     for riool, i, j in zip(sequence,
                            [start_node] + internal_nodes,
                            internal_nodes + [end_node]):
-        if i == tuple(riool.point(pool[riool.suf_id][1].reference, False)[:2]):
+        if i == tuple(riool.point(1, False)[:2]):
             result.extend(pool[riool.suf_id][1:])
         else:
             reverse_me = pool[riool.suf_id][1:]

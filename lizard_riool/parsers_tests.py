@@ -404,8 +404,10 @@ class Convert_To_Graph_TestSuite(TestCase):
         G = nx.Graph()
         parse("lizard_riool/data/f3478.rmb", pool)
         convert_to_graph(pool, G)
+        self.assertEqual([-4.5, -2.4029999999999996, -1.28], [i.z for i in pool['6400001'][1:]])
         self.assertEqual([-4.0, -2.8452994616207485, -4.0], [i.z for i in pool['6400002'][1:]])
         self.assertEqual([-1.8, -1.2000000000000002, -1.3000000000000003], [i.z for i in pool['6400003'][1:]])
+        self.assertEqual([0.0, 1.046], [i.z for i in pool['6400004'][1:]])
 
 
 class Compute_Lost_Water_Depth_TestSuite(TestCase):
@@ -515,5 +517,5 @@ class String_Of_Riool_To_String_Of_Rioolmeting_TestSuite(TestCase):
         pool = {}
         parse("lizard_riool/data/f3478.rmb", pool)
         mrios = string_of_riool_to_string_of_rioolmeting(pool, ['6400001', '6400002', '6400003', '6400004'])
-        self.assertEqual([mrios[-2].suf_id, mrios[-1].suf_id], ['6400004:00001.25', '6400004:00000.75'])
+        self.assertEqual(['6400004:00001.50', '6400004:00000.75'], [mrios[-2].suf_id, mrios[-1].suf_id])
 
