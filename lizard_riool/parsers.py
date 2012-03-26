@@ -33,6 +33,23 @@ import numpy
 logger = logging.getLogger(__name__)
 
 
+def get_obj_from_graph(graph, suf_id):
+    """Return an object from the graph by its suf_id.
+
+    At the moment, the nodes of a graph are tuples of coordinates, which is
+    rather inconvenient (suf_id would be a better choice). The associated
+    object is stored as a property (obj) of the node. This function
+    returns the object uniquely characterized by suf_id.
+    """
+
+    for n, d in graph.nodes_iter(data=True):
+        obj = d['obj']
+        if obj.suf_id == suf_id:
+            return obj
+
+    return None
+
+
 def convert_to_graph(pool, graph):
     """inspect the pool of objects and produce a nx.Graph
 
@@ -41,6 +58,8 @@ def convert_to_graph(pool, graph):
     *RIOO objects, and that each list starts with the *RIOO object and
     continues with the measurements along that object in the same
     order as in the file.
+
+    TODO: Use suf_ids as nodes; see get_obj_from_graph.
     """
 
     graph.remove_nodes_from(list(graph.node))
@@ -149,7 +168,7 @@ def compute_lost_volume(graph):
     received its flooded field, use compute_lost_volume to aggregate
     the values into a single volume_lost field per Riool object.
     """
-    
+
     initialized = set()
 
     ## compute per section of each Riool the lost capacity.  a section
@@ -267,7 +286,7 @@ def dfs_preorder_nodes(G, source, visited, condition):
                 stack.append((child, iter(sorted(G[child]))))
             else:
                 border.append((parent, child))
-    return satisfied, [(p, c) for p, c in border 
+    return satisfied, [(p, c) for p, c in border
                        if c not in set(satisfied)]
 
 
@@ -281,14 +300,14 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
     """
 
     ## make sure we have a sequence of Riool objects.
-    sequence = [i if isinstance(i, Riool) else pool[i][0] 
+    sequence = [i if isinstance(i, Riool) else pool[i][0]
                 for i in sequence]
 
     ## construct the sequence of internal nodes
     s = [(tuple(i.point(1, False)[:2]), tuple(i.point(2, False)[:2]))
          for i in sequence]
     internal_nodes = list(set(i).intersection(set(j)).pop()
-                          for (i,j) in zip(s, s[1:]))
+                          for (i, j) in zip(s, s[1:]))
 
     ## the start node is the one on sequence[0] opposite to
     ## internal_nodes[0].
@@ -296,7 +315,7 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
     ## the end_node similarly using sequence[-1] and
     ## internal_nodes[-1]
 
-    start_node = set(tuple(sequence[0].point(i, False)[:2]) 
+    start_node = set(tuple(sequence[0].point(i, False)[:2])
                      for i in [1, 2]
                      ).difference([internal_nodes[0]]).pop()
     end_node = set(tuple(sequence[-1].point(i, False)[:2])
@@ -304,7 +323,7 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
                    ).difference([internal_nodes[-1]]).pop()
 
     result = []
-    for riool, i, j in zip(sequence, 
+    for riool, i, j in zip(sequence,
                            [start_node] + internal_nodes,
                            internal_nodes + [end_node]):
         if i == tuple(riool.point(pool[riool.suf_id][1].reference, False)[:2]):
@@ -315,7 +334,6 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
             result.extend(reverse_me)
 
     return result
-            
 
 
 def main(options, args):
