@@ -153,6 +153,7 @@ class Put(RioolBestandObject, models.Model):
     suf_fields = [
         ('CAA', 6, 30),
         ('CAB', 37, 19),
+        ('CAR', 184, 2),
         ]
 
     objects = models.GeoManager()
@@ -168,6 +169,14 @@ class Put(RioolBestandObject, models.Model):
         help_text="Knooppuntcoördinaat",
         srid=SRID,
         verbose_name='CAB',
+        )
+    _CAR = models.CharField(
+        blank=False,
+        db_column='car',
+        help_text="Knooppunttype",
+        max_length=2,
+        null=True,
+        verbose_name='CAR',
         )
 
     def __init__(self, *args, **kwargs):
@@ -202,6 +211,15 @@ class Put(RioolBestandObject, models.Model):
     def CAB(self, value):
         x, y = value.split('/')
         self._CAB = Point(float(x), float(y))
+
+    @property
+    def CAR(self):
+        return self._CAR
+
+    @CAR.setter
+    def CAR(self, value):
+        value = value.strip()
+        self._CAR = value if value != '' else None
 
     @property
     def suf_id(self):
