@@ -15,9 +15,7 @@ from lizard_riool import parsers
 from math import sqrt
 from matplotlib import figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from models import Riool, Upload
-from parsers import parse
-from pprint import pprint
+from models import Put, Riool, Upload
 import logging
 import networkx as nx
 import os.path
@@ -125,10 +123,57 @@ class SideProfileGraph(View):
 
         if not pool:
 
-            upload = Upload.objects.get(pk=upload_id)
-            parsers.parse(upload.full_path, pool)
-            parsers.convert_to_graph(pool, nx.Graph())
-            cache.set(key, pool)
+            rmb_upload = Upload.objects.get(pk=upload_id)
+            parsers.parse(rmb_upload.full_path, pool)
+            graph = nx.Graph()
+            parsers.convert_to_graph(pool, graph)
+
+            # A SUFRMB has been parsed. The sink, however, has been specified
+            # in the corresponding SUFRIB. Let's try to find it.
+
+            sufrib = os.path.splitext(rmb_upload.the_file.name)[0] + '.rib'
+
+            try:
+                rib_upload = Upload.objects.get(the_file__iexact=sufrib)
+            except Upload.DoesNotExist:
+                logger.warn("Could not find SUFRIB for %s by name" % \
+                    rmb_upload.full_path)
+                rib_upload = None
+
+            if not rib_upload:
+
+                # The corresponding SUFRIB could not be found by name.
+                # Find a SUFRIB having putten[0] as a last resort.
+
+                try:
+                    rib_upload = Put.objects.filter(
+                        _CAA=putten[0])[0:1].get().upload
+                except Put.DoesNotExist:
+                    logger.warn("Could not find SUFRIB for %s by put" % \
+                        rmb_upload.full_path)
+                    rib_upload = None
+
+            if rib_upload:
+
+                # We need to know which manhole (i.e. "put")
+                # has been designated as the sink.
+
+                try:
+                    sink = Put.objects.filter(upload=rib_upload).get(_CAR='Xs')
+                    # TODO: better pass suf_id instead of coordinates.
+                    # https://office.lizard.net/trac/ticket/3553
+                    parsers.compute_lost_water_depth(
+                        graph, (sink.CAB.x, sink.CAB.y))
+#                    cache.set(key, pool)
+                except Put.DoesNotExist:
+                    logger.warn("No sink defined for %s" % \
+                        rib_upload.full_path)
+                    sink = None
+
+            else:
+
+                # The sink is unknown.
+                sink = None
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             pool, strengen)
@@ -143,14 +188,10 @@ class SideProfileGraph(View):
         for mrio in mrios:
             data[mrio.ZYE].append(mrio)
 
-        for streng in strengen:
-            if data[streng][0].reference == 2:
-                data[streng].reverse()
-
         # bobs: "Bovenkant Onderkant Buizen"
         # obbs: "Onderkant Bovenkant Buizen"
 
-        bobs, obbs, coordinates = [], [], []
+        bobs, obbs, flooded, foo, coordinates = [], [], [], [], []
         for idx, val in enumerate(strengen):
 
             # The RIOO record.
@@ -165,13 +206,22 @@ class SideProfileGraph(View):
             coordinates.append(put_source_xy)
             bobs.append(put_source_bob)
             obbs.append(put_source_bob + riool.height)
+            obj = parsers.get_obj_from_graph(graph, put_source)
+            foo.append(put_source_bob + obj.flooded)
+            flooded.append(obj.flooded)
 
             # Append MRIO measurements.
 
             for mrio in data[val]:
-                    coordinates.append(Point(mrio.point[0], mrio.point[1]))
-                    bobs.append(mrio.point[2])
-                    obbs.append(mrio.point[2] + riool.height)
+                    # Skip objects not having a "flooded" attribute.
+                    # https://office.lizard.net/trac/ticket/3547.
+                    # TODO: this has to be solved properly.
+                    if hasattr(mrio, 'flooded'):
+                        coordinates.append(Point(mrio.point[0], mrio.point[1]))
+                        bobs.append(mrio.point[2])
+                        obbs.append(mrio.point[2] + riool.height)  # Too simple!
+                        foo.append(mrio.point[2] + mrio.flooded)
+                        flooded.append(mrio.flooded)
 
             # Append PUT to end with.
 
@@ -181,9 +231,11 @@ class SideProfileGraph(View):
             coordinates.append(put_target_xy)
             bobs.append(put_target_bob)
             obbs.append(put_target_bob + riool.height)
+            obj = parsers.get_obj_from_graph(graph, put_target)
+            foo.append(put_target_bob + obj.flooded)
+            flooded.append(obj.flooded)
 
         #
-
         distances = [0.0]
         for i in range(len(coordinates) - 1):
             distance = distances[i] + sqrt(
@@ -193,11 +245,13 @@ class SideProfileGraph(View):
             distances.append(distance)
 
         # Create matplotlib figure.
-
         fig = ScreenFigure(width, height)
         ax1 = fig.add_subplot(111)
+#        ax1.plot(distances, flooded, color='red')
+        ax1.plot(distances, foo, color='blue')
         ax1.plot(distances, bobs, color='brown')
         ax1.plot(distances, obbs, color='brown')
+        ax1.fill_between(distances, bobs, foo, interpolate=False, alpha=0.5)
         ax1.set_xlim(0)
         ax1.set_xlabel('Afstand (m)')
         ax1.set_ylabel('Diepte t.o.v. NAP (m)')
@@ -253,7 +307,7 @@ class UploadView(TemplateView):
         if chunk == chunks - 1:
             with transaction.commit_on_success():
                 objects = []
-                parse(fullpath, objects)
+                parsers.parse(fullpath, objects)
                 f = open(fullpath)
                 upload = Upload()
                 upload.the_file.save(filename, File(f))
