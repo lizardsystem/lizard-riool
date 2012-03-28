@@ -165,10 +165,6 @@ class SideProfileGraph(View):
                     # https://office.lizard.net/trac/ticket/3553
                     parsers.compute_lost_water_depth(
                         graph, (sink.CAB.x, sink.CAB.y))
-                    import pickle
-                    f = open('/tmp/filmwijk_sink_25D0007.pickle', 'wb')
-                    pickle.dump(graph, f)
-                    f.close()
 #                    cache.set(key, pool)
                 except Put.DoesNotExist:
                     logger.warn("No sink defined for %s" % \
@@ -181,8 +177,8 @@ class SideProfileGraph(View):
                 sink = None
 
         # Our testing SUFRMB. We need to create a SUFRIB as well!
-        if rmb_upload.the_file.name == 'upload/f3478.rmb':
-            parsers.compute_lost_water_depth(graph, (138700.00, 485000.00))
+#        if rmb_upload.the_file.name == 'upload/f3478.rmb':
+#            parsers.compute_lost_water_depth(graph, (138700.00, 485000.00))
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             pool, strengen)
