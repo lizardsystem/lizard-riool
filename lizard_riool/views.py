@@ -137,7 +137,7 @@ class SideProfileGraph(View):
                 rib_upload = Upload.objects.get(the_file__iexact=sufrib)
             except Upload.DoesNotExist:
                 logger.warn("Could not find SUFRIB for %s by name" % \
-                    rmb_upload.full_path)
+                    rmb_upload.the_file.name)
                 rib_upload = None
 
             if not rib_upload:
@@ -150,7 +150,7 @@ class SideProfileGraph(View):
                         _CAA=putten[0])[0:1].get().upload
                 except Put.DoesNotExist:
                     logger.warn("Could not find SUFRIB for %s by put" % \
-                        rmb_upload.full_path)
+                        rmb_upload.the_file.name)
                     rib_upload = None
 
             if rib_upload:
@@ -160,10 +160,15 @@ class SideProfileGraph(View):
 
                 try:
                     sink = Put.objects.filter(upload=rib_upload).get(_CAR='Xs')
+                    logger.debug("Sink = %s" % sink)
                     # TODO: better pass suf_id instead of coordinates.
                     # https://office.lizard.net/trac/ticket/3553
                     parsers.compute_lost_water_depth(
                         graph, (sink.CAB.x, sink.CAB.y))
+                    import pickle
+                    f = open('/tmp/filmwijk_sink_25D0007.pickle', 'wb')
+                    pickle.dump(graph, f)
+                    f.close()
 #                    cache.set(key, pool)
                 except Put.DoesNotExist:
                     logger.warn("No sink defined for %s" % \
@@ -174,6 +179,10 @@ class SideProfileGraph(View):
 
                 # The sink is unknown.
                 sink = None
+
+        # Our testing SUFRMB. We need to create a SUFRIB as well!
+        if rmb_upload.the_file.name == 'upload/f3478.rmb':
+            parsers.compute_lost_water_depth(graph, (138700.00, 485000.00))
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             pool, strengen)
@@ -188,10 +197,20 @@ class SideProfileGraph(View):
         for mrio in mrios:
             data[mrio.ZYE].append(mrio)
 
+        # There seems to be something fishy here.
+        # Water level seems correct if all
+        # measurements are reversed?!
+#        for streng in strengen:
+#            data[streng].reverse()
+
         # bobs: "Bovenkant Onderkant Buizen"
         # obbs: "Onderkant Bovenkant Buizen"
 
-        bobs, obbs, flooded, foo, coordinates = [], [], [], [], []
+        # Store the indices of each manhole,
+        # so a vertical line can be drawn.
+        verticals = []
+
+        bobs, obbs, flooded, water, coordinates = [], [], [], [], []
         for idx, val in enumerate(strengen):
 
             # The RIOO record.
@@ -204,24 +223,25 @@ class SideProfileGraph(View):
             put_source_xy = riool.get_knooppuntcoordinaten(put_source)
             put_source_bob = riool.get_knooppuntbob(put_source)
             coordinates.append(put_source_xy)
+            verticals.append(len(coordinates) - 1)
             bobs.append(put_source_bob)
             obbs.append(put_source_bob + riool.height)
             obj = parsers.get_obj_from_graph(graph, put_source)
-            foo.append(put_source_bob + obj.flooded)
+            water.append(put_source_bob + obj.flooded)
             flooded.append(obj.flooded)
 
             # Append MRIO measurements.
 
             for mrio in data[val]:
-                    # Skip objects not having a "flooded" attribute.
-                    # https://office.lizard.net/trac/ticket/3547.
-                    # TODO: this has to be solved properly.
-                    if hasattr(mrio, 'flooded'):
-                        coordinates.append(Point(mrio.point[0], mrio.point[1]))
-                        bobs.append(mrio.point[2])
-                        obbs.append(mrio.point[2] + riool.height)  # Too simple!
-                        foo.append(mrio.point[2] + mrio.flooded)
-                        flooded.append(mrio.flooded)
+                # Skip objects not having a "flooded" attribute.
+                # https://office.lizard.net/trac/ticket/3547.
+                # TODO: this has to be solved properly.
+                if hasattr(mrio, 'flooded'):
+                    coordinates.append(Point(mrio.point[0], mrio.point[1]))
+                    bobs.append(mrio.point[2])
+                    obbs.append(mrio.point[2] + riool.height)  # Too simple!
+                    water.append(mrio.point[2] + mrio.flooded)
+                    flooded.append(mrio.flooded)
 
             # Append PUT to end with.
 
@@ -232,8 +252,10 @@ class SideProfileGraph(View):
             bobs.append(put_target_bob)
             obbs.append(put_target_bob + riool.height)
             obj = parsers.get_obj_from_graph(graph, put_target)
-            foo.append(put_target_bob + obj.flooded)
+            water.append(put_target_bob + obj.flooded)
             flooded.append(obj.flooded)
+
+        verticals.append(len(coordinates) - 1)
 
         #
         distances = [0.0]
@@ -248,10 +270,10 @@ class SideProfileGraph(View):
         fig = ScreenFigure(width, height)
         ax1 = fig.add_subplot(111)
 #        ax1.plot(distances, flooded, color='red')
-        ax1.plot(distances, foo, color='blue')
+        ax1.plot(distances, water, color='blue')
         ax1.plot(distances, bobs, color='brown')
         ax1.plot(distances, obbs, color='brown')
-        ax1.fill_between(distances, bobs, foo, interpolate=False, alpha=0.5)
+        ax1.fill_between(distances, bobs, water, interpolate=False, alpha=0.5)
         ax1.set_xlim(0)
         ax1.set_xlabel('Afstand (m)')
         ax1.set_ylabel('Diepte t.o.v. NAP (m)')
@@ -264,6 +286,9 @@ class SideProfileGraph(View):
         ax1.spines['top'].set_alpha(0.1)
         for t in ax1.xaxis.get_ticklines(): t.set_visible(False)
         for t in ax1.yaxis.get_ticklines(): t.set_visible(False)
+        for vertical in verticals:
+            # The 'label' kwarg does not work?
+            ax1.axvline(x=distances[vertical], color='green', label='labels do not seem to work?')
         response = HttpResponse(content_type='image/png')
         canvas = FigureCanvas(fig)
         canvas.print_png(response)
