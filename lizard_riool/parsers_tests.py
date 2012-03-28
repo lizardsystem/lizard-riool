@@ -470,6 +470,22 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         compute_lost_water_depth(G, (138736.31, 485299.37))
 
+    def test200(self):
+        "watering a simple network, ZYB == 2 strings"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478_2zyb2.rmb", pool)
+        convert_to_graph(pool, G)
+        sink = (138700.00, 485000.00)  # 64D0001
+        compute_lost_water_depth(G, sink)
+        target = [0, 0, 0]
+        current = [
+            pool['6400001'][1].flooded,
+            pool['6400001'][2].flooded,
+            pool['6400001'][3].flooded
+            ]
+        self.assertEqual(target, current)
 
 from parsers import string_of_riool_to_string_of_rioolmeting
 
