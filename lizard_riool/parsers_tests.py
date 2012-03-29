@@ -360,7 +360,7 @@ class Convert_To_Graph_TestSuite(TestCase):
         target = [(3.0, 0.0), (3.0, 5.0), (0.0, 1.0),
                   (3.2000000000000002, 7.4000000000000004),
                   (1.6000000000000001, 6.2000000000000002),
-                  (4.0, 0.0), (2.4000000000000004, 6.7999999999999998),
+                  (3.5, 0.0), (2.4000000000000004, 6.7999999999999998),
                   (0.0, 6.0), (0.0, 4.0), (0.0, 5.0),
                   (2.0, 0.0), (4.0, 5.0),
                   (6.0, 5.0), (2.0, 5.0), (0.0, 2.0),
@@ -392,7 +392,50 @@ class Convert_To_Graph_TestSuite(TestCase):
                          G.edge[(3.0, 5.0)].keys())
         self.assertEqual([(3.2000000000000002, 7.4000000000000004)],
                          G.edge[(4.0, 8.0)].keys())
-        self.assertEqual([(4.0, 0.0)],
+        self.assertEqual([(3.5, 0.0)],
+                         G.edge[(5.0, 0.0)].keys())
+        self.assertEqual([(5.0, 5.0)],
+                         G.edge[(6.0, 5.0)].keys())
+
+    def test030(self):
+        "graph nodes have a Put or a Rioolmeting 'obj' - measured backwards"
+
+        self.maxDiff = None
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb_backwards.rmb", pool)
+        convert_to_graph(pool, G)
+
+        target = [(0.0, 0.0), (0.0, 1.0), (0.0, 2.0), (0.0, 3.0),
+                  (0.0, 4.0), (0.0, 5.0), (0.0, 6.0), (0.0, 7.0),
+                  (0.0, 8.0), (0.8, 5.6), (1.0, 0.0), (1.0, 5.0),
+                  (1.6, 6.2), (2.0, 0.0), (2.0, 5.0), (2.4000000000000004, 6.8),
+                  (3.0, 0.0), (3.0, 5.0), (3.2, 7.4), (3.5, 0.0),
+                  (4.0, 5.0), (4.0, 8.0), (5.0, 0.0), (5.0, 5.0), (6.0, 5.0)]
+
+        current = G.node.keys()
+        self.assertEqual(sorted(target), sorted(current))
+
+        manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
+        self.assertEqual([(0.0, 0.0), (0.0, 5.0), (0.0, 8.0),
+                          (3.0, 5.0), (4.0, 8.0),
+                          (5.0, 0.0), (6.0, 5.0)],
+                         manholes)
+
+        self.assertEqual([(0.0, 1.0), (1.0, 0.0)],
+                         G.edge[(0.0, 0.0)].keys())
+        self.assertEqual([(0.0, 6.0),
+                          (0.80000000000000004, 5.5999999999999996),
+                          (0.0, 4.0),
+                          (1.0, 5.0)],
+                         G.edge[(0.0, 5.0)].keys())
+        self.assertEqual([(0.0, 7.0)],
+                         G.edge[(0.0, 8.0)].keys())
+        self.assertEqual([(4.0, 5.0), (2.0, 5.0)],
+                         G.edge[(3.0, 5.0)].keys())
+        self.assertEqual([(3.2000000000000002, 7.4000000000000004)],
+                         G.edge[(4.0, 8.0)].keys())
+        self.assertEqual([(3.5, 0.0)],
                          G.edge[(5.0, 0.0)].keys())
         self.assertEqual([(5.0, 5.0)],
                          G.edge[(6.0, 5.0)].keys())
@@ -443,7 +486,56 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
                   ((1.0, 0.0), 2.0, 0),
                   ((2.0, 0.0), 1.0, 1.0),
                   ((3.0, 0.0), 2.0, 0),
-                  ((4.0, 0.0), 3.0, 0),
+                  ((3.5, 0.0), 3.0, 0),
+                  ((5.0, 0.0), 3.0, 0),
+
+                  ((1.0, 5.0), 4.0, 0),
+                  ((2.0, 5.0), 3.0, 1.0),
+                  ((3.0, 5.0), 4.0, 0),
+
+                  ((4.0, 5.0), 4.2, 0),
+                  ((5.0, 5.0), 4.6, 0),
+                  ((6.0, 5.0), 5.0, 0),
+                  ]
+
+        current = [(n, G.node[n]['obj'].z, G.node[n]['obj'].flooded)
+                   for n in sorted(G.node)]
+
+        self.assertEqual(sorted(target), current)
+
+    def test001(self):
+        "watering a simple network - measured backwards"
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478-bb_backwards.rmb", pool)
+        self.maxDiff = None 
+        convert_to_graph(pool, G)
+
+        compute_lost_water_depth(G, (0.0, 0.0))
+
+        target = [((0.0, 0.0), 0.0, 0),
+
+                  ((0.0, 1.0), 2.0, 0),
+                  ((0.0, 2.0), 0.0, 2.0),
+                  ((0.0, 3.0), 1.0, 1.0),
+                  ((0.0, 4.0), 2.0, 0),
+                  ((0.0, 5.0), 3.0, 0),
+
+                  ((0.0, 6.0), 4.0, 0),
+                  ((0.0, 7.0), 3.0, 1.0),
+                  ((0.0, 8.0), 4.0, 0),
+
+                  ((0.8, 5.6), 4.0, 0),
+                  ((1.6, 6.2), 3.0, 1.0),
+                  ((2.4000000000000004, 6.8), 3.0, 1.0),
+                  ((3.2, 7.4), 3.0, 1.0),
+                  ((4.0, 8.0), 4.0, 0),
+
+                  ((1.0, 0.0), 2.0, 0),
+                  ((2.0, 0.0), 1.0, 1.0),
+                  ((3.0, 0.0), 2.0, 0),
+                  ((3.5, 0.0), 3.0, 0),
                   ((5.0, 0.0), 3.0, 0),
 
                   ((1.0, 5.0), 4.0, 0),
@@ -477,7 +569,8 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         G = nx.Graph()
         parse("lizard_riool/data/f3478_2zyb2.rmb", pool)
         convert_to_graph(pool, G)
-        sink = (138700.00, 485000.00)  # 64D0001
+        # sink = node 1 of Riool 6400001 = 64D0001
+        sink = tuple(pool['6400001'][0].point(1, False)[:2])
         compute_lost_water_depth(G, sink)
         target = [0, 0, 0]
         current = [

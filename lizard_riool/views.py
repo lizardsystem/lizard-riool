@@ -187,11 +187,11 @@ class SideProfileGraph(View):
 
         data = {}
 
-        for streng in strengen:
-            data[streng] = []
+        for suf_id in strengen:
+            data[suf_id] = []
 
         for mrio in mrios:
-            data[mrio.ZYE].append(mrio)
+            data[mrio.suf_fk_edge].append(mrio)
 
         # There seems to be something fishy here.
         # Water level seems correct if all
@@ -207,11 +207,11 @@ class SideProfileGraph(View):
         verticals = []
 
         bobs, obbs, flooded, water, coordinates = [], [], [], [], []
-        for idx, val in enumerate(strengen):
+        for idx, suf_id in enumerate(strengen):
 
             # The RIOO record.
 
-            riool = _get_riool_from_pool(pool, val)
+            riool = _get_riool_from_pool(pool, suf_id)
 
             # Append PUT to start from.
 
@@ -228,7 +228,7 @@ class SideProfileGraph(View):
 
             # Append MRIO measurements.
 
-            for mrio in data[val]:
+            for mrio in data[suf_id]:
                 # Skip objects not having a "flooded" attribute.
                 # https://office.lizard.net/trac/ticket/3547.
                 # TODO: this has to be solved properly.

@@ -66,7 +66,7 @@ def convert_to_graph(pool, graph):
 
     for suf_id in pool:
         riool = pool[suf_id][0]
-        reference = pool[suf_id][1].reference  # choice
+        reference = 1
         start_point = riool.point(reference, opposite=False)
         end_point = riool.point(reference, opposite=True)
         logger.debug("id of line / start-end: %s / %s-%s" % (suf_id, start_point, end_point))
@@ -87,7 +87,7 @@ def convert_to_graph(pool, graph):
         logger.debug("'2D-unit' vector of this segment is %s" % direction)
 
         for obj in pool[suf_id][1:]:
-            obj.update_coordinates(start_point, direction, prev_point)
+            obj.update_coordinates(start_point, end_point, direction, prev_point)
             graph.add_node(tuple(obj.point[:2]),
                            obj=obj)
             logger.debug("adding edge %s-%s" % (prev_point, obj.point))
