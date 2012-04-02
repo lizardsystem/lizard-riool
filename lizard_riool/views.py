@@ -12,6 +12,7 @@ from lizard_map.matplotlib_settings import SCREEN_DPI
 from lizard_map.models import WorkspaceEdit
 from lizard_map.views import AppView
 from lizard_riool import parsers
+from lizard_riool.layers import RmbAdapter
 from math import sqrt
 from matplotlib import figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -30,6 +31,20 @@ def _get_riool_from_pool(pool, suf_id):
     for obj in pool[suf_id]:
         if obj.suf_id == suf_id:
             return obj
+
+
+def _get_sufrib_by_sufrmb(sufrmb):
+    ""
+    sufrib = os.path.splitext(sufrmb)[0] + '.rib'
+    try:
+        upload = Upload.objects.get(the_file__iexact=sufrib)
+    except Upload.DoesNotExist:
+        logger.warn("Could not find SUFRIB for %s by name" % upload.the_file.name)
+        upload = None
+
+
+def _get_sufrib_by_put(put):
+    pass
 
 
 class ScreenFigure(figure.Figure):
@@ -65,6 +80,38 @@ class SideProfileView(AppView):
 
     def files(self):
         return Upload.objects.filter(the_file__iendswith='.rmb')
+
+
+class LostCapacityView(AppView):
+    "View lost capacity."
+    template_name = 'lizard_riool/lost_capacity.html'
+    javascript_click_handler = ''
+
+    def files(self):
+        return Upload.objects.filter(the_file__iendswith='.rmb')
+
+
+class LostCapacityResultView(View):
+    "View lost capacity results."
+
+    def get(self, request, *args, **kwargs):
+        workspace_id = request.GET.get('workspace_id')
+        workspace = WorkspaceEdit.objects.get(pk=workspace_id)
+        for workspace_item in workspace.workspace_items.filter(visible=True):
+            if isinstance(workspace_item.adapter, RmbAdapter):
+                upload_id = workspace_item.adapter.id
+                rmb_upload = Upload.objects.get(pk=upload_id)
+#                parsers.parse(rmb_upload.full_path, pool)
+#                graph = nx.Graph()
+#                parsers.convert_to_graph(pool, graph)
+#                sink = ...
+#                parsers.compute_lost_water_depth(graph, (sink.CAB.x, sink.CAB.y))
+#                parsers.compute_lost_volume(graph)
+
+        return self.render_to_response({})
+
+    def render_to_response(self, context):
+        return HttpResponse(json.dumps(context), mimetype="application/json")
 
 
 class SideProfilePopup(TemplateView):
@@ -193,12 +240,6 @@ class SideProfileGraph(View):
         for mrio in mrios:
             data[mrio.suf_fk_edge].append(mrio)
 
-        # There seems to be something fishy here.
-        # Water level seems correct if all
-        # measurements are reversed?!
-#        for streng in strengen:
-#            data[streng].reverse()
-
         # bobs: "Bovenkant Onderkant Buizen"
         # obbs: "Onderkant Bovenkant Buizen"
 
@@ -206,7 +247,7 @@ class SideProfileGraph(View):
         # so a vertical line can be drawn.
         verticals = []
 
-        bobs, obbs, flooded, water, coordinates = [], [], [], [], []
+        bobs, obbs, water, coordinates = [], [], [], []
         for idx, suf_id in enumerate(strengen):
 
             # The RIOO record.
@@ -216,15 +257,15 @@ class SideProfileGraph(View):
             # Append PUT to start from.
 
             put_source = putten[idx]
-            put_source_xy = riool.get_knooppuntcoordinaten(put_source)
-            put_source_bob = riool.get_knooppuntbob(put_source)
-            coordinates.append(put_source_xy)
-            verticals.append(len(coordinates) - 1)
-            bobs.append(put_source_bob)
-            obbs.append(put_source_bob + riool.height)
             obj = parsers.get_obj_from_graph(graph, put_source)
-            water.append(put_source_bob + obj.flooded)
-            flooded.append(obj.flooded)
+            if obj:
+                put_source_xy = riool.get_knooppuntcoordinaten(put_source)
+                put_source_bob = riool.get_knooppuntbob(put_source)
+                coordinates.append(put_source_xy)
+                verticals.append(len(coordinates) - 1)
+                bobs.append(put_source_bob)
+                obbs.append(put_source_bob + riool.height)
+                water.append(put_source_bob + obj.flooded)
 
             # Append MRIO measurements.
 
@@ -237,21 +278,19 @@ class SideProfileGraph(View):
                     bobs.append(mrio.point[2])
                     obbs.append(mrio.point[2] + riool.height)  # Too simple!
                     water.append(mrio.point[2] + mrio.flooded)
-                    flooded.append(mrio.flooded)
 
             # Append PUT to end with.
 
             put_target = putten[idx + 1]
-            put_target_xy = riool.get_knooppuntcoordinaten(put_target)
-            put_target_bob = riool.get_knooppuntbob(put_target)
-            coordinates.append(put_target_xy)
-            bobs.append(put_target_bob)
-            obbs.append(put_target_bob + riool.height)
             obj = parsers.get_obj_from_graph(graph, put_target)
-            water.append(put_target_bob + obj.flooded)
-            flooded.append(obj.flooded)
-
-        verticals.append(len(coordinates) - 1)
+            if obj:
+                put_target_xy = riool.get_knooppuntcoordinaten(put_target)
+                put_target_bob = riool.get_knooppuntbob(put_target)
+                coordinates.append(put_target_xy)
+                verticals.append(len(coordinates) - 1)
+                bobs.append(put_target_bob)
+                obbs.append(put_target_bob + riool.height)
+                water.append(put_target_bob + obj.flooded)
 
         #
         distances = [0.0]
@@ -265,23 +304,23 @@ class SideProfileGraph(View):
         # Create matplotlib figure.
         fig = ScreenFigure(width, height)
         ax1 = fig.add_subplot(111)
-#        ax1.plot(distances, flooded, color='red')
-        ax1.plot(distances, water, color='blue')
+#        ax1.plot(distances, water, color='blue')
         ax1.plot(distances, bobs, color='brown')
         ax1.plot(distances, obbs, color='brown')
         ax1.fill_between(distances, bobs, water, interpolate=False, alpha=0.5)
         ax1.set_xlim(0)
         ax1.set_xlabel('Afstand (m)')
         ax1.set_ylabel('Diepte t.o.v. NAP (m)')
-        ax1.grid(True, color='r', linestyle='dotted')
-        ax1.spines['right'].set_linestyle('dotted')
-        ax1.spines['left'].set_linestyle('dotted')
-        ax1.spines['bottom'].set_linestyle('dotted')
-        ax1.spines['top'].set_linestyle('dotted')
-        ax1.spines['top'].set_color('r')
-        ax1.spines['top'].set_alpha(0.1)
-        for t in ax1.xaxis.get_ticklines(): t.set_visible(False)
-        for t in ax1.yaxis.get_ticklines(): t.set_visible(False)
+#        ax1.grid(True, color='r', linestyle='dotted')
+        ax1.grid(True)
+#        ax1.spines['right'].set_linestyle('dotted')
+#        ax1.spines['left'].set_linestyle('dotted')
+#        ax1.spines['bottom'].set_linestyle('dotted')
+#        ax1.spines['top'].set_linestyle('dotted')
+#        ax1.spines['top'].set_color('r')
+#        ax1.spines['top'].set_alpha(0.1)
+#        for t in ax1.xaxis.get_ticklines(): t.set_visible(False)
+#        for t in ax1.yaxis.get_ticklines(): t.set_visible(False)
         for vertical in verticals:
             # The 'label' kwarg does not work?
             ax1.axvline(x=distances[vertical], color='green', label='labels do not seem to work?')
@@ -389,9 +428,8 @@ class PutFinder(View):
 
         upload_ids = []
         for workspace_item in workspace.workspace_items.filter(visible=True):
-            upload_ids.append(workspace_item.adapter.id)
-
-        # TODO: SUFRMB Only?
+            if isinstance(workspace_item.adapter, RmbAdapter):
+                upload_ids.append(workspace_item.adapter.id)
 
         pnt = Point(x, y)
         riolen = []

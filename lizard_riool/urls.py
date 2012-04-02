@@ -4,7 +4,8 @@ from django.conf.urls.defaults import patterns
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from lizard_riool.views import Bar, FileView, PutFinder, PutList, \
-    SideProfileGraph, SideProfileView, UploadView, SideProfilePopup
+    SideProfileGraph, SideProfileView, UploadView, SideProfilePopup, \
+    LostCapacityView, LostCapacityResultView
 from lizard_ui.urls import debugmode_urlpatterns
 
 admin.autodiscover()
@@ -12,6 +13,8 @@ admin.autodiscover()
 urlpatterns = patterns('',
     (r'^beheer/$', login_required(FileView.as_view())),
     (r'^beheer/files/$', login_required(FileView.as_view(template_name="lizard_riool/files.html"))),
+    (r'^berging/$', login_required(LostCapacityView.as_view())),
+    (r'^berging/result/$', login_required(LostCapacityResultView.as_view())),
     (r'^langsprofielen/$', login_required(SideProfileView.as_view())),
     (r'^langsprofielen/graph/$', login_required(SideProfileGraph.as_view())),
     (r'^langsprofielen/popup/$', login_required(SideProfilePopup.as_view())),
