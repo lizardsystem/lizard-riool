@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.4.4 (unreleased)
+0.4.4 (2012-04-06)
 ------------------
 
 - FLooded side profiles (with a known issue: #3603).
