@@ -14,7 +14,7 @@ from lizard_map.views import AppView
 from lizard_riool import parsers
 from lizard_riool.layers import RmbAdapter
 from math import sqrt
-from matplotlib import figure
+from matplotlib import figure, transforms
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from models import Put, Riool, Upload
 import logging
@@ -162,13 +162,15 @@ class SideProfileGraph(View):
         width = int(request.GET['width'])
         height = int(request.GET['height'])
 
-        # Get or create pool.
+        # Get or create pool and graph.
         # Indefinite caching is not possible?
 
-        key = "pool_%d" % upload_id
-        pool = cache.get(key, {})
+        pool_key = "pool_%d" % upload_id
+        pool = cache.get(pool_key, {})
+        graph_key = "graph_%d" % upload_id
+        graph = cache.get(graph_key, {})
 
-        if not pool:
+        if not pool or not graph:
 
             rmb_upload = Upload.objects.get(pk=upload_id)
             parsers.parse(rmb_upload.full_path, pool)
@@ -212,7 +214,8 @@ class SideProfileGraph(View):
                     # https://office.lizard.net/trac/ticket/3553
                     parsers.compute_lost_water_depth(
                         graph, (sink.CAB.x, sink.CAB.y))
-#                    cache.set(key, pool)
+                    cache.set(pool_key, pool)
+                    cache.set(graph_key, graph)
                 except Put.DoesNotExist:
                     logger.warn("No sink defined for %s" % \
                         rib_upload.full_path)
@@ -222,10 +225,6 @@ class SideProfileGraph(View):
 
                 # The sink is unknown.
                 sink = None
-
-        # Our testing SUFRMB. We need to create a SUFRIB as well!
-#        if rmb_upload.the_file.name == 'upload/f3478.rmb':
-#            parsers.compute_lost_water_depth(graph, (138700.00, 485000.00))
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             pool, strengen)
@@ -240,12 +239,13 @@ class SideProfileGraph(View):
         for mrio in mrios:
             data[mrio.suf_fk_edge].append(mrio)
 
+        # Store the index and label of each manhole,
+        # so a vertical line can be drawn.
+
+        verticals = []
+
         # bobs: "Bovenkant Onderkant Buizen"
         # obbs: "Onderkant Bovenkant Buizen"
-
-        # Store the indices of each manhole,
-        # so a vertical line can be drawn.
-        verticals = []
 
         bobs, obbs, water, coordinates = [], [], [], []
         for idx, suf_id in enumerate(strengen):
@@ -262,7 +262,7 @@ class SideProfileGraph(View):
                 put_source_xy = riool.get_knooppuntcoordinaten(put_source)
                 put_source_bob = riool.get_knooppuntbob(put_source)
                 coordinates.append(put_source_xy)
-                verticals.append(len(coordinates) - 1)
+                verticals.append((len(coordinates) - 1, put_source))
                 bobs.append(put_source_bob)
                 obbs.append(put_source_bob + riool.height)
                 water.append(put_source_bob + obj.flooded)
@@ -287,10 +287,12 @@ class SideProfileGraph(View):
                 put_target_xy = riool.get_knooppuntcoordinaten(put_target)
                 put_target_bob = riool.get_knooppuntbob(put_target)
                 coordinates.append(put_target_xy)
-                verticals.append(len(coordinates) - 1)
                 bobs.append(put_target_bob)
                 obbs.append(put_target_bob + riool.height)
                 water.append(put_target_bob + obj.flooded)
+
+        if obj:
+            verticals.append((len(coordinates) - 1, put_target))
 
         #
         distances = [0.0]
@@ -302,28 +304,31 @@ class SideProfileGraph(View):
             distances.append(distance)
 
         # Create matplotlib figure.
+
         fig = ScreenFigure(width, height)
+        fig.subplots_adjust(top=0.85)  # Space for labels
         ax1 = fig.add_subplot(111)
-#        ax1.plot(distances, water, color='blue')
         ax1.plot(distances, bobs, color='brown')
         ax1.plot(distances, obbs, color='brown')
         ax1.fill_between(distances, bobs, water, interpolate=False, alpha=0.5)
         ax1.set_xlim(0)
         ax1.set_xlabel('Afstand (m)')
         ax1.set_ylabel('Diepte t.o.v. NAP (m)')
-#        ax1.grid(True, color='r', linestyle='dotted')
         ax1.grid(True)
-#        ax1.spines['right'].set_linestyle('dotted')
-#        ax1.spines['left'].set_linestyle('dotted')
-#        ax1.spines['bottom'].set_linestyle('dotted')
-#        ax1.spines['top'].set_linestyle('dotted')
-#        ax1.spines['top'].set_color('r')
-#        ax1.spines['top'].set_alpha(0.1)
-#        for t in ax1.xaxis.get_ticklines(): t.set_visible(False)
-#        for t in ax1.yaxis.get_ticklines(): t.set_visible(False)
+
+        # Plot PUT labels.
+
+        transform = transforms.blended_transform_factory(
+            ax1.transData, ax1.transAxes)
+
         for vertical in verticals:
-            # The 'label' kwarg does not work?
-            ax1.axvline(x=distances[vertical], color='green', label='labels do not seem to work?')
+            x = distances[vertical[0]]
+            ax1.axvline(x=x, color='green')
+            ax1.text(x, 1.01, vertical[1], rotation='vertical',
+                transform=transform, va='bottom', fontsize=9)
+
+        # Return image as png.
+
         response = HttpResponse(content_type='image/png')
         canvas = FigureCanvas(fig)
         canvas.print_png(response)
@@ -366,6 +371,7 @@ class UploadView(TemplateView):
 
         if chunk == chunks - 1:
             with transaction.commit_on_success():
+
                 objects = []
                 parsers.parse(fullpath, objects)
                 f = open(fullpath)
@@ -375,6 +381,18 @@ class UploadView(TemplateView):
                 for o in objects:
                     o.upload = upload
                     o.save()
+
+                # Exactly one PUT in a SUFRIB must have been designated
+                # as the sink. This is better handled by the parser?
+
+                if upload.suffix.lower() == ".rib":
+                    try:
+                        Put.objects.filter(upload=upload).get(_CAR='Xs')
+                    except:
+                        msg = ("Precies 1 put in %s moet als sink zijn " +
+                            "gedefinieerd (CAR=Xs).") % upload.filename
+                        logger.error(msg)
+                        raise Exception(msg)
 
     @classmethod
     def post(cls, request, *args, **kwargs):
