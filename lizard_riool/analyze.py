@@ -47,7 +47,6 @@ def hiding_script():
         G.node[riool.AAD][riool.AAF] = riool.ACR
         G.node[riool.AAF][riool.AAD] = riool.ACS
 
-
 # Adapt to your needs
     sink = '228/1'
 
@@ -59,14 +58,19 @@ def hiding_script():
 
 # Assign colors for visualisation
     for n, m in G.edges():
-        if G.node[n][m] >= G.node[n]['top'] and G.node[m][n] >= G.node[m]['top']:
+        if ((G.node[n][m] >= G.node[n]['top']) and
+            (G.node[m][n] >= G.node[m]['top'])):
             G[n][m]['color'] = 'green'
-        elif G.node[n][m] < G.node[n]['top'] and G.node[m][n] < G.node[m]['top']:
+        elif (G.node[n][m] < G.node[n]['top'] and
+              G.node[m][n] < G.node[m]['top']):
             G[n][m]['color'] = 'red'
-        elif G.node[n]['top'] == G.node[m][n] or G.node[m]['top'] == G.node[n][m]:
+        elif (G.node[n]['top'] == G.node[m][n] or
+              G.node[m]['top'] == G.node[n][m]):
             G[n][m]['color'] = 'orange'
-        elif (G.node[n][m] >= G.node[n]['top'] and G.node[m][n] < G.node[m]['top']
-              or G.node[m][n] >= G.node[m]['top'] and G.node[n][m] < G.node[n]['top']):
+        elif ((G.node[n][m] >= G.node[n]['top'] and
+               G.node[m][n] < G.node[m]['top'])
+              or (G.node[m][n] >= G.node[m]['top'] and
+                  G.node[n][m] < G.node[n]['top'])):
             G[n][m]['color'] = 'yellow'
         else:
             G[n][m]['color'] = 'black'
