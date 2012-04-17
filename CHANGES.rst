@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.4.5 (unreleased)
+0.4.5 (2012-04-17)
 ------------------
 
 - We now give Put objects in the graph a z-value that is the minimum
