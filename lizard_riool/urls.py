@@ -12,7 +12,8 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^beheer/$', login_required(FileView.as_view())),
-    (r'^beheer/files/$', login_required(FileView.as_view(template_name="lizard_riool/files.html"))),
+    (r'^beheer/files/$', login_required(
+            FileView.as_view(template_name="lizard_riool/files.html"))),
     (r'^berging/$', login_required(LostCapacityView.as_view())),
     (r'^berging/result/$', login_required(LostCapacityResultView.as_view())),
     (r'^langsprofielen/$', login_required(SideProfileView.as_view())),
