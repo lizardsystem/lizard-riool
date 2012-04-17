@@ -172,7 +172,8 @@ class Dfs_Preorder_Nodes_TestSuite(TestCase):
         AB3 = ("AB3", 10.00)
         AB4 = ("AB4", 10.05)
         B = ("B", 10.1)
-        G.add_edges_from([(A, AB1), (AB1, AB2), (AB2, AB3), (AB3, AB4), (AB4, B)])
+        G.add_edges_from(
+            [(A, AB1), (AB1, AB2), (AB2, AB3), (AB3, AB4), (AB4, B)])
         current = dfs_preorder_nodes(G, A, set(),
                                      lambda p, c: c[1] >= p[1])
         target = ([A, AB1, ], [(AB1, AB2)])
@@ -257,7 +258,8 @@ class Parse_TestSuite(TestCase):
 
         pool = {}
         parse("lizard_riool/data/f3478-bb.rmb", pool)
-        target = ['6400001', '6400002', '6400003', '6400004', '6400005', '6400006']
+        target = ['6400001', '6400002', '6400003',
+                  '6400004', '6400005', '6400006']
         current = sorted(pool.keys())
         self.assertEqual(target, current)
 
@@ -280,12 +282,15 @@ class Parse_TestSuite(TestCase):
         self.assertEqual(target, current)
 
     def test030(self):
-        "file is read into dictionary and all subsequent values are Rioolmeting objects"
+        """file is read into dictionary and all subsequent values are
+        Rioolmeting objects"""
 
         pool = {}
         parse("lizard_riool/data/f3478-bb.rmb", pool)
-        target = [[Rioolmeting] * len(pool[k][1:]) for k in sorted(pool.keys())]
-        current = [[i.__class__ for i in pool[k][1:]] for k in sorted(pool.keys())]
+        target = [[Rioolmeting] * len(pool[k][1:])
+                  for k in sorted(pool.keys())]
+        current = [[i.__class__ for i in pool[k][1:]]
+                   for k in sorted(pool.keys())]
         self.assertEqual(target, current)
 
 
@@ -373,7 +378,8 @@ class Convert_To_Graph_TestSuite(TestCase):
         current = G.node.keys()
         self.assertEqual(sorted(target), sorted(current))
 
-        manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
+        manholes = sorted(
+            [k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         self.assertEqual([(0.0, 0.0), (0.0, 5.0), (0.0, 8.0),
                           (3.0, 5.0), (4.0, 8.0),
                           (5.0, 0.0), (6.0, 5.0)],
@@ -406,17 +412,19 @@ class Convert_To_Graph_TestSuite(TestCase):
         parse("lizard_riool/data/f3478-bb_backwards.rmb", pool)
         convert_to_graph(pool, G)
 
-        target = [(0.0, 0.0), (0.0, 1.0), (0.0, 2.0), (0.0, 3.0),
-                  (0.0, 4.0), (0.0, 5.0), (0.0, 6.0), (0.0, 7.0),
-                  (0.0, 8.0), (0.8, 5.6), (1.0, 0.0), (1.0, 5.0),
-                  (1.6, 6.2), (2.0, 0.0), (2.0, 5.0), (2.4000000000000004, 6.8),
-                  (3.0, 0.0), (3.0, 5.0), (3.2, 7.4), (3.5, 0.0),
-                  (4.0, 5.0), (4.0, 8.0), (5.0, 0.0), (5.0, 5.0), (6.0, 5.0)]
+        target = [
+            (0.0, 0.0), (0.0, 1.0), (0.0, 2.0), (0.0, 3.0),
+            (0.0, 4.0), (0.0, 5.0), (0.0, 6.0), (0.0, 7.0),
+            (0.0, 8.0), (0.8, 5.6), (1.0, 0.0), (1.0, 5.0),
+            (1.6, 6.2), (2.0, 0.0), (2.0, 5.0), (2.4000000000000004, 6.8),
+            (3.0, 0.0), (3.0, 5.0), (3.2, 7.4), (3.5, 0.0),
+            (4.0, 5.0), (4.0, 8.0), (5.0, 0.0), (5.0, 5.0), (6.0, 5.0)]
 
         current = G.node.keys()
         self.assertEqual(sorted(target), sorted(current))
 
-        manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
+        manholes = sorted(
+            [k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         self.assertEqual([(0.0, 0.0), (0.0, 5.0), (0.0, 8.0),
                           (3.0, 5.0), (4.0, 8.0),
                           (5.0, 0.0), (6.0, 5.0)],
@@ -447,9 +455,15 @@ class Convert_To_Graph_TestSuite(TestCase):
         G = nx.Graph()
         parse("lizard_riool/data/f3478.rmb", pool)
         convert_to_graph(pool, G)
-        self.assertEqual([-4.5, -2.4029999999999996, -1.28], [i.z for i in pool['6400001'][1:]])
-        self.assertEqual([-4.0, -2.8452994616207485, -4.0], [i.z for i in pool['6400002'][1:]])
-        self.assertEqual([-1.8, -1.2000000000000002, -1.3000000000000003], [i.z for i in pool['6400003'][1:]])
+        self.assertEqual(
+            [-4.5, -2.4029999999999996, -1.28],
+            [i.z for i in pool['6400001'][1:]])
+        self.assertEqual(
+            [-4.0, -2.8452994616207485, -4.0],
+            [i.z for i in pool['6400002'][1:]])
+        self.assertEqual(
+            [-1.8, -1.2000000000000002, -1.3000000000000003],
+            [i.z for i in pool['6400003'][1:]])
         self.assertEqual([0.0, 1.046], [i.z for i in pool['6400004'][1:]])
 
 
@@ -509,7 +523,7 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         pool = {}
         G = nx.Graph()
         parse("lizard_riool/data/f3478-bb_backwards.rmb", pool)
-        self.maxDiff = None 
+        self.maxDiff = None
         convert_to_graph(pool, G)
 
         compute_lost_water_depth(G, (0.0, 0.0))
@@ -559,7 +573,8 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         G = nx.Graph()
         parse("lizard_riool/data/4F1 asfalt werk.RMB", pool)
         convert_to_graph(pool, G)
-        manholes = sorted([k for k in G.node if isinstance(G.node[k]['obj'], Put)])
+        manholes = sorted(
+            [k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         compute_lost_water_depth(G, (138736.31, 485299.37))
 
     def test200(self):
@@ -604,7 +619,8 @@ class String_Of_Riool_To_String_Of_Rioolmeting_TestSuite(TestCase):
         target.extend(pool['6400002'][1:])
         target.extend(pool['6400003'][1:])
         target.extend(pool['6400004'][1:])
-        current = string_of_riool_to_string_of_rioolmeting(pool, ['6400002', '6400003', '6400004'])
+        current = string_of_riool_to_string_of_rioolmeting(
+            pool, ['6400002', '6400003', '6400004'])
         self.assertEqual(target, current)
 
     def test020(self):
@@ -617,7 +633,8 @@ class String_Of_Riool_To_String_Of_Rioolmeting_TestSuite(TestCase):
         target.extend(pool['6400003'][1:])
         target.extend(pool['6400004'][1:])
         target.reverse()
-        current = string_of_riool_to_string_of_rioolmeting(pool, ['6400004', '6400003', '6400002'])
+        current = string_of_riool_to_string_of_rioolmeting(
+            pool, ['6400004', '6400003', '6400002'])
         self.assertEqual(target, current)
 
     def test030(self):
@@ -625,6 +642,8 @@ class String_Of_Riool_To_String_Of_Rioolmeting_TestSuite(TestCase):
 
         pool = {}
         parse("lizard_riool/data/f3478.rmb", pool)
-        mrios = string_of_riool_to_string_of_rioolmeting(pool, ['6400001', '6400002', '6400003', '6400004'])
-        self.assertEqual(['6400004:00001.50', '6400004:00000.75'], [mrios[-2].suf_id, mrios[-1].suf_id])
-
+        mrios = string_of_riool_to_string_of_rioolmeting(
+            pool, ['6400001', '6400002', '6400003', '6400004'])
+        self.assertEqual(
+            ['6400004:00001.50', '6400004:00000.75'],
+            [mrios[-2].suf_id, mrios[-1].suf_id])
