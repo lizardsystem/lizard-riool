@@ -5,8 +5,16 @@ Changelog of lizard-riool
 0.4.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- We now give Put objects in the graph a z-value that is the minimum
+  of the z-values of the connecting strengs. This solves bugs where
+  the put had a higher z-value and therefore seemed to be a high
+  barrier that prevented water from draining away.
 
+  This solves several tickets, at least #3603 and #3626.
+
+  Puts in the side profile graph can now look like "spikes" because
+  their bottom and top depend on all the connecting strengs, not just
+  the ones shown in the graph. For now this is OK.
 
 0.4.4 (2012-04-06)
 ------------------
