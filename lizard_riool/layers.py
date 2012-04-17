@@ -150,10 +150,12 @@ class Adapter(WorkspaceItemAdapter):
         from django.contrib.gis.measure import D
         from django.contrib.gis.geos import Point
         pnt = Point(x, y, srid=900913)
-        riolen = Riool.objects.filter(upload__pk=self.id).filter(_AAE__distance_lte=(pnt, radius))
+        riolen = Riool.objects.filter(
+            upload__pk=self.id).filter(_AAE__distance_lte=(pnt, radius))
         for riool in riolen:
             print riool.AAD
-        #return [{'distance': 0.0, 'name': str(self.id), 'workspace_item': self.workspace_item, 'identifier': 'foo'}]
+        #return [{'distance': 0.0, 'name': str(self.id),
+        #    'workspace_item': self.workspace_item, 'identifier': 'foo'}]
         return []
 
 
