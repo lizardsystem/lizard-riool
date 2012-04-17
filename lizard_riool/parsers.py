@@ -23,7 +23,7 @@
 This serves as a long usage message.
 """
 
-from models import Put, Riool, Rioolmeting
+from lizard_riool.models import Put, Riool, Rioolmeting
 import logging
 import math
 from heapq import heappush, heappop
@@ -31,6 +31,7 @@ import numpy
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def get_obj_from_graph(graph, suf_id):
@@ -62,6 +63,7 @@ def convert_to_graph(pool, graph):
     TODO: Use suf_ids as nodes; see get_obj_from_graph.
     """
 
+    # Empty graph
     graph.remove_nodes_from(list(graph.node))
 
     for suf_id in pool:
@@ -69,7 +71,8 @@ def convert_to_graph(pool, graph):
         reference = 1
         start_point = riool.point(reference, opposite=False)
         end_point = riool.point(reference, opposite=True)
-        logger.debug("id of line / start-end: %s / %s-%s" % (suf_id, start_point, end_point))
+#        logger.debug("id of line / start-end: %s / %s-%s" %
+#                     (suf_id, start_point, end_point))
 
         graph.add_node(tuple(start_point[:2]),
                        obj=Put(suf_id=riool.suf_fk_node(reference,
@@ -82,24 +85,47 @@ def convert_to_graph(pool, graph):
 
         prev_point = start_point
         direction = (end_point - start_point)
-        logger.debug("vector of this segment is %s" % direction)
+#        logger.debug("vector of this segment is %s" % direction)
         direction = direction / math.sqrt(sum(pow(direction[:2], 2)))
-        logger.debug("'2D-unit' vector of this segment is %s" % direction)
+#        logger.debug("'2D-unit' vector of this segment is %s" % direction)
 
         for obj in pool[suf_id][1:]:
-            obj.update_coordinates(start_point, end_point, direction, prev_point)
-            graph.add_node(tuple(obj.point[:2]),
-                           obj=obj)
-            logger.debug("adding edge %s-%s" % (prev_point, obj.point))
+            # obj is an instance of Rioolmeting?
+
+            # update_coordinates sets obj.point to x, y coordinates
+            obj.update_coordinates(
+                start_point, end_point, direction, prev_point)
+
+            # Only add node if it's not already there, otherwise we
+            # may overwrite a Put object at start and end points.
+            if tuple(obj.point[:2]) not in graph:
+                graph.add_node(tuple(obj.point[:2]),
+                               obj=obj)
+#            logger.debug("adding edge %s-%s" % (prev_point, obj.point))
             graph.add_edge(tuple(prev_point[:2]), tuple(obj.point[:2]),
                            obj=obj, segment=riool)
             prev_point = obj.point
 
-        logger.debug("connecting to opposite manhole")
-        logger.debug("adding edge %s-%s" % (obj.point, end_point))
+#        logger.debug("connecting to opposite manhole")
+#        logger.debug("adding edge %s-%s" % (obj.point, end_point))
         graph.add_edge(tuple(obj.point[:2]), tuple(end_point[:2]),
                        obj=None, segment=riool)
 
+        # Iterate over all the nodes that are Puts. Set their
+        # z coordinate to the minimum of the z values around it,
+        # and their 'maxz' to the maximum of the z values around it.
+        for node in graph:
+            obj = graph.node[node]['obj']
+            if obj.is_put:
+                logger.debug(graph[node])
+#                obj.z = -100
+                obj.z = min(graph.node[n]['obj'].z
+                            for n in graph[node]
+                            if 'obj' in graph.node[n])
+                # Also calculate a height, for the graph
+                obj.maxz = max(graph.node[n]['obj'].z
+                            for n in graph[node]
+                            if 'obj' in graph.node[n])
 
 def compute_lost_water_depth(graph, sink):
     """calculate lost water depth for each node
@@ -121,7 +147,7 @@ def compute_lost_water_depth(graph, sink):
     while todo:
         (water_level, item) = heappop(todo)
 
-        logger.debug("%s is a start point" % (item, ))
+#        logger.debug("%s is a start point" % (item, ))
 
         ## pour water in the nodes at level lower than `water_level`
         ## and that are reachable from `item`.  when we reach a node
@@ -136,21 +162,21 @@ def compute_lost_water_depth(graph, sink):
             graph, item, done,
             lambda p, c: graph.node[c]['obj'].z < water_level)
 
-        logger.debug("nodes under water: %s" % under_water)
-        logger.debug("links where water ends: %s" % shore_nodes)
+#        logger.debug("nodes under water: %s" % under_water)
+#        logger.debug("links where water ends: %s" % shore_nodes)
 
         done = done.union(under_water)
         for i in under_water:
             graph.node[i]['obj'].flooded = water_level - graph.node[i]['obj'].z
 
         for shore_from, shore_node in shore_nodes:
-            logger.debug("done=%s" % done)
+#            logger.debug("done=%s" % done)
             going_up, peak_nodes = dfs_preorder_nodes(
                 graph, shore_node, done,
                 lambda p, c: graph.node[c]['obj'].z >= graph.node[p]['obj'].z)
 
-            logger.debug("nodes visited going up: %s" % going_up)
-            logger.debug("links where level decreases: %s" % peak_nodes)
+#            logger.debug("nodes visited going up: %s" % going_up)
+#            logger.debug("links where level decreases: %s" % peak_nodes)
 
             done = done.union(going_up)
             for i in going_up:
@@ -195,7 +221,8 @@ def compute_lost_volume(graph):
         support = (numpy.array(node_2) - numpy.array(node_1))
         section_length = math.sqrt(sum(support * support))
 
-        riool.volume_lost += riool.section_water_surface(measure.flooded) * section_length
+        riool.volume_lost += (riool.section_water_surface(measure.flooded) *
+                              section_length)
 
 
 def parse(file_name, pool=None):

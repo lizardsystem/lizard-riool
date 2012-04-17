@@ -20,10 +20,13 @@ from models import Put, Riool, Upload
 import logging
 import networkx as nx
 import os.path
+import pprint
 import tempfile
 import urllib
 
 logger = logging.getLogger(__name__)
+#logger.setLevel(logging.WARNING)
+
 cache = get_cache('file_based_cache')
 
 
@@ -39,7 +42,8 @@ def _get_sufrib_by_sufrmb(sufrmb):
     try:
         upload = Upload.objects.get(the_file__iexact=sufrib)
     except Upload.DoesNotExist:
-        logger.warn("Could not find SUFRIB for %s by name" % upload.the_file.name)
+        logger.warn(
+            "Could not find SUFRIB for %s by name" % upload.the_file.name)
         upload = None
 
 
@@ -101,13 +105,13 @@ class LostCapacityResultView(View):
             if isinstance(workspace_item.adapter, RmbAdapter):
                 upload_id = workspace_item.adapter.id
                 rmb_upload = Upload.objects.get(pk=upload_id)
-#                parsers.parse(rmb_upload.full_path, pool)
-#                graph = nx.Graph()
-#                parsers.convert_to_graph(pool, graph)
-#                sink = ...
-#                parsers.compute_lost_water_depth(graph, (sink.CAB.x, sink.CAB.y))
-#                parsers.compute_lost_volume(graph)
-
+#               parsers.parse(rmb_upload.full_path, pool)
+#               graph = nx.Graph()
+#               parsers.convert_to_graph(pool, graph)
+#               sink = ...
+#               parsers.compute_lost_water_depth(
+#                   graph, (sink.CAB.x, sink.CAB.y))
+#               parsers.compute_lost_volume(graph)
         return self.render_to_response({})
 
     def render_to_response(self, context):
@@ -174,6 +178,7 @@ class SideProfileGraph(View):
 
             rmb_upload = Upload.objects.get(pk=upload_id)
             parsers.parse(rmb_upload.full_path, pool)
+
             graph = nx.Graph()
             parsers.convert_to_graph(pool, graph)
 
@@ -263,9 +268,14 @@ class SideProfileGraph(View):
                 put_source_bob = riool.get_knooppuntbob(put_source)
                 coordinates.append(put_source_xy)
                 verticals.append((len(coordinates) - 1, put_source))
-                bobs.append(put_source_bob)
-                obbs.append(put_source_bob + riool.height)
-                water.append(put_source_bob + obj.flooded)
+                bobs.append(obj.z)
+                if obj.is_put and hasattr(obj, 'maxz'):
+                    # Instead of obj.z, use the maximum z value of the
+                    # strengs connected to this put
+                    obbs.append(obj.maxz + riool.height)
+                else:
+                    obbs.append(obj.z + riool.height)
+                water.append(obj.z + obj.flooded)
 
             # Append MRIO measurements.
 
@@ -287,9 +297,23 @@ class SideProfileGraph(View):
                 put_target_xy = riool.get_knooppuntcoordinaten(put_target)
                 put_target_bob = riool.get_knooppuntbob(put_target)
                 coordinates.append(put_target_xy)
-                bobs.append(put_target_bob)
-                obbs.append(put_target_bob + riool.height)
-                water.append(put_target_bob + obj.flooded)
+
+                bobs.append(obj.z)
+                # Top of the line
+                # For a put, the top isn't necessarily above this particular
+                # bottom, but above the bottom of the highest streng leading
+                # up to it, saved in obj.height if it's a put. Then riool.height
+                # may be the wrong height, but it will have to do for now.
+                if obj.is_put and hasattr(obj, 'maxz'):
+                    # Instead of obj.z, use the maximum z value of the
+                    # strengs connected to this put
+                    obbs.append(obj.maxz + riool.height)
+                else:
+                    obbs.append(obj.z + riool.height)
+                water.append(obj.z + obj.flooded)
+#                bobs.append(put_target_bob)
+#                obbs.append(put_target_bob + riool.height)
+#                water.append(put_target_bob + obj.flooded)
 
         if obj:
             verticals.append((len(coordinates) - 1, put_target))
