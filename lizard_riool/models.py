@@ -27,6 +27,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
 from os.path import basename, splitext
 import logging
+
 import math
 import numpy
 
@@ -34,6 +35,7 @@ RDNEW = 28992
 SRID = RDNEW
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def circular_surface(obj):
@@ -103,8 +105,10 @@ class RioolBestandObject(object):
     def check_field_count(cls, record, line_number):
         field_count = record.count("|") + 1
         if field_count != cls.suf_fields_count:
-            raise Exception("line %d: Record defines %s fields, %s expects %s" %
-                (line_number, field_count, cls.suf_record_type, cls.suf_fields_count))
+            raise Exception(
+                "line %d: Record defines %s fields, %s expects %s" %
+                (line_number, field_count, cls.suf_record_type,
+                 cls.suf_fields_count))
 
     @classmethod
     def parse_line_from_rioolbestand(cls, record, line_number):
@@ -143,6 +147,10 @@ class RioolBestandObject(object):
 
         pass
 
+    @property
+    def is_put(self):
+        """Is this object a Put? Overridden in Put (obviously)."""
+        return False
 
 class Put(RioolBestandObject, models.Model):
     "*PUT record"
@@ -229,6 +237,11 @@ class Put(RioolBestandObject, models.Model):
     @property
     def point(self):
         return numpy.array((self.CAB.x, self.CAB.y, self.z))
+
+    @property
+    def is_put(self):
+        """Is this object a Put? Yes!"""
+        return True
 
     def __unicode__(self):
         return self.CAA
@@ -458,7 +471,9 @@ class Riool(RioolBestandObject, models.Model):
     def diam(self):
         if self.form == 'circular':
             if self.height != self.width:
-                logger.warn("circular object with different height (%s) and width (%s)" % (self.height, self.width))
+                logger.warn(
+                    ("circular object with different height (%s) "
+                     "and width (%s)") % (self.height, self.width))
             return self.height
         else:
             raise TypeError("accessing diam of non circular object")
@@ -486,7 +501,8 @@ class Riool(RioolBestandObject, models.Model):
         else:
             R = self.diam / 2.0
             h = flooded
-            area = R * R * math.acos((R - h) / R) - (R - h) * math.sqrt(2 * R * h - h * h)
+            area = (R * R * math.acos((R - h) / R) -
+                    (R - h) * math.sqrt(2 * R * h - h * h))
         return area
 
     def suf_fk_node(self, which=None, opposite=False):
@@ -498,11 +514,15 @@ class Riool(RioolBestandObject, models.Model):
         """
 
         if not opposite:
-            return {1: self.suf_fk_node1,
-                    2: self.suf_fk_node2}.get(which or getattr(self, 'reference'))
+            return {
+                1: self.suf_fk_node1,
+                2: self.suf_fk_node2
+                }.get(which or getattr(self, 'reference'))
         else:
-            return {1: self.suf_fk_node2,
-                    2: self.suf_fk_node1}.get(which or getattr(self, 'reference'))
+            return {
+                1: self.suf_fk_node2,
+                2: self.suf_fk_node1
+                }.get(which or getattr(self, 'reference'))
 
     def point(self, which, opposite):
         """return the coordinates of either end point
@@ -579,7 +599,7 @@ class Rioolmeting(RioolBestandObject, models.Model):
         max_length=1)
     _ZYE = models.CharField(
         db_column='zye',
-        help_text="ID", # id of the referenced object
+        help_text="ID",  # id of the referenced object
         max_length=30)
     ZYR = models.CharField(
         db_column='zyr',
