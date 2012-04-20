@@ -468,7 +468,7 @@ class Convert_To_Graph_TestSuite(TestCase):
         self.assertEqual([0.0, 1.046], [i.z for i in pool['6400004'][1:]])
 
     def test300(self):
-        """Testing MRIO with ZYR=A (slope) and ZYS=F (%).
+        """Testing MRIO with ZYR=A (slope) and ZYS=E/F (degrees/%).
 
         The distance (ZYA) should be the hypotenuse!?
         """
@@ -477,6 +477,11 @@ class Convert_To_Graph_TestSuite(TestCase):
         G = nx.Graph()
         parse("lizard_riool/data/f3478.rmb", pool)
         convert_to_graph(pool, G)
+        # Slope in degrees
+        target = -5.0 + math.sin(math.pi/4)
+        current = pool['6400002'][1].z
+        self.assertEqual('%.4f' % target, '%.4f' % current)
+        # Slope in percentage
         target = -2.0 + math.sin(math.atan(0.2))
         current = pool['6400003'][1].z
         self.assertEqual('%.4f' % target, '%.4f' % current)
