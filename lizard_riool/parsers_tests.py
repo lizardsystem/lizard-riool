@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License along with
 # this package. If not, see <http://www.gnu.org/licenses/>.
 
+import math
 import networkx as nx
 from parsers import dfs_preorder_nodes
 
@@ -465,6 +466,20 @@ class Convert_To_Graph_TestSuite(TestCase):
             [-1.8, -1.2000000000000002, -1.3000000000000003],
             [i.z for i in pool['6400003'][1:]])
         self.assertEqual([0.0, 1.046], [i.z for i in pool['6400004'][1:]])
+
+    def test300(self):
+        """Testing MRIO with ZYR=A (slope) and ZYS=F (%).
+
+        The distance (ZYA) should be the hypotenuse!?
+        """
+
+        pool = {}
+        G = nx.Graph()
+        parse("lizard_riool/data/f3478.rmb", pool)
+        convert_to_graph(pool, G)
+        target = -2.0 + math.sin(math.atan(0.2))
+        current = pool['6400003'][1].z
+        self.assertEqual('%.4f' % target, '%.4f' % current)
 
 
 class Compute_Lost_Water_Depth_TestSuite(TestCase):
