@@ -52,7 +52,8 @@ class RMB(object):
         sink = self._find_sink(put)
         if sink:
             logger.debug("Computing lost water depth.")
-            parsers.compute_lost_water_depth(self.graph, (sink.CAB.x, sink.CAB.y))
+            parsers.compute_lost_water_depth(
+                self.graph, (sink.CAB.x, sink.CAB.y))
             self.lost_water_depth_computed = True
         else:
             raise ValueError("No sink!")
@@ -110,7 +111,6 @@ class RMB(object):
 
     def _find_sink(self, put=None):
         logger.debug("Looking for sink using put %s" % str(put))
-        sink_cache_key = "sink_for_%d" % self.uploaded_file_id
 
         if not self.sink:
             self.sink = models.SinkForUpload.get(self.rmb_file)
@@ -129,7 +129,7 @@ class RMB(object):
                     logger.debug("Sink = %s" % self.sink)
                 except models.Put.DoesNotExist:
                     logger.warn("No sink defined for %s" % \
-                                    rib_upload.full_path)
+                                    rib_file.full_path)
 
         return self.sink
 
