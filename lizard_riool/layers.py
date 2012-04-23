@@ -11,7 +11,7 @@ import re
 
 GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
 SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
-RIOOL_ICON='pixel.png'
+RIOOL_ICON = 'pixel.png'
 
 from lizard_riool.datamodel import RMB
 
@@ -25,7 +25,6 @@ params = {
     'dbname': database['NAME'],
     'srid': SRID,
 }
-
 
 
 class Adapter(WorkspaceItemAdapter):
@@ -43,44 +42,6 @@ class Adapter(WorkspaceItemAdapter):
     def layer(self, layer_ids=None, request=None):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
-
-#        rmb = RMB(self.id)
-#        rmb.compute_flooded_percentages()
-
-        # Visualization of "putten"
-
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        symbol = mapnik.PointSymbolizer()
-        rule.symbols.append(symbol)
-        style.rules.append(rule)
-        styles['putStyle'] = style
-
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        rule.max_scale = 1700
-        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
-            mapnik.Color('black'))
-        symbol.allow_overlap = True
-        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
-        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
-        symbol.displacement(0, -3)  # slightly above
-        rule.symbols.append(symbol)
-        style.rules.append(rule)
-        styles['putLabelStyle'] = style
-
-        query = """(select * from lizard_riool_putten
-            where upload_id=%d) data""" % self.id
-        params['table'] = query
-        params['geometry_field'] = 'the_geom'
-        datasource = mapnik.PostGIS(**params)
-
-        layer = mapnik.Layer('putLayer', RD)
-        layer.datasource = datasource
-        layer.maxzoom = 35000
-        layer.styles.append('putStyle')
-        layer.styles.append('putLabelStyle')
-        layers.append(layer)
 
         # Visualization of "riolen"
 
@@ -170,6 +131,102 @@ class Adapter(WorkspaceItemAdapter):
         #return [{'distance': 0.0, 'name': str(self.id),
         #    'workspace_item': self.workspace_item, 'identifier': 'foo'}]
         return []
+
+
+class RmbLostStorageAdapter(Adapter):
+    """Adapter that shows the lost storage as coloured map layers. Has
+    no popups, but shows the lost storage on mouseover."""
+
+    def layer(self, layer_ids=None, request=None):
+        "Return Mapnik layers and styles."
+        layers, styles = [], {}
+
+#        rmb = RMB(self.id)
+#        rmb.compute_flooded_percentages()
+
+        # Visualization of "putten"
+
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        symbol = mapnik.PointSymbolizer()
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putStyle'] = style
+
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
+            mapnik.Color('black'))
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
+        symbol.displacement(0, -3)  # slightly above
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putLabelStyle'] = style
+
+        query = """(select * from lizard_riool_putten
+            where upload_id=%d) data""" % self.id
+        params['table'] = query
+        params['geometry_field'] = 'the_geom'
+        datasource = mapnik.PostGIS(**params)
+
+        layer = mapnik.Layer('putLayer', RD)
+        layer.datasource = datasource
+        layer.maxzoom = 35000
+        layer.styles.append('putStyle')
+        layer.styles.append('putLabelStyle')
+        layers.append(layer)
+
+        classes = (
+            (0.0, 0.2, '00ff00'),
+            (0.2, 0.4, '40C000'),
+            (0.4, 0.6, '808000'),
+            (0.6, 0.8, 'C04000'),
+            (0.8, 1.01, 'ff0000'))
+
+        sewer_style = mapnik.Style()
+
+        for min_perc, max_perc, color in classes:
+            r, g, b = color[0:2], color[2:4], color[4:6]
+            rr, gg, bb = int(r, 16), int(g, 16), int(b, 16)
+
+            icon = SYMBOL_MANAGER.get_symbol_transformed(
+                RIOOL_ICON, color=(rr / 255.0,
+                                   gg / 255.0,
+                                   bb / 255.0, 1.0))
+
+            layout_rule = mapnik.Rule()
+            symbol = mapnik.PointSymbolizer(
+                os.path.join(GENERATED_ICONS, icon), "png", 16, 16)
+            symbol.allow_overlap = True
+            layout_rule.symbols.append(symbol)
+            layout_rule.filter = mapnik.Filter(
+                str("[value] >= %s and [value] < %s" % (min_perc, max_perc)))
+            sewer_style.rules.append(layout_rule)
+
+        styles["sewerStyle"] = sewer_style
+
+        query = str("""(
+            SELECT
+                sg.flooded_percentage AS value,
+                sg.xy AS xy
+            FROM
+                lizard_riool_storedgraph sg
+            WHERE
+                rmb_id='%s'
+            ) AS data""" % (self.id,))
+
+        params['table'] = query
+        params['geometry_field'] = 'xy'
+        datasource = mapnik.PostGIS(**params)
+        layer = mapnik.Layer('percentagesLayer', RD)
+        layer.datasource = datasource
+        layer.styles.append("sewerStyle")
+        layers.append(layer)
+
+        return layers, styles
 
 
 class RibAdapter(Adapter):
