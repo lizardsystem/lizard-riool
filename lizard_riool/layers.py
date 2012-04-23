@@ -43,6 +43,41 @@ class Adapter(WorkspaceItemAdapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
+        # Visualization of "putten"
+
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        symbol = mapnik.PointSymbolizer()
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putStyle'] = style
+
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
+            mapnik.Color('black'))
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
+        symbol.displacement(0, -3)  # slightly above
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putLabelStyle'] = style
+
+        query = """(select * from lizard_riool_putten
+            where upload_id=%d) data""" % self.id
+        params['table'] = query
+        params['geometry_field'] = 'the_geom'
+        datasource = mapnik.PostGIS(**params)
+
+        layer = mapnik.Layer('putLayer', RD)
+        layer.datasource = datasource
+        layer.maxzoom = 35000
+        layer.styles.append('putStyle')
+        layer.styles.append('putLabelStyle')
+        layers.append(layer)
+
         # Visualization of "riolen"
 
         style = mapnik.Style()
