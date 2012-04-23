@@ -18,7 +18,12 @@
 <div class="sidebarbox sidebarbox-stretched">
   <h2>Langsprofielen</h2>
   <ul class="without-bullets">
-  {% include "lizard_riool/files.html" %}
+{% for file in view.files %}
+  <li class="workspace-acceptable"
+      data-name="{{ file.filename }}"
+  	  data-adapter-class="lizard_riool_lost_capacity"
+  	  data-adapter-layer-json='{"id": "{{ file.pk }}"}'>{{ file.filename }}</li>
+{% endfor %}
   </ul>
 </div>
 <div class="sidebarbox">
