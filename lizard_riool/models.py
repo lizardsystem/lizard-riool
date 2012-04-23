@@ -27,7 +27,6 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
 from os.path import basename, splitext
 import logging
-import networkx
 
 import math
 import numpy
@@ -152,6 +151,7 @@ class RioolBestandObject(object):
     def is_put(self):
         """Is this object a Put? Overridden in Put (obviously)."""
         return False
+
 
 class Put(RioolBestandObject, models.Model):
     "*PUT record"
@@ -557,6 +557,9 @@ class Riool(RioolBestandObject, models.Model):
         return 0
 
     def get_knooppuntcoordinaten(self, knooppuntreferentie):
+        logger.debug(
+            "get_knooppuntcoordinaten(%s) AAD=%s AAE=%s AAF=%s AAG=%s" %
+            (knooppuntreferentie, self.AAD, self.AAE, self.AAF, self.AAG))
         if self.AAD == knooppuntreferentie:
             return self.AAE
         elif self.AAF == knooppuntreferentie:
@@ -715,7 +718,8 @@ class Rioolmeting(RioolBestandObject, models.Model):
                 self.measurement_type, self.dist, self.value))
 
         if self.reference == 2:
-            distance = math.sqrt(sum(pow(opposite[:2] - base[:2], 2))) - self.dist
+            distance = (math.sqrt(sum(pow(opposite[:2] - base[:2], 2)))
+                        - self.dist)
         elif self.reference == 1:
             distance = self.dist
         else:
@@ -726,8 +730,10 @@ class Rioolmeting(RioolBestandObject, models.Model):
         if self.measurement_type == 'AE':
             # Slope|Degrees
             self.point = prev + (
-                distance - prev_dist) * numpy.array((
-                direction[0], direction[1], math.tan(self.value / 180.0 * math.pi)))
+                distance - prev_dist) * numpy.array(
+                (direction[0],
+                 direction[1],
+                 math.tan(self.value / 180.0 * math.pi)))
         elif self.measurement_type == 'AF':
             # Slope|Percent
             self.point = prev + (
@@ -751,12 +757,19 @@ class Rioolmeting(RioolBestandObject, models.Model):
 
         logger.debug("updated to %s" % self.point)
 
+
 class SinkForUpload(models.Model):
+    """Finding the sink for a given RMB file can be complicated, but
+    it never changes. Therefore we use this simple table to store the
+    sink once we've found it."""
+
     upload = models.ForeignKey(Upload, unique=True)
     sink = models.ForeignKey(Put)
 
     @classmethod
     def get(cls, upload):
+        """Simple utility method to quickly get() an upload's sink."""
+
         try:
             return cls.objects.get(upload=upload).sink
         except cls.DoesNotExist:
@@ -764,6 +777,7 @@ class SinkForUpload(models.Model):
 
     @classmethod
     def set(cls, upload, sink):
+        """Simple utility method to quickly set() a sink."""
         try:
             sinkfor = cls.objects.get(upload=upload)
         except cls.DoesNotExist:
@@ -808,7 +822,7 @@ class StoredGraph(models.Model):
             if flooded > diam:
                 percentage = 1
             else:
-                percentage = flooded/diam
+                percentage = flooded / diam
 
             storedgraph.flooded_percentage = percentage
             storedgraph.save()
