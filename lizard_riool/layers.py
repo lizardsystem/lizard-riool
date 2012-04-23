@@ -193,9 +193,6 @@ class RmbLostStorageAdapter(Adapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
-        # Add putten
-        self._put_layer(layers, styles)
-
 #        rmb = RMB(self.id)
 #        rmb.compute_flooded_percentages()
 
@@ -246,6 +243,9 @@ class RmbLostStorageAdapter(Adapter):
         layer.datasource = datasource
         layer.styles.append("sewerStyle")
         layers.append(layer)
+
+        # Add putten
+        self._put_layer(layers, styles)
 
         return layers, styles
 
