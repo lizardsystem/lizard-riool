@@ -84,7 +84,7 @@ def convert_to_graph(pool, graph):
         for (suf_fk, point) in ((start_suf_fk, start_point),
                                 (end_suf_fk, end_point)):
             coords = to_2d(point)
-            put = Put(suf_id=suf_fk, coords=coords))
+            put = Put(suf_id=suf_fk, coords=coords)
             # TODO: We have the riool object here, so we know
             # riool.height and can compute the highest obb to show in
             # the graph directly. No need to work with zmax, which is
