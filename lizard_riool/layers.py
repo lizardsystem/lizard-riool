@@ -25,6 +25,7 @@ PARAMS = {
     'srid': SRID,
 }
 
+
 def default_database_params():
     """Get default database params. Use a copy of the dictionary
     because it is mutated by the functions that use it."""
@@ -129,7 +130,6 @@ class Adapter(WorkspaceItemAdapter):
         layer.styles.append('putStyle')
         layer.styles.append('putLabelStyle')
         layers.append(layer)
-
 
     def extent(self, identifiers=None):
         "Return the extent in Google projection"
