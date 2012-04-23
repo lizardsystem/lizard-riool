@@ -69,10 +69,6 @@ def convert_to_graph(pool, graph):
     # Empty graph
     graph.remove_nodes_from(list(graph.node))
 
-    # Keep a set of Put coordinates so we can iterate over them
-    # at the end of the function
-    puts = set()
-
     for suf_id in pool:
         # Each value in pool is a list of which the first value is a
         # Riool, and the rest are Rioolmeting objects
@@ -85,15 +81,22 @@ def convert_to_graph(pool, graph):
         start_suf_fk, end_suf_fk = riool.suf_fk_nodes()
 
         # Add them as Put objects
-        graph.add_node(to_2d(start_point),
-                       obj=Put(suf_id=start_suf_fk, coords=start_point))
-
-        graph.add_node(to_2d(end_point),
-                       obj=Put(suf_id=end_suf_fk, coords=end_point))
-
-        # Remember the puts
-        puts.add(to_2d(start_point))
-        puts.add(to_2d(end_point))
+        for (suf_fk, point) in ((start_suf_fk, start_point),
+                                (end_suf_fk, end_point)):
+            coords = to_2d(point)
+            put = Put(suf_id=suf_fk, coords=coords))
+            # TODO: We have the riool object here, so we know
+            # riool.height and can compute the highest obb to show in
+            # the graph directly. No need to work with zmax, which is
+            # the highest bob.
+            if coords not in graph:
+                put.zmax = put.z
+                graph.add_node(coords, put)
+            else:
+                # Just keep the old one and change z values
+                oldnode = graph.node[coords]['obj']
+                oldnode.z = min(oldnode.z, put.z)
+                oldnode.zmax = max(oldnode.zmax, put.z)
 
         # Start at one point, compute the direction in which we move
         # as a vector of which the 2D component is length 1
@@ -125,23 +128,6 @@ def convert_to_graph(pool, graph):
         # Connect last measurement to Put on the other end
         graph.add_edge(to_2d(obj.point), to_2d(end_point),
                        obj=None, segment=riool)
-
-        # Iterate over all the remembered puts. Set their z coordinate
-        # to the minimum of the z values around them, and their 'maxz'
-        # to the maximum of the z values.
-        for put in puts:
-            obj = graph.node[put]['obj']
-            if obj.is_put:  # Should always be true
-                obj.z = min(graph.node[node]['obj'].z
-                            for node in graph[put]
-                            if 'obj' in graph.node[node])
-                # Also calculate a height, for the graph
-                obj.maxz = max(graph.node[node]['obj'].z
-                            for node in graph[put]
-                            if 'obj' in graph.node[node])
-            else:
-                logger.critical(
-                    "Object that should always be a Put object wasn't")
 
 
 def compute_lost_water_depth(graph, sink):
