@@ -59,6 +59,10 @@ class RMB(object):
             raise ValueError("No sink!")
 
     def compute_flooded_percentages(self):
+        """Compute flooded percentages for the graph. Get them from
+        the database if they already exist, otherwise compute lost
+        water depth first, then store the computed percentages in the
+        database."""
         if self.flooded_percentages_computed:
             return
 
@@ -71,6 +75,11 @@ class RMB(object):
         self.flooded_percentages_computed = True
 
     def get_riool(self, sufid):
+        """Get riool from the pool by sufid."""
+
+        # The for loop is probably overkill, since the Riool object is
+        # the first element of the list. But perhaps this is more
+        # robust.
         for obj in self.pool[sufid]:
             if obj.suf_id == sufid:
                 return obj
@@ -110,6 +119,9 @@ class RMB(object):
         return graph
 
     def _find_sink(self, put=None):
+        """Find sink for this RMB file. Get it from the database
+        cache, or the corresponding RIB file."""
+
         logger.debug("Looking for sink using put %s" % str(put))
 
         if not self.sink:
@@ -134,6 +146,11 @@ class RMB(object):
         return self.sink
 
     def _find_rib_file(self, put=None):
+        """Find the relevent RIB file. First we look for a file with
+        the same name as the current RMB file and a different
+        extension, otherwise this function can use a Put object and
+        see in which file it was uploaded."""
+
         if self.rib_file:
             return self.rib_file
 
