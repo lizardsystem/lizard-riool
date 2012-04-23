@@ -24,31 +24,12 @@ import pprint
 import tempfile
 import urllib
 
+from lizard_riool.datamodel import RMB
+
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.WARNING)
 
 cache = get_cache('file_based_cache')
-
-
-def _get_riool_from_pool(pool, suf_id):
-    for obj in pool[suf_id]:
-        if obj.suf_id == suf_id:
-            return obj
-
-
-def _get_sufrib_by_sufrmb(sufrmb):
-    ""
-    sufrib = os.path.splitext(sufrmb)[0] + '.rib'
-    try:
-        upload = Upload.objects.get(the_file__iexact=sufrib)
-    except Upload.DoesNotExist:
-        logger.warn(
-            "Could not find SUFRIB for %s by name" % upload.the_file.name)
-        upload = None
-
-
-def _get_sufrib_by_put(put):
-    pass
 
 
 class ScreenFigure(figure.Figure):
@@ -129,7 +110,7 @@ class SideProfilePopup(TemplateView):
         putten = request.POST.getlist('putten[]')
         strengen = request.POST.getlist('strengen[]')
 
-        # Unlike Chromium, Firefox sends dimensions as float.
+        # Unlike Chrome, Firefox sends dimensions as float.
 
         width = int(float(request.POST.get('width', 900)))
         height = int(float(request.POST.get('height', 300)))
@@ -157,84 +138,19 @@ class SideProfileGraph(View):
     """
 
     def get(self, request, *args, **kwargs):
-
         # Get request parameters.
-
         upload_id = int(request.GET['upload_id'])
         putten = json.loads(request.GET['putten'])
         strengen = json.loads(request.GET['strengen'])
         width = int(request.GET['width'])
         height = int(request.GET['height'])
 
-        # Get or create pool and graph.
-        # Indefinite caching is not possible?
-
-        pool_key = "pool_%d" % upload_id
-        pool = cache.get(pool_key, {})
-        graph_key = "graph_%d" % upload_id
-        graph = cache.get(graph_key, {})
-
-        if not pool or not graph:
-
-            rmb_upload = Upload.objects.get(pk=upload_id)
-            parsers.parse(rmb_upload.full_path, pool)
-
-            graph = nx.Graph()
-            parsers.convert_to_graph(pool, graph)
-
-            # A SUFRMB has been parsed. The sink, however, has been specified
-            # in the corresponding SUFRIB. Let's try to find it.
-
-            sufrib = os.path.splitext(rmb_upload.the_file.name)[0] + '.rib'
-
-            try:
-                rib_upload = Upload.objects.get(the_file__iexact=sufrib)
-            except Upload.DoesNotExist:
-                logger.warn("Could not find SUFRIB for %s by name" % \
-                    rmb_upload.the_file.name)
-                rib_upload = None
-
-            if not rib_upload:
-
-                # The corresponding SUFRIB could not be found by name.
-                # Find a SUFRIB having putten[0] as a last resort.
-
-                try:
-                    rib_upload = Put.objects.filter(
-                        _CAA=putten[0])[0:1].get().upload
-                except Put.DoesNotExist:
-                    logger.warn("Could not find SUFRIB for %s by put" % \
-                        rmb_upload.the_file.name)
-                    rib_upload = None
-
-            if rib_upload:
-
-                # We need to know which manhole (i.e. "put")
-                # has been designated as the sink.
-
-                try:
-                    sink = Put.objects.filter(upload=rib_upload).get(_CAR='Xs')
-                    logger.debug("Sink = %s" % sink)
-                    # TODO: better pass suf_id instead of coordinates.
-                    # https://office.lizard.net/trac/ticket/3553
-                    parsers.compute_lost_water_depth(
-                        graph, (sink.CAB.x, sink.CAB.y))
-                    cache.set(pool_key, pool)
-                    cache.set(graph_key, graph)
-                except Put.DoesNotExist:
-                    logger.warn("No sink defined for %s" % \
-                        rib_upload.full_path)
-                    sink = None
-
-            else:
-
-                # The sink is unknown.
-                sink = None
+        # Init RMB object
+        rmb = RMB(upload_id)
+        rmb.compute_lost_water_depth(putten[0])
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
-            pool, strengen)
-
-        #
+            rmb.pool, strengen)
 
         data = {}
 
@@ -256,13 +172,11 @@ class SideProfileGraph(View):
         for idx, suf_id in enumerate(strengen):
 
             # The RIOO record.
-
-            riool = _get_riool_from_pool(pool, suf_id)
+            riool = rmb.get_riool(suf_id)
 
             # Append PUT to start from.
-
             put_source = putten[idx]
-            obj = parsers.get_obj_from_graph(graph, put_source)
+            obj = parsers.get_obj_from_graph(rmb.graph, put_source)
             if obj:
                 put_source_xy = riool.get_knooppuntcoordinaten(put_source)
                 put_source_bob = riool.get_knooppuntbob(put_source)
@@ -292,7 +206,7 @@ class SideProfileGraph(View):
             # Append PUT to end with.
 
             put_target = putten[idx + 1]
-            obj = parsers.get_obj_from_graph(graph, put_target)
+            obj = parsers.get_obj_from_graph(rmb.graph, put_target)
             if obj:
                 put_target_xy = riool.get_knooppuntcoordinaten(put_target)
                 put_target_bob = riool.get_knooppuntbob(put_target)

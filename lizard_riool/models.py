@@ -27,6 +27,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
 from os.path import basename, splitext
 import logging
+import networkx
 
 import math
 import numpy
@@ -524,14 +525,24 @@ class Riool(RioolBestandObject, models.Model):
                 2: self.suf_fk_node1
                 }.get(which or getattr(self, 'reference'))
 
+    def suf_fk_nodes(self):
+        """Return the ids of both end points."""
+
+        return self.suf_fk_node(1, False), self.suf_fk_node(1, True)
+
     def point(self, which, opposite):
         """return the coordinates of either end point
         """
 
         if opposite:
-            which = 3 - which
+            which = 3 - which  # 1 becomes 2, 2 becomes 1
         return {1: self.suf_fk_point1,
                 2: self.suf_fk_point2}[which]
+
+    def points(self):
+        """Return the coordinates of both end points."""
+
+        return self.point(1, False), self.point(1, True)
 
     @property
     def direction(self):
@@ -739,3 +750,65 @@ class Rioolmeting(RioolBestandObject, models.Model):
             pass
 
         logger.debug("updated to %s" % self.point)
+
+class SinkForUpload(models.Model):
+    upload = models.ForeignKey(Upload, unique=True)
+    sink = models.ForeignKey(Put)
+
+    @classmethod
+    def get(cls, upload):
+        try:
+            return cls.objects.get(upload=upload).sink
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def set(cls, upload, sink):
+        try:
+            sinkfor = cls.objects.get(upload=upload)
+        except cls.DoesNotExist:
+            sinkfor = cls(upload=upload)
+        sinkfor.sink = sink
+        sinkfor.save()
+
+
+class StoredGraph(models.Model):
+    """Stores the flooded percentage of each point in the graph."""
+
+    rmb_id = models.CharField(max_length=30)
+    xy = models.PointField(srid=SRID)
+
+    flooded_percentage = models.FloatField()
+
+    objects = models.GeoManager()
+
+    @classmethod
+    def is_stored(cls, rmb_id):
+        return cls.objects.filter(rmb_id=rmb_id).exists()
+
+    @classmethod
+    def store_graph(cls, rmb_id, graph):
+        for node in graph:
+            obj = graph.node[node]['obj']
+            if not hasattr(obj, 'flooded') or not hasattr(obj, 'diam'):
+                continue
+
+            flooded = obj.flooded
+            diam = obj.diam
+
+            logger.debug("flooded=%f diam=%f" % (flooded, diam))
+
+            xy = Point(node)
+            try:
+                storedgraph = cls.objects.get(rmb_id=rmb_id, xy=xy)
+            except cls.DoesNotExist:
+                storedgraph = cls(rmb_id=rmb_id, xy=xy)
+
+            # WRONG, but will do for now
+            if flooded > diam:
+                percentage = 1
+            else:
+                percentage = flooded/diam
+
+            storedgraph.flooded_percentage = percentage
+            storedgraph.save()

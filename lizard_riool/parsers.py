@@ -34,6 +34,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
+def to_2d(point):
+    return tuple(point[:2])
+
 def get_obj_from_graph(graph, suf_id):
     """Return an object from the graph by its suf_id.
 
@@ -66,66 +69,80 @@ def convert_to_graph(pool, graph):
     # Empty graph
     graph.remove_nodes_from(list(graph.node))
 
+    # Keep a set of Put coordinates so we can iterate over them
+    # at the end of the function
+    puts = set()
+
     for suf_id in pool:
+        # Each value in pool is a list of which the first value is a
+        # Riool, and the rest are Rioolmeting objects
         riool = pool[suf_id][0]
-        reference = 1
-        start_point = riool.point(reference, opposite=False)
-        end_point = riool.point(reference, opposite=True)
-#        logger.debug("id of line / start-end: %s / %s-%s" %
-#                     (suf_id, start_point, end_point))
+        measurements = pool[suf_id][1:]
 
-        graph.add_node(tuple(start_point[:2]),
-                       obj=Put(suf_id=riool.suf_fk_node(reference,
-                                                        opposite=False),
-                               coords=start_point))
-        graph.add_node(tuple(end_point[:2]),
-                       obj=Put(suf_id=riool.suf_fk_node(reference,
-                                                        opposite=True),
-                               coords=end_point))
+        # Get start and end points
+        start_point, end_point = riool.points()
+        # Get start and end ids
+        start_suf_fk, end_suf_fk = riool.suf_fk_nodes()
 
+        # Add them as Put objects
+        graph.add_node(to_2d(start_point),
+                       obj=Put(suf_id=start_suf_fk, coords=start_point))
+
+        graph.add_node(to_2d(end_point),
+                       obj=Put(suf_id=end_suf_fk, coords=end_point))
+
+        # Remember the puts
+        puts.add(to_2d(start_point))
+        puts.add(to_2d(end_point))
+
+        # Start at one point, compute the direction in which we move
+        # as a vector of which the 2D component is length 1
         prev_point = start_point
         direction = (end_point - start_point)
-#        logger.debug("vector of this segment is %s" % direction)
         direction = direction / math.sqrt(sum(pow(direction[:2], 2)))
-#        logger.debug("'2D-unit' vector of this segment is %s" % direction)
 
-        for obj in pool[suf_id][1:]:
-            # obj is an instance of Rioolmeting?
-
+        # Go through the measurements and add them to the graph
+        for obj in measurements:
             # update_coordinates sets obj.point to x, y coordinates
             obj.update_coordinates(
                 start_point, end_point, direction, prev_point)
 
+            # Add riool's diam to compute flooded percentage later on
+            obj.diam = riool.diam
+
             # Only add node if it's not already there, otherwise we
             # may overwrite a Put object at start and end points.
-            if tuple(obj.point[:2]) not in graph:
-                graph.add_node(tuple(obj.point[:2]),
-                               obj=obj)
-#            logger.debug("adding edge %s-%s" % (prev_point, obj.point))
-            graph.add_edge(tuple(prev_point[:2]), tuple(obj.point[:2]),
+            if to_2d(obj.point) not in graph:
+                graph.add_node(to_2d(obj.point), obj=obj)
+
+            # I doubt we need obj=obj here, but don't know for sure
+            # -Remco 20120420
+            graph.add_edge(to_2d(prev_point), to_2d(obj.point),
                            obj=obj, segment=riool)
+
             prev_point = obj.point
 
-#        logger.debug("connecting to opposite manhole")
-#        logger.debug("adding edge %s-%s" % (obj.point, end_point))
-        graph.add_edge(tuple(obj.point[:2]), tuple(end_point[:2]),
+        # Connect last measurement to Put on the other end
+        graph.add_edge(to_2d(obj.point), to_2d(end_point),
                        obj=None, segment=riool)
 
-        # Iterate over all the nodes that are Puts. Set their
-        # z coordinate to the minimum of the z values around it,
-        # and their 'maxz' to the maximum of the z values around it.
-        for node in graph:
-            obj = graph.node[node]['obj']
-            if obj.is_put:
-                logger.debug(graph[node])
-#                obj.z = -100
-                obj.z = min(graph.node[n]['obj'].z
-                            for n in graph[node]
-                            if 'obj' in graph.node[n])
+        # Iterate over all the remembered puts. Set their z coordinate
+        # to the minimum of the z values around them, and their 'maxz'
+        # to the maximum of the z values.
+        for put in puts:
+            obj = graph.node[put]['obj']
+            if obj.is_put:  # Should always be true
+                obj.z = min(graph.node[node]['obj'].z
+                            for node in graph[put]
+                            if 'obj' in graph.node[node])
                 # Also calculate a height, for the graph
-                obj.maxz = max(graph.node[n]['obj'].z
-                            for n in graph[node]
-                            if 'obj' in graph.node[n])
+                obj.maxz = max(graph.node[node]['obj'].z
+                            for node in graph[put]
+                            if 'obj' in graph.node[node])
+            else:
+                logger.critical(
+                    "Object that should always be a Put object wasn't")
+
 
 def compute_lost_water_depth(graph, sink):
     """calculate lost water depth for each node

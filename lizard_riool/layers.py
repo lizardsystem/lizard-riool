@@ -2,9 +2,18 @@ from django.conf import settings
 from django.db import connection
 from lizard_map.coordinates import RD
 from lizard_map.workspace import WorkspaceItemAdapter
+from lizard_map.models import ICON_ORIGINALS
+from lizard_map.symbol_manager import SymbolManager
 from lizard_riool.models import Riool, SRID
 import mapnik
+import os
 import re
+
+GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
+SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
+RIOOL_ICON='pixel.png'
+
+from lizard_riool.datamodel import RMB
 
 database = settings.DATABASES['default']
 
@@ -16,6 +25,7 @@ params = {
     'dbname': database['NAME'],
     'srid': SRID,
 }
+
 
 
 class Adapter(WorkspaceItemAdapter):
@@ -33,6 +43,9 @@ class Adapter(WorkspaceItemAdapter):
     def layer(self, layer_ids=None, request=None):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
+
+#        rmb = RMB(self.id)
+#        rmb.compute_flooded_percentages()
 
         # Visualization of "putten"
 
