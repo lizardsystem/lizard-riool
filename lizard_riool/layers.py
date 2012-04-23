@@ -15,16 +15,20 @@ RIOOL_ICON = 'pixel.png'
 
 from lizard_riool.datamodel import RMB
 
-database = settings.DATABASES['default']
-
-params = {
-    'host': database['HOST'],
-    'port': database['PORT'],
-    'user': database['USER'],
-    'password': database['PASSWORD'],
-    'dbname': database['NAME'],
+DATABASE = settings.DATABASES['default']
+PARAMS = {
+    'host': DATABASE['HOST'],
+    'port': DATABASE['PORT'],
+    'user': DATABASE['USER'],
+    'password': DATABASE['PASSWORD'],
+    'dbname': DATABASE['NAME'],
     'srid': SRID,
 }
+
+def default_database_params():
+    """Get default database params. Use a copy of the dictionary
+    because it is mutated by the functions that use it."""
+    return PARAMS.copy()
 
 
 class Adapter(WorkspaceItemAdapter):
@@ -43,40 +47,8 @@ class Adapter(WorkspaceItemAdapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
-        # Visualization of "putten"
-
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        symbol = mapnik.PointSymbolizer()
-        rule.symbols.append(symbol)
-        style.rules.append(rule)
-        styles['putStyle'] = style
-
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        rule.max_scale = 1700
-        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
-            mapnik.Color('black'))
-        symbol.allow_overlap = True
-        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
-        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
-        symbol.displacement(0, -3)  # slightly above
-        rule.symbols.append(symbol)
-        style.rules.append(rule)
-        styles['putLabelStyle'] = style
-
-        query = """(select * from lizard_riool_putten
-            where upload_id=%d) data""" % self.id
-        params['table'] = query
-        params['geometry_field'] = 'the_geom'
-        datasource = mapnik.PostGIS(**params)
-
-        layer = mapnik.Layer('putLayer', RD)
-        layer.datasource = datasource
-        layer.maxzoom = 35000
-        layer.styles.append('putStyle')
-        layer.styles.append('putLabelStyle')
-        layers.append(layer)
+        # Add putten
+        self._put_layer(layers, styles)
 
         # Visualization of "riolen"
 
@@ -101,6 +73,7 @@ class Adapter(WorkspaceItemAdapter):
 
         query = """(select aaa, the_geom from lizard_riool_riool
             where upload_id=%d) data""" % self.id
+        params = default_database_params()
         params['table'] = query
         params['geometry_field'] = 'the_geom'
         datasource = mapnik.PostGIS(**params)
@@ -113,6 +86,50 @@ class Adapter(WorkspaceItemAdapter):
         layers.append(layer)
 
         return layers, styles
+
+    def _put_layer(self, layers, styles):
+        """Moved the Put layer to its own function because it is also
+        used by subclassing adapters."""
+
+        # Visualization of "putten"
+
+        # Put Style
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        symbol = mapnik.PointSymbolizer()
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putStyle'] = style
+
+        # Put Label Style
+        style = mapnik.Style()
+        rule = mapnik.Rule()
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
+            mapnik.Color('black'))
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
+        symbol.displacement(0, -3)  # slightly above
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+        styles['putLabelStyle'] = style
+
+        # Datasource and Layer
+        query = """(select * from lizard_riool_putten
+            where upload_id=%d) data""" % self.id
+        params = default_database_params()
+        params['table'] = query
+        params['geometry_field'] = 'the_geom'
+        datasource = mapnik.PostGIS(**params)
+
+        layer = mapnik.Layer('putLayer', RD)
+        layer.datasource = datasource
+        layer.maxzoom = 35000
+        layer.styles.append('putStyle')
+        layer.styles.append('putLabelStyle')
+        layers.append(layer)
+
 
     def extent(self, identifiers=None):
         "Return the extent in Google projection"
@@ -176,43 +193,11 @@ class RmbLostStorageAdapter(Adapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
+        # Add putten
+        self._put_layer(layers, styles)
+
 #        rmb = RMB(self.id)
 #        rmb.compute_flooded_percentages()
-
-        # Visualization of "putten"
-
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        symbol = mapnik.PointSymbolizer()
-        rule.symbols.append(symbol)
-        style.rules.append(rule)
-        styles['putStyle'] = style
-
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        rule.max_scale = 1700
-        symbol = mapnik.TextSymbolizer('put_id', 'DejaVu Sans Book', 10,
-            mapnik.Color('black'))
-        symbol.allow_overlap = True
-        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
-        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
-        symbol.displacement(0, -3)  # slightly above
-        rule.symbols.append(symbol)
-        style.rules.append(rule)
-        styles['putLabelStyle'] = style
-
-        query = """(select * from lizard_riool_putten
-            where upload_id=%d) data""" % self.id
-        params['table'] = query
-        params['geometry_field'] = 'the_geom'
-        datasource = mapnik.PostGIS(**params)
-
-        layer = mapnik.Layer('putLayer', RD)
-        layer.datasource = datasource
-        layer.maxzoom = 35000
-        layer.styles.append('putStyle')
-        layer.styles.append('putLabelStyle')
-        layers.append(layer)
 
         classes = (
             (0.0, 0.2, '00ff00'),
@@ -253,6 +238,7 @@ class RmbLostStorageAdapter(Adapter):
                 rmb_id='%s'
             ) AS data""" % (self.id,))
 
+        params = default_database_params()
         params['table'] = query
         params['geometry_field'] = 'xy'
         datasource = mapnik.PostGIS(**params)
