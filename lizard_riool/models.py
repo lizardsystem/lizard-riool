@@ -77,6 +77,12 @@ class Upload(models.Model):
     def suffix(self):
         return splitext(self.the_file.name)[1]
 
+    @property
+    def has_computed_percentages(self):
+        """Test whether the lost capacity percentages for this file
+        are availabe in the StoredGraph table."""
+        return (self.suffix.lower() == '.rmb') and StoredGraph.is_stored(self.pk)
+
     def __unicode__(self):
         return self.filename
 
@@ -823,10 +829,10 @@ class StoredGraph(models.Model):
             # Using Wikipedia, http://en.wikipedia.org/wiki/Circular_segment .
 
             # The angle is 2 arccos (d/R)   (and d = R-h).
-            angle = 2 * math.acos((radius-height)/radius)
+            angle = 2 * math.acos((radius - height) / radius)
 
             # And the area is R^2/2 (angle - sin angle)
-            area = ((radius**2)/2)*(angle - math.sin(angle))
+            area = ((radius ** 2) / 2) * (angle - math.sin(angle))
 
             return area
 
@@ -846,21 +852,22 @@ class StoredGraph(models.Model):
             except cls.DoesNotExist:
                 storedgraph = cls(rmb_id=rmb_id, xy=xy)
 
-            if flooded >= diam:
+            if flooded <= 0:
+                percentage = 0
+            elif flooded >= diam:
                 percentage = 1
+            elif not obj.is_circular:
+                percentage = flooded / diam
             else:
-                if not obj.is_circular:
-                    percentage = flooded/diam
+                area = math.pi * ((diam / 2) ** 2)
+                if flooded == diam / 2:
+                    percentage = 0.5
+                elif flooded < diam / 2:
+                    percentage = disc_segment(
+                        radius=diam / 2, height=flooded) / area
                 else:
-                    area = math.pi * ((diam/2)**2)
-                    if flooded == diam/2:
-                        percentage = 0.5
-                    elif flooded < diam/2:
-                        percentage = disc_segment(
-                            radius=diam/2, height=flooded) / area
-                    else:
-                        percentage = (area - disc_segment(
-                                radius=diam/2, height=diam-flooded)) / area
+                    percentage = (area - disc_segment(
+                            radius=diam / 2, height=diam - flooded)) / area
 
             storedgraph.flooded_percentage = percentage
             storedgraph.save()

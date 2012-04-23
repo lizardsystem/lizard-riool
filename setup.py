@@ -11,6 +11,8 @@ long_description = '\n\n'.join([
 
 install_requires = [
     'Django',
+    'django-celery',
+    'django-kombu',
     'django-extensions',
     'django-nose',
     'lizard-map >= 3.24',

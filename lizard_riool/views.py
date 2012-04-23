@@ -13,6 +13,7 @@ from lizard_map.models import WorkspaceEdit
 from lizard_map.views import AppView
 from lizard_riool import parsers
 from lizard_riool.layers import RmbAdapter
+from lizard_riool import tasks
 from math import sqrt
 from matplotlib import figure, transforms
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -331,6 +332,9 @@ class UploadView(TemplateView):
                             "gedefinieerd (CAR=Xs).") % upload.filename
                         logger.error(msg)
                         raise Exception(msg)
+
+            # Update the lost capacity percentages asynchronously
+            tasks.compute_all_lost_capacity_percentages.delay()
 
     @classmethod
     def post(cls, request, *args, **kwargs):

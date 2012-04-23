@@ -19,10 +19,14 @@
   <h2>Langsprofielen</h2>
   <ul class="without-bullets">
 {% for file in view.files %}
+{% if file.has_computed_percentages %}
   <li class="workspace-acceptable"
       data-name="{{ file.filename }}"
   	  data-adapter-class="lizard_riool_lost_capacity"
   	  data-adapter-layer-json='{"id": "{{ file.pk }}"}'>{{ file.filename }}</li>
+{% else %}
+  <li>{{ file.filename }} (nog niet berekend)</li>
+{% endif %}
 {% endfor %}
   </ul>
 </div>

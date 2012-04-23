@@ -178,3 +178,9 @@ class RMB(object):
 
         self.rib_file = rib_upload
         return self.rib_file
+
+def compute_all_flooded_percentages():
+    for f in models.Upload.objects.filter(the_file__iendswith='.rmb'):
+        if not f.has_computed_percentages:
+            rmb = RMB(f.pk)
+            rmb.compute_flooded_percentages()
