@@ -110,8 +110,10 @@ def convert_to_graph(pool, graph):
             obj.update_coordinates(
                 start_point, end_point, direction, prev_point)
 
-            # Add riool's diam to compute flooded percentage later on
+            # Add riool's diam and shape to compute flooded percentage
+            # later on
             obj.diam = riool.diam
+            obj.is_circular = riool.is_circular
 
             # Only add node if it's not already there, otherwise we
             # may overwrite a Put object at start and end points.
