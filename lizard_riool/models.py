@@ -447,6 +447,10 @@ class Riool(RioolBestandObject, models.Model):
                 }.get(self.ACA.strip(), 'unknown')
 
     @property
+    def is_circular(self):
+        return self.ACA.strip() == 'A'
+
+    @property
     def height(self):
         "height in metres (ACB is in millimetres)"
         try:
@@ -493,6 +497,9 @@ class Riool(RioolBestandObject, models.Model):
     def section_water_surface(self, flooded):
         "the area of the section of the water rotting in the pipe"
 
+        # XXX This calculation is WRONG, doesn't return correct
+        # results as far as I can tell (Remco 20120423). The one I use
+        # below in disc_segment() does.
         if flooded > self.diam:
             area = self.section_surface
         elif flooded > self.diam / 2.0:
@@ -802,6 +809,27 @@ class StoredGraph(models.Model):
 
     @classmethod
     def store_graph(cls, rmb_id, graph):
+        def disc_segment(radius, height):
+            """Compute the area of a disc segment with height 'height' in a
+            circle of radius 'radius', when height < radius"""
+
+            assert height < radius
+            assert height != 0
+            assert radius != 0
+
+            radius = float(radius)
+            height = float(height)
+
+            # Using Wikipedia, http://en.wikipedia.org/wiki/Circular_segment .
+
+            # The angle is 2 arccos (d/R)   (and d = R-h).
+            angle = 2 * math.acos((radius-height)/radius)
+
+            # And the area is R^2/2 (angle - sin angle)
+            area = ((radius**2)/2)*(angle - math.sin(angle))
+
+            return area
+
         for node in graph:
             obj = graph.node[node]['obj']
             if not hasattr(obj, 'flooded') or not hasattr(obj, 'diam'):
@@ -818,11 +846,21 @@ class StoredGraph(models.Model):
             except cls.DoesNotExist:
                 storedgraph = cls(rmb_id=rmb_id, xy=xy)
 
-            # WRONG, but will do for now
-            if flooded > diam:
+            if flooded >= diam:
                 percentage = 1
             else:
-                percentage = flooded / diam
+                if not obj.is_circular:
+                    percentage = flooded/diam
+                else:
+                    area = math.pi * ((diam/2)**2)
+                    if flooded == diam/2:
+                        percentage = 0.5
+                    elif flooded < diam/2:
+                        percentage = disc_segment(
+                            radius=diam/2, height=flooded) / area
+                    else:
+                        percentage = (area - disc_segment(
+                                radius=diam/2, height=diam-flooded)) / area
 
             storedgraph.flooded_percentage = percentage
             storedgraph.save()
