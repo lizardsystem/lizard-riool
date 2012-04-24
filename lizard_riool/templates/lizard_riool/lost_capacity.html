@@ -16,27 +16,27 @@
 
 {% block sidebar %}
 <div class="sidebarbox sidebarbox-stretched">
-  <h2>Langsprofielen</h2>
+  <h2>Verloren berging</h2>
   <ul class="without-bullets">
 {% for file in view.files %}
-{% if file.has_computed_percentages %}
+{% if file.available %}
   <li class="workspace-acceptable"
-      data-name="{{ file.filename }}"
+      data-name="{{ file.upload.filename }}"
   	  data-adapter-class="lizard_riool_lost_capacity"
-  	  data-adapter-layer-json='{"id": "{{ file.pk }}"}'>{{ file.filename }}</li>
+  	  data-adapter-layer-json='{"id": "{{ file.upload.pk }}"}'>{{ file.upload.filename }}</li>
 {% else %}
-  <li>{{ file.filename }} <img src="{{ STATIC_URL }}lizard_ui/ajax-loader.gif"></li>
+  <li>{{ file.upload.filename }} <img src="{{ STATIC_URL }}lizard_ui/ajax-loader.gif" style="height: 1em;"></li>
 {% endif %}
 {% endfor %}
   </ul>
 </div>
+{% if view.some_missing %}
 <div class="sidebarbox">
-  <h2>Acties</h2>
-  <div id="acties">
-  	<button id="capacity">Bereken verloren berging</button>
-  </div>
+  <h2>Mededeling</h2> Van een of meer RMB bestanden is de verloren
+  berging nog niet berekend. De berekening wordt nu op de achtergrond
+  uitgevoerd.
 </div>
-
+{% endif %}
 {% comment %}
 {% for workspace in workspaces.user %}
 {% workspace workspace %}

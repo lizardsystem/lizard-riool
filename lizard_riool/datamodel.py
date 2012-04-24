@@ -13,6 +13,7 @@ import networkx
 import os
 import pprint
 
+from django.db import transaction
 from django.core.cache import get_cache
 
 from lizard_riool import parsers
@@ -184,7 +185,18 @@ class RMB(object):
         return self.rib_file
 
 def compute_all_flooded_percentages():
-    for f in models.Upload.objects.filter(the_file__iendswith='.rmb'):
-        if not f.has_computed_percentages:
-            rmb = RMB(f)
-            rmb.compute_flooded_percentages()
+    """Call compute_flooded_percentages() on all RMB files. The function
+    will return without doing anything if the computation was already done
+    before. Wrap everything in a transaction to ensure that files are either
+    completely computed or not at all.
+
+    This function should usually be called using
+    lizard_riool.datamodel.compute_all_lost_capacity_percentages,
+    which is a Celery task that also implements locking.
+    """
+
+    with transaction.commit_on_success():
+        for f in models.Upload.objects.filter(the_file__iendswith='.rmb'):
+            if not f.has_computed_percentages:
+                rmb = RMB(f)
+                rmb.compute_flooded_percentages()

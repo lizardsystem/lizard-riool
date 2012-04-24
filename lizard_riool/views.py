@@ -74,7 +74,18 @@ class LostCapacityView(AppView):
     javascript_click_handler = ''
 
     def files(self):
-        return Upload.objects.filter(the_file__iendswith='.rmb')
+        files = [{
+                "upload": upload,
+                "available": upload.has_computed_percentages
+                } for upload in Upload.objects.filter(the_file__iendswith='.rmb')]
+
+        self.some_missing = any(not f['available'] for f in files)
+        if self.some_missing:
+            # Then create them
+            tasks.compute_all_lost_capacity_percentages.delay()
+
+        return files
+
 
 
 class SideProfilePopup(TemplateView):
