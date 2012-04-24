@@ -77,29 +77,6 @@ class LostCapacityView(AppView):
         return Upload.objects.filter(the_file__iendswith='.rmb')
 
 
-class LostCapacityResultView(View):
-    "View lost capacity results."
-
-    def get(self, request, *args, **kwargs):
-        workspace_id = request.GET.get('workspace_id')
-        workspace = WorkspaceEdit.objects.get(pk=workspace_id)
-        for workspace_item in workspace.workspace_items.filter(visible=True):
-            if isinstance(workspace_item.adapter, RmbAdapter):
-                upload_id = workspace_item.adapter.id
-                rmb_upload = Upload.objects.get(pk=upload_id)
-#               parsers.parse(rmb_upload.full_path, pool)
-#               graph = nx.Graph()
-#               parsers.convert_to_graph(pool, graph)
-#               sink = ...
-#               parsers.compute_lost_water_depth(
-#                   graph, (sink.CAB.x, sink.CAB.y))
-#               parsers.compute_lost_volume(graph)
-        return self.render_to_response({})
-
-    def render_to_response(self, context):
-        return HttpResponse(json.dumps(context), mimetype="application/json")
-
-
 class SideProfilePopup(TemplateView):
     ""
 
