@@ -11,6 +11,8 @@ long_description = '\n\n'.join([
 
 install_requires = [
     'Django',
+    'python-dateutil >= 1.5,< 2.0',  # Needed because of celery
+    'celery',
     'django-celery',
     'django-kombu',
     'django-extensions',
