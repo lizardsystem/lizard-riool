@@ -75,7 +75,7 @@ class RMB(object):
             return
 
         self.compute_lost_water_depth()
-        models.StoredGraph.store_graph(self.uploaded_file_id, self.graph)
+        models.StoredGraph.store_graph(self.rmb_file, self.graph)
         self.flooded_percentages_computed = True
 
     def get_riool(self, sufid):
@@ -186,5 +186,5 @@ class RMB(object):
 def compute_all_flooded_percentages():
     for f in models.Upload.objects.filter(the_file__iendswith='.rmb'):
         if not f.has_computed_percentages:
-            rmb = RMB(f.pk)
+            rmb = RMB(f)
             rmb.compute_flooded_percentages()
