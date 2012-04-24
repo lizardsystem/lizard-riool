@@ -25,7 +25,7 @@
   	  data-adapter-class="lizard_riool_lost_capacity"
   	  data-adapter-layer-json='{"id": "{{ file.pk }}"}'>{{ file.filename }}</li>
 {% else %}
-  <li>{{ file.filename }} (nog niet berekend)</li>
+  <li>{{ file.filename }} <img src="{{ STATIC_URL }}lizard_ui/ajax-loader.gif"></li>
 {% endif %}
 {% endfor %}
   </ul>
