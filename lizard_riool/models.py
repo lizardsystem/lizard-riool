@@ -802,7 +802,7 @@ class SinkForUpload(models.Model):
 class StoredGraph(models.Model):
     """Stores the flooded percentage of each point in the graph."""
 
-    rmb_id = models.CharField(max_length=30)
+    rmb = models.ForeignKey(Upload)
     xy = models.PointField(srid=SRID)
 
     flooded_percentage = models.FloatField()
@@ -810,11 +810,11 @@ class StoredGraph(models.Model):
     objects = models.GeoManager()
 
     @classmethod
-    def is_stored(cls, rmb_id):
-        return cls.objects.filter(rmb_id=rmb_id).exists()
+    def is_stored(cls, rmb):
+        return cls.objects.filter(rmb=rmb).exists()
 
     @classmethod
-    def store_graph(cls, rmb_id, graph):
+    def store_graph(cls, rmb, graph):
         def disc_segment(radius, height):
             """Compute the area of a disc segment with height 'height' in a
             circle of radius 'radius', when height < radius"""
@@ -848,9 +848,9 @@ class StoredGraph(models.Model):
 
             xy = Point(node)
             try:
-                storedgraph = cls.objects.get(rmb_id=rmb_id, xy=xy)
+                storedgraph = cls.objects.get(rmb=rmb, xy=xy)
             except cls.DoesNotExist:
-                storedgraph = cls(rmb_id=rmb_id, xy=xy)
+                storedgraph = cls(rmb=rmb, xy=xy)
 
             if flooded <= 0:
                 percentage = 0

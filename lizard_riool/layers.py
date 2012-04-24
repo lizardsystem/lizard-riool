@@ -232,7 +232,7 @@ class RmbLostStorageAdapter(Adapter):
             FROM
                 lizard_riool_storedgraph sg
             WHERE
-                rmb_id='%s'
+                rmb_id=%s
             ) AS data""" % (self.id,))
 
         params = default_database_params()
