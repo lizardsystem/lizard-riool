@@ -33,8 +33,12 @@ class RMB(object):
         """Gets the data for the RMB file with this Upload id.  Raises
         ValueError if the id doesn't exist."""
 
-        self.uploaded_file_id = uploaded_file_id
-        self.rmb_file = self._init_rmb_file()
+        if isinstance(uploaded_file_id, models.Upload):
+            self.uploaded_file_id = uploaded_file_id.pk
+            self.rmb_file = uploaded_file_id
+        else:
+            self.uploaded_file_id = uploaded_file_id
+            self.rmb_file = self._init_rmb_file()
         self.rib_file = None
         self.pool = self._init_pool()
         self.graph = self._init_graph()
