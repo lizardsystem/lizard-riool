@@ -128,12 +128,9 @@ class SideProfileGraph(View):
         # Init RMB object
         rmb = RMB(upload_id)
         rmb.compute_lost_water_depth(putten[0])
-        rmb.log_graph_and_pool()
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             rmb.pool, strengen)
-
-        rmb.log_graph_and_pool()
 
         data = {}
 
