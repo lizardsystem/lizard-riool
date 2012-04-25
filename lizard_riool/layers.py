@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib.gis import measure
 from django.contrib.gis import geos
 from django.db import connection
 from lizard_map.coordinates import RD
@@ -11,12 +10,14 @@ import mapnik
 import os
 import re
 
+
+# Colors from http://www.herethere.net/~samson/php/color_gradient/
 CLASSES = (
     ('A', '< 1%', 0.0, 0.01, '00ff00'),
-    ('B', '1%-25%', 0.01, 0.25, '40C000'),
-    ('C', '25%-50%', 0.25, 0.50, '808000'),
-    ('D', '50%-75%', 0.50, 0.75, 'C04000'),
-    ('E', '75%-99%', 0.75, 0.999, 'C04000'),
+    ('B', '1%-25%', 0.01, 0.25, '33CC00'),
+    ('C', '25%-50%', 0.25, 0.50, '669900'),
+    ('D', '50%-75%', 0.50, 0.75, '996600'),
+    ('E', '75%-99%', 0.75, 0.999, 'CC3200'),
     ('F', '100%', 0.999, 1.01, 'ff0000'))
 
 
@@ -24,8 +25,6 @@ GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
 SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
 RIOOL_ICON = 'pixel.png'
 RIOOL_ICON_LARGE = 'pixel16.png'
-
-from lizard_riool.datamodel import RMB
 
 DATABASE = settings.DATABASES['default']
 PARAMS = {
@@ -42,7 +41,7 @@ def html_to_mapnik(color):
     r, g, b = color[0:2], color[2:4], color[4:6]
     rr, gg, bb = int(r, 16), int(g, 16), int(b, 16)
 
-    return rr/255.0, gg/255.0, bb/255.0, 1.0
+    return rr / 255.0, gg / 255.0, bb / 255.0, 1.0
 
 
 def default_database_params():
@@ -58,6 +57,8 @@ class RmbAdapter(WorkspaceItemAdapter):
     records, so visualization of these can be shared in a
     superclass.
     """
+
+    javascript_hover_handler = 'popup_hover_handler'
 
     def __init__(self, *args, **kwargs):
         super(RmbAdapter, self).__init__(*args, **kwargs)

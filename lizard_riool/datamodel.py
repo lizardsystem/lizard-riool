@@ -40,8 +40,7 @@ class RMB(object):
             self.uploaded_file_id = uploaded_file_id
             self.rmb_file = self._init_rmb_file()
         self.rib_file = None
-        self.pool = self._init_pool()
-        self.graph = self._init_graph()
+        self.pool, self.graph = self._init_pool_and_graph()
         self.sink = None
         self.lost_water_depth_computed = False
         self.flooded_percentages_computed = False
@@ -58,7 +57,9 @@ class RMB(object):
             logger.debug("Computing lost water depth.")
             parsers.compute_lost_water_depth(
                 self.graph, (sink.CAB.x, sink.CAB.y))
+
             self.lost_water_depth_computed = True
+            self._save_pool_and_graph()
         else:
             raise ValueError("No sink!")
 
@@ -88,6 +89,13 @@ class RMB(object):
             if obj.suf_id == sufid:
                 return obj
 
+    def _save_pool_and_graph(self):
+        pool_cache_key = "pool_%d" % self.uploaded_file_id
+        graph_cache_key = "graph_%d" % self.uploaded_file_id
+
+        cache.set(graph_cache_key, self.graph)
+        cache.set(pool_cache_key, self.pool)
+
     def _init_rmb_file(self):
         """Find the RMB file. Raise ValueError if it doesn't exist."""
         try:
@@ -96,31 +104,20 @@ class RMB(object):
             raise ValueError("Upload with id %s does not exist." %
                              (str(self.uploaded_file_id),))
 
-    def _init_pool(self):
+    def _init_pool_and_graph(self):
         """Parse the file into a pool dict, and cache it."""
 
         pool_cache_key = "pool_%d" % self.uploaded_file_id
         pool = cache.get(pool_cache_key, {})
-
-        if not pool:
-            parsers.parse(self.rmb_file.full_path, pool)
-            logger.debug(pprint.pformat(pool))
-            cache.set(pool_cache_key, pool)
-        return pool
-
-    def _init_graph(self):
-        """Init the graph, and cache it."""
-
         graph_cache_key = "graph_%d" % self.uploaded_file_id
-        graph = {}
-#        graph = cache.get(graph_cache_key, {})
+        graph = cache.get(graph_cache_key, {})
 
-        if not graph:
+        if not pool or not graph:
+            parsers.parse(self.rmb_file.full_path, pool)
             graph = networkx.Graph()
-            parsers.convert_to_graph(self.pool, graph)
-            cache.set(graph_cache_key, graph)
+            parsers.convert_to_graph(pool, graph)
 
-        return graph
+        return pool, graph
 
     def _find_sink(self, put=None):
         """Find sink for this RMB file. Get it from the database
@@ -182,3 +179,16 @@ class RMB(object):
 
         self.rib_file = rib_upload
         return self.rib_file
+
+    def log_graph_and_pool(self):
+        for key in self.pool:
+            for meting in self.pool[key][1:]:
+                if not hasattr(meting, 'flooded'):
+                    logger.debug("POOL NO FLOODED: "+str(key))
+                    break
+
+        for node in self.graph:
+            obj = self.graph.node[node]['obj']
+            if not hasattr(obj, 'flooded'):
+                logger.debug("OBJ NO FLOODED: "+str(node))
+                break

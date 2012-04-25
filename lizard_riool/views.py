@@ -128,9 +128,12 @@ class SideProfileGraph(View):
         # Init RMB object
         rmb = RMB(upload_id)
         rmb.compute_lost_water_depth(putten[0])
+        rmb.log_graph_and_pool()
 
         mrios = parsers.string_of_riool_to_string_of_rioolmeting(
             rmb.pool, strengen)
+
+        rmb.log_graph_and_pool()
 
         data = {}
 
@@ -150,7 +153,6 @@ class SideProfileGraph(View):
 
         bobs, obbs, water, coordinates = [], [], [], []
         for idx, suf_id in enumerate(strengen):
-
             # The RIOO record.
             riool = rmb.get_riool(suf_id)
 
@@ -188,7 +190,6 @@ class SideProfileGraph(View):
             obj = parsers.get_obj_from_graph(rmb.graph, put_target)
             if obj:
                 put_target_xy = riool.get_knooppuntcoordinaten(put_target)
-                put_target_bob = riool.get_knooppuntbob(put_target)
                 coordinates.append(put_target_xy)
 
                 bobs.append(obj.z)
