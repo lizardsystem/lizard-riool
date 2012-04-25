@@ -13,7 +13,6 @@ import networkx
 import os
 import pprint
 
-from django.db import transaction
 from django.core.cache import get_cache
 
 from lizard_riool import parsers

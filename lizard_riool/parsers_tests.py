@@ -478,7 +478,7 @@ class Convert_To_Graph_TestSuite(TestCase):
         parse("lizard_riool/data/f3478.rmb", pool)
         convert_to_graph(pool, G)
         # Slope in degrees
-        target = -5.0 + math.sin(math.pi/4)
+        target = -5.0 + math.sin(math.pi / 4)
         current = pool['6400002'][1].z
         self.assertEqual('%.4f' % target, '%.4f' % current)
         # Slope in percentage
@@ -619,8 +619,6 @@ class Compute_Lost_Water_Depth_TestSuite(TestCase):
         G = nx.Graph()
         parse("lizard_riool/data/4F1 asfalt werk.RMB", pool)
         convert_to_graph(pool, G)
-        manholes = sorted(
-            [k for k in G.node if isinstance(G.node[k]['obj'], Put)])
         compute_lost_water_depth(G, (138736.31, 485299.37))
 
     def test200(self):

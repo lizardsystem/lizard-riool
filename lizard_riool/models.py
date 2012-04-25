@@ -81,7 +81,8 @@ class Upload(models.Model):
     def has_computed_percentages(self):
         """Test whether the lost capacity percentages for this file
         are availabe in the StoredGraph table."""
-        return (self.suffix.lower() == '.rmb') and StoredGraph.is_stored(self.pk)
+        return ((self.suffix.lower() == '.rmb') and
+                StoredGraph.is_stored(self.pk))
 
     def __unicode__(self):
         return self.filename

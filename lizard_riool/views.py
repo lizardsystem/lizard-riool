@@ -21,7 +21,6 @@ from models import Put, Riool, Upload
 import logging
 import networkx as nx
 import os.path
-import pprint
 import tempfile
 import urllib
 
@@ -68,7 +67,9 @@ class SideProfileView(AppView):
         files = [{
                 "upload": upload,
                 "available": upload.has_computed_percentages
-                } for upload in Upload.objects.filter(the_file__iendswith='.rmb')]
+                }
+                 for upload in
+                 Upload.objects.filter(the_file__iendswith='.rmb')]
 
         self.some_missing = any(not f['available'] for f in files)
         if self.some_missing:
@@ -158,7 +159,6 @@ class SideProfileGraph(View):
             obj = parsers.get_obj_from_graph(rmb.graph, put_source)
             if obj:
                 put_source_xy = riool.get_knooppuntcoordinaten(put_source)
-                put_source_bob = riool.get_knooppuntbob(put_source)
                 coordinates.append(put_source_xy)
                 verticals.append((len(coordinates) - 1, put_source))
                 bobs.append(obj.z)
@@ -193,10 +193,12 @@ class SideProfileGraph(View):
 
                 bobs.append(obj.z)
                 # Top of the line
-                # For a put, the top isn't necessarily above this particular
-                # bottom, but above the bottom of the highest streng leading
-                # up to it, saved in obj.height if it's a put. Then riool.height
-                # may be the wrong height, but it will have to do for now.
+
+                # For a put, the top isn't necessarily above this
+                # particular bottom, but above the bottom of the
+                # highest streng leading up to it, saved in obj.height
+                # if it's a put. Then riool.height may be the wrong
+                # height, but it will have to do for now.
                 if obj.is_put and hasattr(obj, 'maxz'):
                     # Instead of obj.z, use the maximum z value of the
                     # strengs connected to this put

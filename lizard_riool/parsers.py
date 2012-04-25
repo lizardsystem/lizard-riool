@@ -37,6 +37,7 @@ logger.setLevel(logging.WARNING)
 def to_2d(point):
     return tuple(point[:2])
 
+
 def get_obj_from_graph(graph, suf_id):
     """Return an object from the graph by its suf_id.
 
