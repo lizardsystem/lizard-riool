@@ -50,7 +50,6 @@ setup(name='lizard-riool',
         'lizard_map.adapter_class': [
           '.rib = lizard_riool.layers:RibAdapter',
           '.rmb = lizard_riool.layers:RmbAdapter',
-          'lizard_riool_lost_capacity = lizard_riool.layers:RmbLostStorageAdapter',
         ]
       },
 )

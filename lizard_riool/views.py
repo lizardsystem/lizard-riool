@@ -65,15 +65,6 @@ class SideProfileView(AppView):
     javascript_click_handler = 'put_click_handler'
 
     def files(self):
-        return Upload.objects.filter(the_file__iendswith='.rmb')
-
-
-class LostCapacityView(AppView):
-    "View lost capacity."
-    template_name = 'lizard_riool/lost_capacity.html'
-    javascript_click_handler = ''
-
-    def files(self):
         files = [{
                 "upload": upload,
                 "available": upload.has_computed_percentages
@@ -85,7 +76,6 @@ class LostCapacityView(AppView):
             tasks.compute_lost_capacity_async()
 
         return files
-
 
 
 class SideProfilePopup(TemplateView):

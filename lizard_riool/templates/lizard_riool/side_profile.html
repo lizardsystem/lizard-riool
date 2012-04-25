@@ -18,9 +18,25 @@
 <div class="sidebarbox sidebarbox-stretched">
   <h2>Langsprofielen</h2>
   <ul class="without-bullets">
-  {% include "lizard_riool/files.html" %}
+{% for file in view.files %}
+{% if file.available %}
+  <li class="workspace-acceptable"
+      data-name="{{ file.upload.filename }}"
+  	  data-adapter-class=".rmb"
+  	  data-adapter-layer-json='{"id": "{{ file.upload.pk }}"}'>{{ file.upload.filename }}</li>
+{% else %}
+  <li>{{ file.upload.filename }} <img src="{{ STATIC_URL }}lizard_ui/ajax-loader.gif" style="height: 1em;"></li>
+{% endif %}
+{% endfor %}
   </ul>
 </div>
+{% if view.some_missing %}
+<div class="sidebarbox">
+  <h2>Mededeling</h2> Van een of meer RMB bestanden is de verloren
+  berging nog niet berekend. De berekening wordt nu op de achtergrond
+  uitgevoerd.
+</div>
+{% endif %}
 <div class="sidebarbox">
   <h2>Acties</h2>
   <div id="acties">
