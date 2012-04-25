@@ -68,6 +68,7 @@ def compute_lost_capacity_async():
     now."""
 
     task_id = cache.get(LOCK_KEY)
+
     if task_id is not None:
         logger.debug("found task_id: %s" % (task_id,))
         result = AsyncResult(task_id)
@@ -84,7 +85,7 @@ def compute_lost_capacity_async():
         logger.debug("found no task_id.")
 
     task = compute_all_lost_capacity_percentages.delay()
-
     cache.set(LOCK_KEY, task.task_id, DURATION)
     logger.debug("made a new task with id %s." % task.task_id)
+
     return task

@@ -1,10 +1,12 @@
 from django.conf import settings
+from django.contrib.gis import measure
+from django.contrib.gis import geos
 from django.db import connection
 from lizard_map.coordinates import RD
 from lizard_map.workspace import WorkspaceItemAdapter
 from lizard_map.models import ICON_ORIGINALS
 from lizard_map.symbol_manager import SymbolManager
-from lizard_riool.models import Riool, SRID
+from lizard_riool import models
 import mapnik
 import os
 import re
@@ -21,6 +23,7 @@ CLASSES = (
 GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
 SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
 RIOOL_ICON = 'pixel.png'
+RIOOL_ICON_LARGE = 'pixel16.png'
 
 from lizard_riool.datamodel import RMB
 
@@ -31,7 +34,7 @@ PARAMS = {
     'user': DATABASE['USER'],
     'password': DATABASE['PASSWORD'],
     'dbname': DATABASE['NAME'],
-    'srid': SRID,
+    'srid': models.SRID,
 }
 
 
@@ -150,6 +153,21 @@ class RmbAdapter(WorkspaceItemAdapter):
         layer.styles.append('putLabelStyle')
         layers.append(layer)
 
+    def legend(self, updates=None):
+        legend = []
+        for classname, classdesc, _, _, color in CLASSES:
+            r, g, b, a = html_to_mapnik(color)
+
+            icon = SYMBOL_MANAGER.get_symbol_transformed(
+                RIOOL_ICON_LARGE, color=(r, g, b, a))
+
+            legend.append({
+                    'img_url': os.path.join(
+                        settings.MEDIA_URL, 'generated_icons', icon),
+                    'description': "klasse %s (%s)" % (classname, classdesc),
+                    })
+        return legend
+
     def extent(self, identifiers=None):
         "Return the extent in Google projection"
         cursor = connection.cursor()
@@ -165,39 +183,23 @@ class RmbAdapter(WorkspaceItemAdapter):
         }
 
     def search(self, x, y, radius=None):
-        """Search by coordinates. Return list of dicts for matching
-        items.
+        """We only use this for the mouse hover function; return the
+        minimal amount of information necessary to show it."""
 
-        {'distance': <float>,
-        'name': <name>,
-        'shortname': <short name>,
-        'workspace_item': <...>,
-        'identifier': {...},
-        'google_coords': (x, y) coordinate in google,
-        'object': <object>,
-       ['grouping_hint': ... ] (optional)
-        } of closest fews point that matches x, y, radius.
+        pnt = geos.Point(x, y, srid=900913)
+        points = (models.StoredGraph.objects.filter(rmb__id=self.id).
+                  filter(xy__distance_lte=(pnt, radius)).
+                  distance(pnt).
+                  order_by('distance'))
 
-        Required: distance, name, workspace_item, google_coords
-        Highly recommended (else some functions will not work):
-        identifier (for popups)
+        if not points:
+            return []
 
-        If 'grouping_hint' is given, that is used to group items,
-        otherwise the workspace_item.id. This way a single workspace
-        item can have things show up in different tabs. Please don't
-        use grouping_hints that can possible come from other workspace
-        items (use the workspace item id in the hint).
+        point = points[0]
 
-
-        """
-
-        from django.contrib.gis.geos import *
-        from django.contrib.gis.measure import D
-        from django.contrib.gis.geos import Point
-        pnt = Point(x, y, srid=900913)
-        riolen = Riool.objects.filter(
-            upload__pk=self.id).filter(_AAE__distance_lte=(pnt, radius))
-
-        # XXX
-
-        return []
+        return [{
+                'name': ('%.0f%% verloren berging' %
+                         (point.flooded_percentage * 100,)),
+                'stored_graph_id': point.pk,
+                'distance': point.distance.m,
+                }]
