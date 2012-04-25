@@ -9,6 +9,15 @@ import mapnik
 import os
 import re
 
+CLASSES = (
+    ('A', '< 1%', 0.0, 0.01, '00ff00'),
+    ('B', '1%-25%', 0.01, 0.25, '40C000'),
+    ('C', '25%-50%', 0.25, 0.50, '808000'),
+    ('D', '50%-75%', 0.50, 0.75, 'C04000'),
+    ('E', '75%-99%', 0.75, 0.999, 'C04000'),
+    ('F', '100%', 0.999, 1.01, 'ff0000'))
+
+
 GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
 SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
 RIOOL_ICON = 'pixel.png'
@@ -24,6 +33,13 @@ PARAMS = {
     'dbname': DATABASE['NAME'],
     'srid': SRID,
 }
+
+
+def html_to_mapnik(color):
+    r, g, b = color[0:2], color[2:4], color[4:6]
+    rr, gg, bb = int(r, 16), int(g, 16), int(b, 16)
+
+    return rr/255.0, gg/255.0, bb/255.0, 1.0
 
 
 def default_database_params():
@@ -48,23 +64,13 @@ class Adapter(WorkspaceItemAdapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
-        classes = (
-            (0.0, 0.2, '00ff00'),
-            (0.2, 0.4, '40C000'),
-            (0.4, 0.6, '808000'),
-            (0.6, 0.8, 'C04000'),
-            (0.8, 1.01, 'ff0000'))
-
         sewer_style = mapnik.Style()
 
-        for min_perc, max_perc, color in classes:
-            r, g, b = color[0:2], color[2:4], color[4:6]
-            rr, gg, bb = int(r, 16), int(g, 16), int(b, 16)
+        for _, _, min_perc, max_perc, color in CLASSES:
+            r, g, b, a = html_to_mapnik(color)
 
             icon = SYMBOL_MANAGER.get_symbol_transformed(
-                RIOOL_ICON, color=(rr / 255.0,
-                                   gg / 255.0,
-                                   bb / 255.0, 1.0))
+                RIOOL_ICON, color=(r, g, b, a))
 
             layout_rule = mapnik.Rule()
             symbol = mapnik.PointSymbolizer(
