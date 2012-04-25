@@ -17,7 +17,7 @@ install_requires = [
     'django-kombu',
     'django-extensions',
     'django-nose',
-    'lizard-map >= 3.24',
+    'lizard-map >= 3.29',
     'lizard-ui >= 3.0',
     'pkginfo',
     'networkx >= 1.6',
