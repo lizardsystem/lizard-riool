@@ -49,7 +49,7 @@ setup(name='lizard-riool',
         'console_scripts': [],
         'lizard_map.adapter_class': [
           '.rib = lizard_riool.layers:RibAdapter',
-          '.rmb = lizard_riool.layers:RmbAdapter',
+          'lizard_riool_rmb_adapter = lizard_riool.layers:RmbAdapter',
         ]
       },
 )

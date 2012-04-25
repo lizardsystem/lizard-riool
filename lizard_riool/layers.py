@@ -48,7 +48,7 @@ def default_database_params():
     return PARAMS.copy()
 
 
-class Adapter(WorkspaceItemAdapter):
+class RmbAdapter(WorkspaceItemAdapter):
     """Superclass for SUFRIB and SUBRMB WorkspaceItemAdapters.
 
     Both SUFRIB and SUBRMB files may have *RIOO and/or *PUT
@@ -57,7 +57,7 @@ class Adapter(WorkspaceItemAdapter):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Adapter, self).__init__(*args, **kwargs)
+        super(RmbAdapter, self).__init__(*args, **kwargs)
         self.id = int(self.layer_arguments['id'])  # upload_id
 
     def layer(self, layer_ids=None, request=None):
@@ -201,11 +201,3 @@ class Adapter(WorkspaceItemAdapter):
         # XXX
 
         return []
-
-
-class RibAdapter(Adapter):
-    "WorkspaceItemAdapter for SUFRIB files."
-
-
-class RmbAdapter(Adapter):
-    "WorkspaceItemAdapter for SUFRMB files."
