@@ -82,7 +82,7 @@ class LostCapacityView(AppView):
         self.some_missing = any(not f['available'] for f in files)
         if self.some_missing:
             # Then create them
-            tasks.compute_all_lost_capacity_percentages.delay()
+            tasks.compute_lost_capacity_async()
 
         return files
 
@@ -322,7 +322,7 @@ class UploadView(TemplateView):
                         raise Exception(msg)
 
             # Update the lost capacity percentages asynchronously
-            tasks.compute_all_lost_capacity_percentages.delay()
+            tasks.compute_lost_capacity_async()
 
     @classmethod
     def post(cls, request, *args, **kwargs):

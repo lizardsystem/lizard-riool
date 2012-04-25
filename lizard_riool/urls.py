@@ -1,6 +1,8 @@
 # (c) Nelen & Schuurmans.  GPL licensed, see LICENSE.txt.
 
 from django.conf.urls.defaults import patterns
+from django.conf.urls.defaults import include
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from lizard_riool.views import Bar, FileView, PutFinder, PutList, \
@@ -23,5 +25,7 @@ urlpatterns = patterns('',
     (r'^put/$', login_required(PutFinder.as_view())),
     (r'^bar/$', login_required(Bar.as_view())),
 )
+if settings.DEBUG:
+    urlpatterns += patterns('', ('^djcelery/', include('djcelery.urls')))
 
 urlpatterns += debugmode_urlpatterns()

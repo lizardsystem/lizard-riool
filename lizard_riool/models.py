@@ -804,10 +804,14 @@ class StoredGraph(models.Model):
 
     rmb = models.ForeignKey(Upload)
     xy = models.PointField(srid=SRID)
-
-    flooded_percentage = models.FloatField()
+    x = models.FloatField()  # Duplicate of xy field to create unique key
+    y = models.FloatField()
+    flooded_percentage = models.FloatField(null=True)
 
     objects = models.GeoManager()
+
+    class Meta:
+        unique_together = ('rmb', 'x', 'y')
 
     @classmethod
     def is_stored(cls, rmb):
@@ -847,10 +851,8 @@ class StoredGraph(models.Model):
             logger.debug("flooded=%f diam=%f" % (flooded, diam))
 
             xy = Point(node)
-            try:
-                storedgraph = cls.objects.get(rmb=rmb, xy=xy)
-            except cls.DoesNotExist:
-                storedgraph = cls(rmb=rmb, xy=xy)
+            storedgraph, created = cls.objects.get_or_create(
+                rmb=rmb, xy=xy, x=xy.x, y=xy.y)
 
             if flooded <= 0:
                 percentage = 0
