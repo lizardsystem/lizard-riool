@@ -48,7 +48,6 @@ setup(name='lizard-riool',
       entry_points={
         'console_scripts': [],
         'lizard_map.adapter_class': [
-          '.rib = lizard_riool.layers:RibAdapter',
           'lizard_riool_rmb_adapter = lizard_riool.layers:RmbAdapter',
         ]
       },
