@@ -22,3 +22,44 @@ $(function () {
     });
 
 });
+
+$(function () {
+
+    // Show hidden action icons.
+    $('#uploaded-files .no-workspace-acceptable').mouseover(function () {
+        $(this).children('.ss_sprite').css('display', 'block');
+    });
+
+    // Hide action icons.
+    $('#uploaded-files .no-workspace-acceptable').mouseleave(function () {
+        $(this).children('.ss_sprite').css('display', 'none');
+    });
+
+    // Handle click on delete icon.
+    $('#uploaded-files .delete').click(function () {
+        var $file;
+        $file = $(this).parent().attr('data-name');
+        $('<div title="Bestand verwijderen?"/>')
+            .html('Bestand ' + $file + ' verwijderen?')
+            .dialog({
+                buttons: {
+                    Ja: function () {
+                        $(this).dialog("close");
+                    },
+                    Nee: function () {
+                        $(this).dialog("close");
+                    }
+                },
+                modal: true,
+                resizable: false
+            });
+        return false;
+    });
+
+    // Handle click on download icon.
+    $('#uploaded-files .download').click(function () {
+        return false;
+    });
+
+});
+

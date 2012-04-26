@@ -18,7 +18,16 @@
 <div class="sidebarbox sidebarbox-stretched">
   <h2 class="upload">Bestandsbeheer<span class="ss_sprite ss_add" rel="tipsy-south" title="Bestanden uploaden..."/></h2>
   <ul id="uploaded-files" class="without-bullets">
-  {% include "lizard_riool/files.html" %}
+  {% for file in view.files %}
+    <li class="no-workspace-acceptable"
+        data-name="{{ file.filename }}"
+      	data-adapter-class="lizard_riool_rmb_adapter"
+  	    data-adapter-layer-json='{"id": "{{ file.pk }}"}'>
+  	  {{ file.filename }}
+  	  <span rel="tipsy" title="Verwijder bestand" class="ss_sprite ss_delete sidebarbox-action-icon delete hidden"></span>
+  	  <span rel="tipsy" title="Download bestand" class="ss_sprite ss_disk sidebarbox-action-icon download hidden"></span>
+  	</li>
+  {% endfor %}
   </ul>
 </div>
 

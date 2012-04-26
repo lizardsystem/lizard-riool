@@ -22,3 +22,13 @@ div#acties {
 .ajax-loader img {
     display: block;
 }
+
+.hidden {
+    display: none;
+}
+
+.no-workspace-acceptable {
+    cursor: pointer;
+    line-height: 2em;
+    min-height: 2em;
+}
