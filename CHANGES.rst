@@ -5,8 +5,47 @@ Changelog of lizard-riool
 0.4.6 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Created a datamodel.py to hold some of the more generic things that
+  were in parsers.py and views.py
 
+- As a result, a bug with puts that didn't show up on the graph
+  (e.g. trac #3594) was solved.
+
+- We now use the minimum z value of the actual Put objects, not of the
+  Put's neighbours. This gives more accurate results.
+
+- Added a model that remembers the sink of each RMB file
+
+- Added a model that stores the lost capacity percentages of each
+  measurement point
+
+- Made a Celery task that computes lost capacity and implements good
+  locking so that the task only ever runs once at any given
+  moment. Task is called after uploading files and whenever the side
+  profile page is viewed and there are RMB files without computed lost
+  capacity.
+
+- Show an icon after files that aren't computed yet. They can't be
+  clicked.
+
+- Coloured the lines that represent sewers on the map according to
+  lost capacity. This had to be implemented by drawing thousands of
+  1-pixel "icons". First in its own adapter on its own page, later
+  merged into the existing adapter for side profile graphs.
+
+- Improved classes and colours of the lost capacity visualization.
+
+- Corrected calculation of the lost capacity based on the height
+  percentage of flooding in a circular pipe.
+
+- Slightly improved README
+
+- Added a legend to the workspace items
+
+- Added a mouseover function that shows lost capacity percentage
+
+- Fixed a nasty bug in which cached graphs would fail to draw
+  correctly
 
 0.4.5 (2012-04-17)
 ------------------
