@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.6 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Fix for internal server error (missing adapter).
 
 
 0.5 (2012-04-26)
