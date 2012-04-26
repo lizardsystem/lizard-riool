@@ -309,6 +309,9 @@ class UploadView(TemplateView):
                         msg = ("Precies 1 put in %s moet als sink zijn " +
                             "gedefinieerd (CAR=Xs).") % upload.filename
                         logger.error(msg)
+                        # Delete from filesystem.
+                        upload.the_file.delete()
+                        # Trigger rollback.
                         raise Exception(msg)
 
             # Update the lost capacity percentages asynchronously
