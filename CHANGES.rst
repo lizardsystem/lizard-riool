@@ -2,8 +2,8 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.4.6 (unreleased)
-------------------
+0.5 (2012-04-26)
+----------------
 
 - Created a datamodel.py to hold some of the more generic things that
   were in parsers.py and views.py
