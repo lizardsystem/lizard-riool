@@ -58,18 +58,17 @@ def compute_lost_capacity_async():
     manual. It forces the cache to be shared between all instances of
     this site and isn't sufficiently persistent.
 
-    Also, there is still a race condition: the function may be called
-    again when nothing has been set in the cache yet, and then the
-    task will be started twice. It seems unlikely that that will
-    happen in practice (people aren't uploading new files many times
-    per second). This can't be solved in-interpreter using
-    e.g. semaphores, because there are different interpreter instances
-    running. There are ways to do it but I won't implement them
-    now."""
+    If two threads are both trying to start up the task, it's possible
+    that this thread is blocked but the task isn't known yet. In that
+    case, the function returns None."""
 
     task_id = cache.get(LOCK_KEY)
 
     if task_id is not None:
+        if task_id == 'pending':
+            # Another task is starting, we don't have to
+            return None
+
         logger.debug("found task_id: %s" % (task_id,))
         result = AsyncResult(task_id)
         logger.debug("task state is %s." % (result.state,))
@@ -81,8 +80,16 @@ def compute_lost_capacity_async():
             logger.critical(
                 "lost capacity task finished with an exception: %s" %
                 (str(result.result),))
+        cache.delete(LOCK_KEY)
+
     else:
         logger.debug("found no task_id.")
+
+    # Now, as far as we know, the cache is empty
+    if not cache.add(LOCK_KEY, 'pending'):
+        # If add() returns False, the key already exists -- some other thread
+        # also added it.
+        return
 
     task = compute_all_lost_capacity_percentages.delay()
     cache.set(LOCK_KEY, task.task_id, DURATION)
