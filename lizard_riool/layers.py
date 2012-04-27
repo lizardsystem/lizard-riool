@@ -68,6 +68,10 @@ class RmbAdapter(WorkspaceItemAdapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
 
+        # Add putten
+        self._put_layer(layers, styles)
+
+        # Add lost capacity
         sewer_style = mapnik.Style()
 
         for _, _, min_perc, max_perc, color in CLASSES:
@@ -106,9 +110,6 @@ class RmbAdapter(WorkspaceItemAdapter):
         layer.styles.append("sewerStyle")
         layers.append(layer)
 
-        # Add putten
-        self._put_layer(layers, styles)
-
         return layers, styles
 
     def _put_layer(self, layers, styles):
@@ -121,6 +122,7 @@ class RmbAdapter(WorkspaceItemAdapter):
         style = mapnik.Style()
         rule = mapnik.Rule()
         symbol = mapnik.PointSymbolizer()
+        symbol.allow_overlap = True
         rule.symbols.append(symbol)
         style.rules.append(rule)
         styles['putStyle'] = style
