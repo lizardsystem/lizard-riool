@@ -5,11 +5,12 @@
 
 "use strict";
 
+/* Upload stuff. */
 $(function () {
 
     var $dialog;
 
-    $dialog = $('<div class="upload-dialog"/>').load('/riolering/upload/').dialog({
+    $dialog = $('<div class="upload-dialog"/>').load('files/upload/').dialog({
         autoOpen: false,
         title: 'Uploaden',
         width: 500
@@ -23,41 +24,52 @@ $(function () {
 
 });
 
+/* Action icon stuff. */
 $(function () {
 
     // Show hidden action icons.
-    $('#uploaded-files .no-workspace-acceptable').mouseover(function () {
+    $('#uploaded-files .workspace-acceptable-look-alike').live('mouseover', function () {
         $(this).children('.ss_sprite').css('display', 'block');
     });
 
     // Hide action icons.
-    $('#uploaded-files .no-workspace-acceptable').mouseleave(function () {
+    $('#uploaded-files .workspace-acceptable-look-alike').live('mouseleave', function () {
         $(this).children('.ss_sprite').css('display', 'none');
     });
 
     // Handle click on delete icon.
-    $('#uploaded-files .delete').click(function () {
-        var $file;
-        $file = $(this).parent().attr('data-name');
+    $('#uploaded-files .delete').live('click', function () {
+        var file_id, file_name;
+        file_id = $.parseJSON($(this).parent().attr('data-adapter-layer-json')).id;
+        file_name = $(this).parent().attr('data-name');
         $('<div title="Bestand verwijderen?"/>')
-            .html('Bestand ' + $file + ' verwijderen?')
+            .html('Bestand ' + file_name + ' verwijderen?')
             .dialog({
                 buttons: {
                     Ja: function () {
+                        // Server-side delete.
+                        $.post('files/delete/' + file_id + '/', function () {
+                            // Refresh file list.
+                            $('#uploaded-files').load('files/');
+                        });
+                        // Close dialog.
                         $(this).dialog("close");
                     },
                     Nee: function () {
+                        // Close dialog.
                         $(this).dialog("close");
                     }
                 },
                 modal: true,
                 resizable: false
             });
+        // prevent the default action, e.g., following a link
         return false;
     });
 
     // Handle click on download icon.
-    $('#uploaded-files .download').click(function () {
+    $('#uploaded-files .download').live('click', function () {
+        // prevent the default action, e.g., following a link
         return false;
     });
 

@@ -27,8 +27,9 @@ div#acties {
     display: none;
 }
 
-.no-workspace-acceptable {
-    cursor: pointer;
+.workspace-acceptable-look-alike {
+    /* cursor: pointer; */
     line-height: 2em;
     min-height: 2em;
 }
+

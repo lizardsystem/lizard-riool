@@ -28,7 +28,7 @@ $(function () {
         // General settings
         //runtimes : 'html5,flash,browserplus,silverlight,gears,html4',
         runtimes : 'html5,flash',
-        url : '/riolering/upload/',
+        url : 'files/upload/',
         //max_file_size : '4mb',
         //max_file_count : 20, // user can add no more then 20 files at a time
         chunk_size : '50mb', // https://office.lizard.net/trac/ticket/3526
@@ -117,7 +117,7 @@ $(function () {
 
     //
     uploader.bind('UploadComplete', function (up, files) {
-        $('#uploaded-files').load('/riolering/beheer/files/');
+        $('#uploaded-files').load('files/');
     });
 
 });

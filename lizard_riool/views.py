@@ -58,6 +58,16 @@ class FileView(AppView):
         return Upload.objects.all()
 
 
+class DeleteFileView(View):
+    "Delete a previously uploaded file."
+
+    def post(self, request, *args, **kwargs):
+        upload = Upload.objects.get(pk=kwargs['id'])
+        upload.the_file.delete()  # from filesystem
+        upload.delete()  # from database
+        return HttpResponse()
+
+
 class SideProfileView(AppView):
     "View side profiles."
     template_name = 'lizard_riool/side_profile.html'
