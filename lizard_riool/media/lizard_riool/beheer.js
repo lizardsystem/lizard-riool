@@ -67,11 +67,16 @@ $(function () {
         return false;
     });
 
+/*
     // Handle click on download icon.
     $('#uploaded-files .download').live('click', function () {
+        var file_id;
+        file_id = $.parseJSON($(this).parent().attr('data-adapter-layer-json')).id;
+        $.get('files/download/' + file_id + '/');
         // prevent the default action, e.g., following a link
         return false;
     });
+*/
 
 });
 

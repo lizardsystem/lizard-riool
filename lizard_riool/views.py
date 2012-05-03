@@ -345,6 +345,26 @@ class UploadView(TemplateView):
         return HttpResponse(json.dumps(result), mimetype="application/json")
 
 
+class DownloadView(TemplateView):
+    ""
+    template_name = "lizard_riool/results.txt"
+
+    def get(self, request, *args, **kwargs):
+        upload = Upload.objects.get(pk=kwargs['id'])
+        if upload.has_computed_percentages:
+            riolen = []
+            with upload.the_file.file as f:
+                for line in f:
+                    if line.startswith('*RIOO|'):
+                        riolen.append(line)
+            #response = HttpResponse(riolen, mimetype="text/plain")
+            response = self.render_to_response(riolen)
+            response['Content-Disposition'] = 'attachment; filename=%s' % upload.filename
+            return response
+        else:
+            return HttpResponse()
+
+
 class PutList(View):
     ""
 

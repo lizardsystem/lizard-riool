@@ -6,7 +6,10 @@
     {{ file.filename }}
     <span rel="tipsy" title="Verwijder bestand" class="ss_sprite ss_delete sidebarbox-action-icon delete hidden"></span>
     {% if file.has_computed_percentages %}
+    {% comment %}
     <span rel="tipsy" title="Download resultaten" class="ss_sprite ss_disk sidebarbox-action-icon download hidden"></span>
+    <a rel="tipsy" title="Download resultaten" href="files/download/{{file.pk}}" class="ss_sprite ss_disk sidebarbox-action-icon download hidden"></a>
+    {% endcomment %}
     {% endif %}
   </li>
 {% endfor %}
