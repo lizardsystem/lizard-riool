@@ -5,7 +5,9 @@ Changelog of lizard-riool
 0.5.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Previously uploaded files can now be deleted.
+
+- Fixed another missing adapter issue.
 
 
 0.5.1 (2012-04-26)
