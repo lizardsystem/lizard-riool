@@ -803,6 +803,8 @@ class SinkForUpload(models.Model):
 class StoredGraph(models.Model):
     """Stores the flooded percentage of each point in the graph."""
 
+    # TODO: each node in a graph already has a unique id,
+    # viz. suf_id, which can be used instead of x and y.
     rmb = models.ForeignKey(Upload)
     xy = models.PointField(srid=SRID)
     x = models.FloatField()  # Duplicate of xy field to create unique key

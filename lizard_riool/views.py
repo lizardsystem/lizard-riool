@@ -11,9 +11,11 @@ from django.views.generic import TemplateView, View
 from lizard_map.matplotlib_settings import SCREEN_DPI
 from lizard_map.models import WorkspaceEdit
 from lizard_map.views import AppView
+from lizard_riool.models import Rioolmeting, StoredGraph
 from lizard_riool import parsers
-from lizard_riool.layers import RmbAdapter
+from lizard_riool.layers import get_class_boundaries, RmbAdapter
 from lizard_riool import tasks
+from lizard_riool.waar import WAAR
 from math import sqrt
 from matplotlib import figure, transforms
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -345,24 +347,68 @@ class UploadView(TemplateView):
         return HttpResponse(json.dumps(result), mimetype="application/json")
 
 
-class DownloadView(TemplateView):
-    ""
-    template_name = "lizard_riool/results.txt"
+class DownloadView(View):
+    "Return computed results in a SUFRIB-like format."
 
     def get(self, request, *args, **kwargs):
+
+        # The SUFRMB file for which results have been computed.
         upload = Upload.objects.get(pk=kwargs['id'])
+
+        # A list of SUFRIB records (i.e. strings).
+        results = []
+
+        # The computation has to be finished.
         if upload.has_computed_percentages:
-            riolen = []
+            rmb = RMB(upload.pk)
             with upload.the_file.file as f:
                 for line in f:
-                    if line.startswith('*RIOO|'):
-                        riolen.append(line)
-            #response = HttpResponse(riolen, mimetype="text/plain")
-            response = self.render_to_response(riolen)
-            response['Content-Disposition'] = 'attachment; filename=%s' % upload.filename
-            return response
-        else:
-            return HttpResponse()
+                    if line.startswith('*ALGE|'):
+                        # Just copy it.
+                        results.append(line.strip('\r\n'))
+                    elif line.startswith('*RIOO|'):
+                        # Just copy it.
+                        results.append(line.strip('\r\n'))
+                        # Add *WAAR.
+                        riool = line[6:36].strip()
+                        results.extend(self.__get_results(rmb, riool))
+
+        response = HttpResponse('\n'.join(results), content_type='text/plain')
+        filename = os.path.splitext(upload.filename)[0] + '_results.txt'
+        response['Content-Disposition'] = 'attachment; filename=%s' % filename
+        return response
+
+    def __get_results(self, rmb, riool):
+        """Construct and return *WAAR records.
+
+        Each *MRIO can be classified according to its percentage flooded.
+        The class boundaries are printed in the ZZI and ZZJ fields of
+        the *WAAR record. Only *WAAR records that mark a change of
+        class are returned.
+        """
+        results = []
+        prev_klasse = None
+        for obj in rmb.pool[riool]:
+            if isinstance(obj, Rioolmeting):
+                # TODO: better use suf_id instead of x and y?
+                file_id = rmb.uploaded_file_id
+                x = obj.point[0]
+                y = obj.point[1]
+                node = StoredGraph.objects.get(rmb=file_id, x=x, y=y)
+                pct = node.flooded_percentage
+                klasse, min_pct, max_pct = get_class_boundaries(pct)
+                if klasse != prev_klasse:
+                    waar = WAAR()
+                    waar.ZZA = obj.ZYA
+                    waar.ZZB = obj.ZYB
+                    waar.ZZE = riool
+                    waar.ZZF = 'BDD'
+                    waar.ZZI = min_pct
+                    waar.ZZJ = max_pct
+                    waar.ZZV = 'Door Lizard Riool Toolkit'
+                    results.append(str(waar))
+                    prev_klasse = klasse
+        return results
 
 
 class PutList(View):

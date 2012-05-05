@@ -13,12 +13,18 @@ import re
 
 # Colors from http://www.herethere.net/~samson/php/color_gradient/
 CLASSES = (
-    ('A', '< 1%', 0.0, 0.01, '00ff00'),
-    ('B', '1%-25%', 0.01, 0.25, '33CC00'),
-    ('C', '25%-50%', 0.25, 0.50, '669900'),
-    ('D', '50%-75%', 0.50, 0.75, '996600'),
-    ('E', '75%-99%', 0.75, 0.999, 'CC3200'),
-    ('F', '100%', 0.999, 1.01, 'ff0000'))
+    ('A', '0%-10%',   0.00, 0.10, '00ff00'),
+    ('B', '10%-25%',  0.10, 0.25, '669900'),
+    ('C', '25%-50%',  0.25, 0.50, '996600'),
+    ('D', '50%-75%',  0.50, 0.75, 'CC3200'),
+    ('E', '75%-100%', 0.75, 1.01, 'ff0000'))
+
+
+def get_class_boundaries(pct):
+    "Return the class and its boundaries for a given fraction."
+    for klasse, _, min_pct, max_pct, _ in CLASSES:
+        if pct >= min_pct and pct < max_pct:
+            return klasse, min_pct, max_pct
 
 
 GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
