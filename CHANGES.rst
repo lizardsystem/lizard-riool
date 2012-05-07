@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.5.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Computed results (lost capacity aka "verloren berging") can now be downloaded.
 
 
 0.5.2 (2012-05-03)
