@@ -360,7 +360,9 @@ class DownloadView(View):
 
         # The computation has to be finished.
         if upload.has_computed_percentages:
-            rmb = RMB(upload.pk)
+            self.storedgraph_dict = {obj.suf_id : obj for obj in upload.\
+                storedgraph_set.only('suf_id', 'flooded_percentage')}
+            self.rmb = RMB(upload.pk)
             with upload.the_file.file as f:
                 for line in f:
                     if line.startswith('*ALGE|'):
@@ -371,14 +373,14 @@ class DownloadView(View):
                         results.append(line.strip('\r\n'))
                         # Add *WAAR.
                         riool = line[6:36].strip()
-                        results.extend(self.__get_results(rmb, riool))
+                        results.extend(self.__get_results(riool))
 
         response = HttpResponse('\n'.join(results), content_type='text/plain')
         filename = os.path.splitext(upload.filename)[0] + '_results.txt'
         response['Content-Disposition'] = 'attachment; filename=%s' % filename
         return response
 
-    def __get_results(self, rmb, riool):
+    def __get_results(self, riool):
         """Construct and return *WAAR records.
 
         Each *MRIO can be classified according to its percentage flooded.
@@ -388,13 +390,9 @@ class DownloadView(View):
         """
         results = []
         prev_klasse = None
-        for obj in rmb.pool[riool]:
+        for obj in self.rmb.pool[riool]:
             if isinstance(obj, Rioolmeting):
-                # TODO: better use suf_id instead of x and y?
-                file_id = rmb.uploaded_file_id
-                x = obj.point[0]
-                y = obj.point[1]
-                node = StoredGraph.objects.get(rmb=file_id, x=x, y=y)
+                node = self.storedgraph_dict[obj.suf_id]
                 pct = node.flooded_percentage
                 klasse, min_pct, max_pct = get_class_boundaries(pct)
                 if klasse != prev_klasse:

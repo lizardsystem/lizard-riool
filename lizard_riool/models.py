@@ -803,17 +803,17 @@ class SinkForUpload(models.Model):
 class StoredGraph(models.Model):
     """Stores the flooded percentage of each point in the graph."""
 
-    # TODO: each node in a graph already has a unique id,
-    # viz. suf_id, which can be used instead of x and y.
     rmb = models.ForeignKey(Upload)
+    suf_id = models.CharField(max_length=39)  # ZYE:ZYA
     xy = models.PointField(srid=SRID)
     x = models.FloatField()  # Duplicate of xy field to create unique key
-    y = models.FloatField()
+    y = models.FloatField()  # Better use suf_id to create unique key
     flooded_percentage = models.FloatField(null=True)
 
     objects = models.GeoManager()
 
     class Meta:
+        unique_together = ('rmb', 'suf_id')
         unique_together = ('rmb', 'x', 'y')
 
     @classmethod
@@ -853,9 +853,10 @@ class StoredGraph(models.Model):
 
             logger.debug("flooded=%f diam=%f" % (flooded, diam))
 
+            suf_id = obj.suf_id
             xy = Point(node)
             storedgraph, created = cls.objects.get_or_create(
-                rmb=rmb, xy=xy, x=xy.x, y=xy.y)
+                rmb=rmb, suf_id=suf_id, xy=xy, x=xy.x, y=xy.y)
 
             if flooded <= 0:
                 percentage = 0
