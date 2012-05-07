@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.5.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Skipping graph nodes without computed results for download.
 
 
 0.5.3 (2012-05-07)
