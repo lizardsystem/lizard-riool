@@ -392,7 +392,12 @@ class DownloadView(View):
         prev_klasse = None
         for obj in self.rmb.pool[riool]:
             if isinstance(obj, Rioolmeting):
-                node = self.storedgraph_dict[obj.suf_id]
+                try:
+                    node = self.storedgraph_dict[obj.suf_id]
+                except KeyError:
+                    msg = "Skipping %s (not in stored graph)." % obj.suf_id
+                    logger.debug(msg)
+                    continue
                 pct = node.flooded_percentage
                 klasse, min_pct, max_pct = get_class_boundaries(pct)
                 if klasse != prev_klasse:
