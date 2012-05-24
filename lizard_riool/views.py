@@ -360,7 +360,7 @@ class DownloadView(View):
 
         # The computation has to be finished.
         if upload.has_computed_percentages:
-            self.storedgraph_dict = {obj.suf_id : obj for obj in upload.\
+            self.storedgraph_dict = {obj.suf_id: obj for obj in upload.\
                 storedgraph_set.only('suf_id', 'flooded_percentage')}
             self.rmb = RMB(upload.pk)
             with upload.the_file.file as f:
