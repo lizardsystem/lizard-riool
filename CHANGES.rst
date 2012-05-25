@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.5 (unreleased)
+0.5.5 (2012-05-25)
 ------------------
 
 - Made syntax compatible with Python 2.6 (no dict comprehension).
