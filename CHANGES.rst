@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.6 (unreleased)
+0.5.6 (2012-05-29)
 ------------------
 
 - MRIO measurements are corrected to prevent sawtooth-like graphs.
