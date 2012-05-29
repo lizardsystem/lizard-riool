@@ -185,11 +185,11 @@ class RMB(object):
         for key in self.pool:
             for meting in self.pool[key][1:]:
                 if not hasattr(meting, 'flooded'):
-                    logger.debug("POOL NO FLOODED: "+str(key))
+                    logger.debug("POOL NO FLOODED: " + str(key))
                     break
 
         for node in self.graph:
             obj = self.graph.node[node]['obj']
             if not hasattr(obj, 'flooded'):
-                logger.debug("OBJ NO FLOODED: "+str(node))
+                logger.debug("OBJ NO FLOODED: " + str(node))
                 break

@@ -413,7 +413,7 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
             reverse_me = pool[riool.suf_id][1:]
             reverse_me.reverse()
             result.extend(reverse_me)
-    logger.debug("String_of_riool_to_string_of_rioolmeting: "+str(result))
+    logger.debug("String_of_riool_to_string_of_rioolmeting: " + str(result))
     return result
 
 
