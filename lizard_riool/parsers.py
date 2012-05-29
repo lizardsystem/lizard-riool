@@ -133,6 +133,54 @@ def convert_to_graph(pool, graph):
                        obj=None, segment=riool)
 
 
+class Line(object):
+    """A straight-line (i.e. linear) equation.
+
+    This naive implementation cannot handle vertical lines (x = constant),
+    but suffices for our purpose (since x1 != x2 for all segments).
+    """
+
+    def __init__(self, point1, point2):
+        "Points are (x, y) tuples."
+        x1, y1 = point1
+        x2, y2 = point2
+        self.a = (y1 - y2) / (x1 - x2)
+        self.b = y1 - self.a * x1
+
+    def y(self, x):
+        "Return y for a given x."
+        return self.a * x + self.b
+
+
+def correct_z_values(pool):
+    """Correct MRIO measurements via known BOBs.
+
+    MRIO measurements appear to have significant errors. In particular,
+    ZYS = E (degrees) and ZYS = F (%) tend to end too deep, resulting
+    in a sawtooth wave in the final side profile graph. Depths can
+    be corrected using the known BOB values.
+    """
+    for value in pool.values():
+        # Line in theory
+        riool = value[0]
+        p1 = (0, riool.ACR)
+        p2 = (riool.length, riool.ACS)
+        tline = Line(p1, p2)
+        # Line in practice
+        mrio1 = value[1]
+        mrio2 = value[-1]
+        if mrio1.ZYB == 2:
+            mrio1, mrio2 = mrio2, mrio1
+        p1 = (mrio1.ZYA, mrio1.z)
+        p2 = (mrio2.ZYA, mrio2.z)
+        pline = Line(p1, p2)
+        # Correct z values
+        for mrio in value[1:]:
+            tz = tline.y(mrio.ZYA)
+            pz = pline.y(mrio.ZYA)
+            mrio.z = mrio.z + tz - pz
+
+
 def compute_lost_water_depth(graph, sink):
     """calculate lost water depth for each node
 

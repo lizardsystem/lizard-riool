@@ -476,6 +476,7 @@ class Riool(RioolBestandObject, models.Model):
 
     @property
     def length(self):
+        # Or simply return self.AAE.distance(self.AAG)?
         line_vector = (self.suf_fk_point2 - self.suf_fk_point1)[: 2]
         return math.sqrt(sum(line_vector * line_vector))
 
@@ -681,6 +682,10 @@ class Rioolmeting(RioolBestandObject, models.Model):
     @property
     def z(self):
         return self.point[2]
+
+    @z.setter
+    def z(self, value):
+        self.point[2] = value
 
     @property
     def measurement_type(self):

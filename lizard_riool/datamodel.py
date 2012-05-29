@@ -116,6 +116,7 @@ class RMB(object):
             parsers.parse(self.rmb_file.full_path, pool)
             graph = networkx.Graph()
             parsers.convert_to_graph(pool, graph)
+            parsers.correct_z_values(pool)
 
         return pool, graph
 
