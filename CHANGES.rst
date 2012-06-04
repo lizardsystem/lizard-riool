@@ -5,7 +5,8 @@ Changelog of lizard-riool
 0.5.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fixed bug in the correction of z-values of reversed MRIO
+  measurements (i.e. ZYB == "2").
 
 
 0.5.6 (2012-05-29)

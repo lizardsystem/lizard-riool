@@ -161,19 +161,15 @@ def correct_z_values(pool):
     be corrected using the known BOB values.
     """
     for value in pool.values():
-        # Line in theory
         riool = value[0]
-        p1 = (0, riool.ACR)
-        p2 = (riool.length, riool.ACS)
-        tline = Line(p1, p2)
-        # Line in practice
         mrio1 = value[1]
         mrio2 = value[-1]
-        if mrio1.ZYB == 2:
-            mrio1, mrio2 = mrio2, mrio1
-        p1 = (mrio1.ZYA, mrio1.z)
-        p2 = (mrio2.ZYA, mrio2.z)
-        pline = Line(p1, p2)
+        if mrio1.ZYB == "1":
+            tline = Line((0, riool.ACR), (riool.length, riool.ACS))
+            pline = Line((mrio1.ZYA, mrio1.z), (mrio2.ZYA, mrio2.z))
+        else:
+            tline = Line((0, riool.ACS), (riool.length, riool.ACR))
+            pline = Line((mrio2.ZYA, mrio2.z), (mrio1.ZYA, mrio1.z))
         # Correct z values
         for mrio in value[1:]:
             tz = tline.y(mrio.ZYA)
