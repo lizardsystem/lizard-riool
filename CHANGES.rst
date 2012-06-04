@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.7 (unreleased)
+0.5.7 (2012-06-04)
 ------------------
 
 - Fixed bug in the correction of z-values of reversed MRIO
