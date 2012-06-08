@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.5.8 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Improved performance by using bulk_create (Django 1.4).
 
 
 0.5.7 (2012-06-04)

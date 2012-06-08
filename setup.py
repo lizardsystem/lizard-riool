@@ -10,7 +10,7 @@ long_description = '\n\n'.join([
     ])
 
 install_requires = [
-    'Django',
+    'Django >= 1.4',  # Needed because of bulk_create
     'python-dateutil >= 1.5,< 2.0',  # Needed because of celery
     'celery',
     'django-celery',

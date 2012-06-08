@@ -848,6 +848,8 @@ class StoredGraph(models.Model):
 
             return area
 
+        storedgraphs = []
+
         for node in graph:
             obj = graph.node[node]['obj']
             if not hasattr(obj, 'flooded') or not hasattr(obj, 'diam'):
@@ -860,8 +862,8 @@ class StoredGraph(models.Model):
 
             suf_id = obj.suf_id
             xy = Point(node)
-            storedgraph, created = cls.objects.get_or_create(
-                rmb=rmb, suf_id=suf_id, xy=xy, x=xy.x, y=xy.y)
+            storedgraph = StoredGraph(rmb=rmb, suf_id=suf_id,
+            xy=xy, x=xy.x, y=xy.y)
 
             if flooded <= 0:
                 percentage = 0
@@ -881,4 +883,9 @@ class StoredGraph(models.Model):
                             radius=diam / 2, height=diam - flooded)) / area
 
             storedgraph.flooded_percentage = percentage
-            storedgraph.save()
+            storedgraphs.append(storedgraph)
+
+        # Django 1.4 is required for bulk_create. Inserting individual
+        # objects takes way to long due to the sheer number of them.
+        cls.objects.bulk_create(storedgraphs)
+
