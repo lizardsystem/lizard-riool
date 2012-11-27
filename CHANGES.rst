@@ -7,6 +7,8 @@ Changelog of lizard-riool
 
 - Add support for Lizard 4.0 by fixing some styling issues.
 
+- Properly set dependency versions.
+
 
 0.5.8 (2012-06-08)
 ------------------
