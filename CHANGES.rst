@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.9 (unreleased)
+0.5.9 (2012-11-27)
 ------------------
 
 - Add support for Lizard 4.0 by fixing some styling issues.
