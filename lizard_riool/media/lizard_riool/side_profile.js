@@ -171,7 +171,7 @@ $(function () {
             var $loading = $('<img src="/static_media/lizard_ui/ajax-loader.gif" class="popup-loading-animation" />');
             $dialog_content.empty().append($loading);
             // grab the html containing the <img>
-            $.get(
+            $.post(
                 '/riolering/langsprofielen/popup/',
                 {
                     upload_id: upload_id,
@@ -189,7 +189,10 @@ $(function () {
                         $loading.remove();
                     });
                 }
-            );
+            )
+            .error(function () {
+                $dialog_content.html('Fout bij het laden.');
+            });
         }
         load_graph();
         $dialog.bind('dialogresizestop', load_graph);
