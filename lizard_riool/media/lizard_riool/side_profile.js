@@ -145,7 +145,7 @@ $(function () {
         // Display a side profile ("langsprofiel")
         // graph of the selected route.
 
-        var $dialog, putten, strengen, upload_id;
+        var putten, strengen, upload_id;
 
         upload_id = $.lizard_riool.upload_id;
         putten = $.lizard_riool.putten;
@@ -158,45 +158,40 @@ $(function () {
         // To properly center its dialog, jQuery
         // first needs the resulting html.
 
-        $.post(
-            '/riolering/langsprofielen/popup/',
-            {
-                upload_id: upload_id,
-                putten: putten,
-                strengen: strengen
-            },
-            function (data) {
-
-                $dialog = $('<div/>').append(data).dialog({
-                    modal: true,
-                    title: 'Langsprofiel',
-                    width: 'auto',
-                    zIndex: 2000
-                });
-
-                // Load a new graph with the proper dimensions
-                // when a user resizes the dialog window.
-
-                $dialog.bind(
-                    'dialogresizestop',
-                    function () {
-                        $dialog.load(
-                            '/riolering/langsprofielen/popup/',
-                            {
-                                upload_id: upload_id,
-                                putten: putten,
-                                strengen: strengen,
-                                width: $dialog.width(),
-                                height: $dialog.height()
-                            }
-                        );
-                    }
-                );
-
-            }
-        );
-
+        var $dialog_content = $('<div/>');
+        var $dialog = $dialog_content.dialog({
+            modal: true,
+            title: 'Langsprofiel',
+            width: 700,
+            height: 300,
+            zIndex: 2000
+        });
+        function load_graph () {
+            // show a spinner
+            var $loading = $('<img src="/static_media/lizard_ui/ajax-loader.gif" class="popup-loading-animation" />');
+            $dialog_content.empty().append($loading);
+            // grab the html containing the <img>
+            $.get(
+                '/riolering/langsprofielen/popup/',
+                {
+                    upload_id: upload_id,
+                    putten: putten,
+                    strengen: strengen,
+                    width: $dialog_content.width(),
+                    height: $dialog_content.height()
+                },
+                function (data, textStatus, jqXHR) {
+                    // append response to the dialog
+                    $dialog_content.append(data);
+                    // attach a load event to the image in the response
+                    $dialog_content.find('img').load(function () {
+                        // remove the spinner when loaded
+                        $loading.remove();
+                    });
+                }
+            );
+        }
+        load_graph();
+        $dialog.bind('dialogresizestop', load_graph);
     });
-
 });
-

@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.5.10 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- Fix the spinner when a "langsprofiel" is loading.
 
 
 0.5.9 (2012-11-27)
