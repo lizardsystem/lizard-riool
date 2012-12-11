@@ -7,6 +7,13 @@
 	margin: 4px;
 }
 
+#uploaded-files .delete,
+#uploaded-files .download {
+    cursor: pointer;
+    float: right;
+    margin-top: 5px;
+}
+
 .upload-dialog {
     background-image: url('/static_media/plupload/examples/bg.jpg') !important;
 }

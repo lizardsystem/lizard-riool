@@ -5,7 +5,7 @@ Changelog of lizard-riool
 0.5.11 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- Fix icons being drawn under the file-management item.
 
 
 0.5.10 (2012-11-30)
