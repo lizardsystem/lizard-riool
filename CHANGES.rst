@@ -7,6 +7,10 @@ Changelog of lizard-riool
 
 - Fix icons being drawn under the file-management item.
 
+- Moved css and script tags to their proper location (in the beheer.html)
+
+- Modified plupload to use $.jqbutton instead of $.button.
+
 
 0.5.10 (2012-11-30)
 -------------------
