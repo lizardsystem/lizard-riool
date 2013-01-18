@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.12 (unreleased)
+0.5.12 (2013-01-18)
 -------------------
 
 - Correction of z-values has been made more robust.
