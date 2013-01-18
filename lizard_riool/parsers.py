@@ -161,6 +161,8 @@ def correct_z_values(pool):
     be corrected using the known BOB values.
     """
     for value in pool.values():
+        if len(value) < 3:
+            continue
         riool = value[0]
         mrio1 = value[1]
         mrio2 = value[-1]
