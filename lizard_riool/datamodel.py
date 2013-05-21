@@ -9,14 +9,13 @@ imports datamodel.py. However as this model is created very late in
 the project, there is no time for that."""
 
 import logging
-import networkx
 import os
-import pprint
 
 from django.core.cache import get_cache
+import networkx
 
-from lizard_riool import parsers
 from lizard_riool import models
+from lizard_riool import parsers
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +141,7 @@ class RMB(object):
                     models.SinkForUpload.set(self.rmb_file, self.sink)
                     logger.debug("Sink = %s" % self.sink)
                 except models.Put.DoesNotExist:
-                    logger.warn("No sink defined for %s" % \
+                    logger.warn("No sink defined for %s" %
                                     rib_file.full_path)
 
         return self.sink
@@ -161,7 +160,7 @@ class RMB(object):
         try:
             rib_upload = models.Upload.objects.get(the_file__iexact=sufrib)
         except models.Upload.DoesNotExist:
-            logger.warn("Could not find SUFRIB for %s by name" % \
+            logger.warn("Could not find SUFRIB for %s by name" %
                             self.rmb_file.the_file.name)
             rib_upload = None
 
@@ -174,7 +173,7 @@ class RMB(object):
                 rib_upload = models.Put.objects.filter(
                     _CAA=put)[0:1].get().upload
             except models.Put.DoesNotExist:
-                logger.warn("Could not find SUFRIB for %s by put" % \
+                logger.warn("Could not find SUFRIB for %s by put" %
                                 self.rmb_file.the_file.name)
                 rib_upload = None
 
