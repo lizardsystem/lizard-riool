@@ -1,6 +1,13 @@
 # (c) Nelen & Schuurmans.  GPL licensed, see LICENSE.txt.
 
 from __future__ import division
+
+from math import sqrt
+import logging
+import os.path
+import tempfile
+import urllib
+
 from django.contrib.gis.geos import Point
 from django.core.cache import get_cache
 from django.core.files import File
@@ -8,28 +15,23 @@ from django.db import transaction
 from django.http import HttpResponse
 from django.utils import simplejson as json
 from django.views.generic import TemplateView, View
+from matplotlib import figure, transforms
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import networkx as nx
+
 from lizard_map.matplotlib_settings import SCREEN_DPI
 from lizard_map.models import WorkspaceEdit
 from lizard_map.views import AppView
-from lizard_riool.models import Rioolmeting, StoredGraph
-from lizard_riool import parsers
-from lizard_riool.layers import get_class_boundaries, RmbAdapter
-from lizard_riool import tasks
-from lizard_riool.waar import WAAR
-from math import sqrt
-from matplotlib import figure, transforms
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from models import Put, Riool, Upload
-import logging
-import networkx as nx
-import os.path
-import tempfile
-import urllib
 
+from lizard_riool import parsers
+from lizard_riool import tasks
 from lizard_riool.datamodel import RMB
+from lizard_riool.layers import get_class_boundaries, RmbAdapter
+from lizard_riool.models import Put, Riool, Rioolmeting, Upload
+from lizard_riool.waar import WAAR
+
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.WARNING)
 
 cache = get_cache('file_based_cache')
 
@@ -227,7 +229,7 @@ class SideProfileGraph(View):
         distances = [0.0]
         for i in range(len(coordinates) - 1):
             distance = distances[i] + sqrt(
-                (coordinates[i].x - coordinates[i + 1].x) ** 2 + \
+                (coordinates[i].x - coordinates[i + 1].x) ** 2 +
                 (coordinates[i].y - coordinates[i + 1].y) ** 2
             )
             distances.append(distance)
@@ -360,7 +362,7 @@ class DownloadView(View):
 
         # The computation has to be finished.
         if upload.has_computed_percentages:
-            self.storedgraph_dict = dict((obj.suf_id, obj) for obj in upload.\
+            self.storedgraph_dict = dict((obj.suf_id, obj) for obj in upload.
                 storedgraph_set.only('suf_id', 'flooded_percentage'))
             self.rmb = RMB(upload.pk)
             with upload.the_file.file as f:
