@@ -29,7 +29,7 @@ def get_class_boundaries(pct):
 
 GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
 SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
-RIOOL_ICON = 'pixel.png'
+RIOOL_ICON = 'pixel2.png'
 RIOOL_ICON_LARGE = 'pixel16.png'
 
 DATABASE = settings.DATABASES['default']
