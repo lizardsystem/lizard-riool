@@ -2,10 +2,16 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.13 (unreleased)
+0.5.14 (unreleased)
 -------------------
 
 - Nothing changed yet.
+
+
+0.5.13 (2013-05-22)
+-------------------
+
+- Improve visibility of lost capacity by using a 2x2 pixel.
 
 
 0.5.12 (2013-01-18)
