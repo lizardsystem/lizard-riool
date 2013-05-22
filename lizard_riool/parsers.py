@@ -23,15 +23,16 @@
 This serves as a long usage message.
 """
 
-from lizard_riool.models import Put, Riool, Rioolmeting
+from heapq import heappush, heappop
 import logging
 import math
-from heapq import heappush, heappop
+
 import numpy
+
+from lizard_riool.models import Put, Riool, Rioolmeting
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 def to_2d(point):
@@ -191,6 +192,8 @@ def compute_lost_water_depth(graph, sink):
     todo list the following level turning points.
     """
 
+    logger.debug("Enter compute_lost_water_depth")
+
     todo = []  # a priority queue
     done = set()  # keeping track of explored nodes
 
@@ -237,6 +240,8 @@ def compute_lost_water_depth(graph, sink):
             for i_from, i_to in peak_nodes:
                 graph.node[i_from]['obj'].flooded = 0
                 heappush(todo, (graph.node[i_from]['obj'].z, i_to))
+
+    logger.debug("Leave compute_lost_water_depth")
 
 
 def compute_lost_volume(graph):
@@ -411,7 +416,7 @@ def string_of_riool_to_string_of_rioolmeting(pool, sequence):
             reverse_me = pool[riool.suf_id][1:]
             reverse_me.reverse()
             result.extend(reverse_me)
-    logger.debug("String_of_riool_to_string_of_rioolmeting: " + str(result))
+#   logger.debug("String_of_riool_to_string_of_rioolmeting: " + str(result))
     return result
 
 

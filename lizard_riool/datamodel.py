@@ -29,15 +29,18 @@ class RMB(object):
     lost volume data."""
 
     def __init__(self, uploaded_file_id):
-        """Gets the data for the RMB file with this Upload id.  Raises
-        ValueError if the id doesn't exist."""
+        """Gets the data for the RMB file with this Upload id.
 
+        Raises a ValueError if the id doesn't exist.
+
+        """
         if isinstance(uploaded_file_id, models.Upload):
             self.uploaded_file_id = uploaded_file_id.pk
             self.rmb_file = uploaded_file_id
         else:
             self.uploaded_file_id = uploaded_file_id
             self.rmb_file = self._init_rmb_file()
+
         self.rib_file = None
         self.pool, self.graph = self._init_pool_and_graph()
         self.sink = None
@@ -53,7 +56,6 @@ class RMB(object):
 
         sink = self._find_sink(put)
         if sink:
-            logger.debug("Computing lost water depth.")
             parsers.compute_lost_water_depth(
                 self.graph, (sink.CAB.x, sink.CAB.y))
 
@@ -108,8 +110,11 @@ class RMB(object):
 
         pool_cache_key = "pool_%d" % self.uploaded_file_id
         pool = cache.get(pool_cache_key, {})
+        logger.debug("%s in cache: %s", pool_cache_key, bool(pool))
+
         graph_cache_key = "graph_%d" % self.uploaded_file_id
         graph = cache.get(graph_cache_key, {})
+        logger.debug("%s in cache: %s", graph_cache_key, bool(graph))
 
         if not pool or not graph:
             parsers.parse(self.rmb_file.full_path, pool)
