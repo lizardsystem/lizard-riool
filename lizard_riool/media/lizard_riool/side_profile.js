@@ -8,11 +8,30 @@
 $.lizard_riool = {};
 
 $.lizard_riool.init = function () {
+
+    var i, rmbs, z_indices, z_max;
+
     $.lizard_riool.profileLayer.destroyFeatures();
     $.lizard_riool.routeLayer.destroyFeatures();
     $.lizard_riool.upload_id = null;
     $.lizard_riool.putten = [];
     $.lizard_riool.strengen = [];
+
+    // Get highest z-index of .rmb layers.
+
+    rmbs = map.getLayersByName(/.+\.rmb/i);
+    z_indices = [];
+
+    for (i = 0; i < rmbs.length; i += 1) {
+        z_indices[i] = rmbs[i].getZIndex();
+    }
+
+    // Position routeLayer above .rmb layers.
+
+    if (z_indices.length > 0) {
+        z_max = Math.max.apply(Math, z_indices);
+        $.lizard_riool.routeLayer.setZIndex(z_max + 10);
+    }
 };
 
 $(function () {
