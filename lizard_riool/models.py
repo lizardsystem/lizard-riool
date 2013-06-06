@@ -23,19 +23,18 @@
 This serves as a long usage message.
 """
 
-from django.contrib.gis.db import models
-from django.contrib.gis.geos import LineString, Point
 from os.path import basename, splitext
 import logging
-
 import math
+
+from django.contrib.gis.db import models
+from django.contrib.gis.geos import LineString, Point
 import numpy
 
 RDNEW = 28992
 SRID = RDNEW
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 def circular_surface(obj):
@@ -892,6 +891,7 @@ class StoredGraph(models.Model):
 
 class Sewerage(models.Model):
     "A system of sewers."
+    name = models.CharField(max_length=128)
     rib = models.FileField(upload_to="upload")
     rmb = models.FileField(upload_to="upload")
     active = models.BooleanField(default=True)
