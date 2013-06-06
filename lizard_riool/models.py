@@ -889,3 +889,43 @@ class StoredGraph(models.Model):
         # objects takes way to long due to the sheer number of them.
         cls.objects.bulk_create(storedgraphs)
 
+
+class Sewerage(models.Model):
+    "A system of sewers."
+    rib = models.FileField(upload_to="upload")
+    rmb = models.FileField(upload_to="upload")
+    active = models.BooleanField(default=True)
+
+
+class Manhole(models.Model):
+    "A sewer manhole."
+    code = models.CharField(max_length=30)
+    sink = models.BooleanField()
+    the_geom = models.PointField()
+    objects = models.GeoManager()
+
+
+class Sewer(models.Model):
+    "A pipe connecting two manholes."
+    sewerage = models.ForeignKey(Sewerage)
+    code = models.CharField(max_length=30)
+    diameter = models.FloatField()
+    manhole1 = models.ForeignKey(Manhole, related_name="+")
+    manhole2 = models.ForeignKey(Manhole, related_name="+")
+    bob1 = models.FloatField()
+    bob2 = models.FloatField()
+    the_geom = models.LineStringField()
+    objects = models.GeoManager()
+
+
+class SewerMeasurement(models.Model):
+    "A measurement somewhere in a sewer pipe."
+    sewer = models.ForeignKey(Sewer)
+    distance = models.FloatField()
+    virtual = models.BooleanField(default=False)
+    water_level = models.FloatField(null=True)
+    flooded_pct = models.FloatField(null=True)
+    bob = models.FloatField()
+    obb = models.FloatField()
+    the_geom = models.PointField()
+    objects = models.GeoManager()
