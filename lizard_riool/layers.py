@@ -1,15 +1,20 @@
-from django.conf import settings
-from django.contrib.gis import geos
-from django.db import connection
-from lizard_map.coordinates import RD
-from lizard_map.workspace import WorkspaceItemAdapter
-from lizard_map.models import ICON_ORIGINALS
-from lizard_map.symbol_manager import SymbolManager
-from lizard_riool import models
-import mapnik
+import logging
 import os
 import re
 
+from django.conf import settings
+from django.contrib.gis import geos
+from django.db import connection
+import mapnik
+
+from lizard_map.coordinates import RD
+from lizard_map.models import ICON_ORIGINALS
+from lizard_map.symbol_manager import SymbolManager
+from lizard_map.workspace import WorkspaceItemAdapter
+
+from lizard_riool import models
+
+logger = logging.getLogger(__name__)
 
 # Colors from http://www.herethere.net/~samson/php/color_gradient/
 CLASSES = (
@@ -212,3 +217,11 @@ class RmbAdapter(WorkspaceItemAdapter):
                 'stored_graph_id': point.pk,
                 'distance': point.distance.m,
                 }]
+
+
+class SewerageAdapter(WorkspaceItemAdapter):
+
+    def __init__(self, *args, **kwargs):
+        super(SewerageAdapter, self).__init__(*args, **kwargs)
+        self.id = int(self.layer_arguments['id'])
+        logger.debug("Sewerage %d", self.id)
