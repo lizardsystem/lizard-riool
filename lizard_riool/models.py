@@ -890,11 +890,20 @@ class StoredGraph(models.Model):
 
 
 class Sewerage(models.Model):
-    "A system of sewers."
+    """A system of sewers.
+
+    A sewerage that is not `active`, will not be visible in the main menu.
+    It is considered to be in an archived state (all results are still
+    present in the database).
+
+    """
     name = models.CharField(max_length=128)
     rib = models.FileField(upload_to="upload")
     rmb = models.FileField(upload_to="upload")
     active = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return self.name
 
 
 class Manhole(models.Model):

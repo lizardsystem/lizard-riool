@@ -5,6 +5,7 @@ import re
 from django.conf import settings
 from django.contrib.gis import geos
 from django.db import connection
+from staticfiles import finders
 import mapnik
 
 from lizard_map.coordinates import RD
@@ -44,7 +45,7 @@ PARAMS = {
     'user': DATABASE['USER'],
     'password': DATABASE['PASSWORD'],
     'dbname': DATABASE['NAME'],
-    'srid': models.SRID,
+#   'srid': models.SRID,
 }
 
 
@@ -224,4 +225,82 @@ class SewerageAdapter(WorkspaceItemAdapter):
     def __init__(self, *args, **kwargs):
         super(SewerageAdapter, self).__init__(*args, **kwargs)
         self.id = int(self.layer_arguments['id'])
-        logger.debug("Sewerage %d", self.id)
+        logger.debug("Sewerage.pk=%d", self.id)
+
+    def layer(self, layer_ids=None, request=None):
+        "Return Mapnik layers and styles."
+        layers, styles = [], {}
+        self.__add_manholes(layers, styles)
+        return layers, styles
+
+    def __add_manholes(self, layers, styles):
+        "Add manhole layer and styles."
+
+        style = mapnik.Style()
+
+        # Style the `normal` manholes.
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter("[sink] != 1")
+        symbol = mapnik.PointSymbolizer()
+        symbol.allow_overlap = True
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # Style the sink.
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter("[sink] = 1")
+        symbol = mapnik.PointSymbolizer(
+            str(finders.find("lizard_riool/sink.png")), "png", 8, 8
+        )
+        symbol.allow_overlap = True
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # Add labels.
+
+        rule = mapnik.Rule()
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer(
+            'code', 'DejaVu Sans Book', 10, mapnik.Color('black')
+        )
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        symbol.vertical_alignment = mapnik.vertical_alignment.TOP
+        symbol.displacement(0, -5)  # slightly above
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # Select the manholes that are part of this sewerage.
+        # The query returns a unique set of manholes.
+
+        query = """(
+
+            SELECT code, sink::integer, the_geom
+            FROM lizard_riool_manhole
+            WHERE id IN (
+
+            SELECT manhole1_id AS id
+            FROM lizard_riool_sewer
+            WHERE sewerage_id = {0}
+
+            UNION
+
+            SELECT manhole2_id AS id
+            FROM lizard_riool_sewer
+            WHERE sewerage_id = {0}
+
+            )) data"""
+
+        params = default_database_params()
+        params['table'] = query.format(self.id)
+        datasource = mapnik.PostGIS(**params)
+
+        layer = mapnik.Layer('manholeLayer')
+        layer.datasource = datasource
+        layer.maxzoom = 35000
+        layer.styles.append('manholeStyle')
+
+        layers.append(layer)
+        styles['manholeStyle'] = style

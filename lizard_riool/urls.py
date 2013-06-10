@@ -19,6 +19,7 @@ urlpatterns = patterns('',
     (r'^beheer/files/delete/(?P<id>\d+)/$', login_required(
             views.DeleteFileView.as_view())),
     (r'^langsprofielen/$', login_required(views.SideProfileView.as_view())),
+    (r'^stelsels/$', login_required(views.SewerageView.as_view())),
     (r'^langsprofielen/graph/$', login_required(
             views.SideProfileGraph.as_view())),
     (r'^langsprofielen/popup/$', login_required(

@@ -28,8 +28,8 @@ from lizard_riool import tasks
 from lizard_riool.datamodel import RMB
 from lizard_riool.layers import get_class_boundaries, RmbAdapter
 from lizard_riool.models import Put, Riool, Rioolmeting, Upload
+from lizard_riool.models import Sewerage
 from lizard_riool.waar import WAAR
-
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,17 @@ class SideProfileView(AppView):
             tasks.compute_lost_capacity_async()
 
         return files
+
+
+class SewerageView(AppView):
+    """Docstring.
+
+    """
+    template_name = 'lizard_riool/sewerage.html'
+#   javascript_click_handler = 'put_click_handler'
+
+    def sewerages(self):
+        return Sewerage.objects.filter(active=True).order_by('name')
 
 
 class SideProfilePopup(TemplateView):

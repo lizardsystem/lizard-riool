@@ -1,0 +1,44 @@
+{% extends "lizard_map/wms.html" %}
+{% load workspaces %}
+
+{% block css %}
+{{ block.super }}
+<link rel="stylesheet"
+      type="text/css"
+      href="{{ STATIC_URL }}lizard_riool/lizard_riool.css" />
+{% endblock css %}
+
+{% block map-javascript %}
+{{ block.super }}
+<script type="text/javascript"
+        src="{{ STATIC_URL }}lizard_riool/side_profile.js"></script>
+{% endblock map-javascript %}
+
+{% block sidebar %}
+{% with sewerages=view.sewerages %}
+<div class="sidebarbox sidebarbox-stretched">
+  <h2>Rioleringsstelsels</h2>
+  <ul class="without-bullets">
+  {% for sewerage in sewerages %}
+    <li class="workspace-acceptable"
+        data-name="{{ sewerage }}"
+  	    data-adapter-class="lizard_riool_sewerage_adapter"
+  	    data-adapter-layer-json='{"id": "{{ sewerage.pk }}"}'>{{ sewerage }}</li>
+  {% empty %}
+    Geen stelsels om te tonen.
+  {% endfor %}
+  </ul>
+</div>
+<div class="sidebarbox">
+  <h2>Acties</h2>
+  <div id="acties">
+  {% if sewerages %}
+  	<button id="route">Kies nieuwe route</button>
+  	<button id="profile">Toon langsprofiel...</button>
+  {% else %}
+    Geen acties beschikbaar.
+  {% endif %}
+  </div>
+</div>
+{% endwith %}
+{% endblock sidebar %}
