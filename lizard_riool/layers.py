@@ -4,6 +4,7 @@ import re
 
 from django.conf import settings
 from django.contrib.gis import geos
+from django.contrib.gis.geos import fromstr
 from django.db import connection
 from staticfiles import finders
 import mapnik
@@ -226,6 +227,22 @@ class SewerageAdapter(WorkspaceItemAdapter):
         super(SewerageAdapter, self).__init__(*args, **kwargs)
         self.id = int(self.layer_arguments['id'])
         logger.debug("Sewerage.pk=%d", self.id)
+
+    def extent(self, identifiers=None):
+        "Return the sewerage extent in Google projection."
+
+        qs = models.Sewer.objects.filter(sewerage__pk=self.id)
+
+        if qs.count() < 1:
+            return super(SewerageAdapter, self).extent(identifiers)
+        else:
+            box = fromstr('MULTIPOINT (%s %s, %s %s)' % qs.extent())
+            box.set_srid(qs[0].the_geom.srid)
+            box.transform(3857)  # aka 900913
+            return {
+                'west': box[0].x, 'south': box[0].y,  # xmin, ymin
+                'east': box[1].x, 'north': box[1].y,  # xmax, ymax
+            }
 
     def layer(self, layer_ids=None, request=None):
         "Return Mapnik layers and styles."
