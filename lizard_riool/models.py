@@ -916,8 +916,23 @@ class Manhole(models.Model):
 
 class Sewer(models.Model):
     "A pipe connecting two manholes."
+
+    QUALITY_UNKNOWN = 1
+    QUALITY_RELIABLE = 2
+    QUALITY_UNRELIABLE = 3
+
+    QUALITY_CHOICES = (
+        (QUALITY_UNKNOWN, 'Unknown'),
+        (QUALITY_RELIABLE, 'Reliable'),
+        (QUALITY_UNRELIABLE, 'Unreliable'),
+    )
+
     sewerage = models.ForeignKey(Sewerage)
     code = models.CharField(max_length=30)
+    quality = models.IntegerField(
+        choices=QUALITY_CHOICES,
+        default=QUALITY_UNKNOWN,
+    )
     diameter = models.FloatField()
     manhole1 = models.ForeignKey(Manhole, related_name="+")
     manhole2 = models.ForeignKey(Manhole, related_name="+")

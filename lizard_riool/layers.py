@@ -248,7 +248,83 @@ class SewerageAdapter(WorkspaceItemAdapter):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
         self.__add_manholes(layers, styles)
+        self.__add_sewers(layers, styles)
         return layers, styles
+
+    def __add_sewers(self, layers, styles):
+        "Add sewer layer and styles."
+
+        # Get all sewer pipes that constitute to this sewerage.
+
+        sewers = models.Sewer.objects.filter(sewerage__pk=self.id)
+
+        # Define a style.
+
+        style = mapnik.Style()
+        stroke = mapnik.Stroke()
+        stroke.opacity = 0.4
+        stroke.width = 4.0
+
+        # QUALITY_UNKNOWN
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter(
+            "[quality] = {}".format(models.Sewer.QUALITY_UNKNOWN)
+        )
+        stroke.color = mapnik.Color("black")
+        symbol = mapnik.LineSymbolizer(stroke)
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # QUALITY_RELIABLE
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter(
+            "[quality] = {}".format(models.Sewer.QUALITY_RELIABLE)
+        )
+        stroke.color = mapnik.Color('green')
+        symbol = mapnik.LineSymbolizer(stroke)
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # QUALITY_UNRELIABLE
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter(
+            "[quality] = {}".format(models.Sewer.QUALITY_UNRELIABLE)
+        )
+        stroke.color = mapnik.Color('red')
+        symbol = mapnik.LineSymbolizer(stroke)
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # Add labels.
+
+        rule = mapnik.Rule()
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer(
+            'code', 'DejaVu Sans Book', 10, mapnik.Color('black')
+        )
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        # Setup datasource.
+
+        params = default_database_params()
+        params['table'] = "({}) data".format(sewers.query)
+        datasource = mapnik.PostGIS(**params)
+
+        # Define layer.
+
+        layer = mapnik.Layer('sewerLayer')
+        layer.datasource = datasource
+        layer.maxzoom = 35000
+        layer.styles.append('sewerStyle')
+
+        layers.append(layer)
+        styles['sewerStyle'] = style
 
     def __add_manholes(self, layers, styles):
         "Add manhole layer and styles."
@@ -310,9 +386,13 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
             )) data"""
 
+        # Setup datasource.
+
         params = default_database_params()
         params['table'] = query.format(self.id)
         datasource = mapnik.PostGIS(**params)
+
+        # Define layer.
 
         layer = mapnik.Layer('manholeLayer')
         layer.datasource = datasource
