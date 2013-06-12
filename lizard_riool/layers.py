@@ -19,12 +19,14 @@ from lizard_riool import models
 logger = logging.getLogger(__name__)
 
 # Colors from http://www.herethere.net/~samson/php/color_gradient/
+
 CLASSES = (
-    ('A', '0%-10%',   0.00, 0.10, '00ff00'),
-    ('B', '10%-25%',  0.10, 0.25, '669900'),
-    ('C', '25%-50%',  0.25, 0.50, '996600'),
-    ('D', '50%-75%',  0.50, 0.75, 'CC3200'),
-    ('E', '75%-100%', 0.75, 1.01, 'ff0000'))
+    ('A', '0%-10%',   0.00, 0.10, '00ff00'),  # green
+    ('B', '10%-25%',  0.10, 0.25, '3fbf00'),
+    ('C', '25%-50%',  0.25, 0.50, '7f7f00'),
+    ('D', '50%-75%',  0.50, 0.75, 'bf3f00'),
+    ('E', '75%-100%', 0.75, 1.01, 'ff0000'),  # red
+)
 
 
 def get_class_boundaries(pct):
@@ -249,7 +251,53 @@ class SewerageAdapter(WorkspaceItemAdapter):
         layers, styles = [], {}
         self.__add_manholes(layers, styles)
         self.__add_sewers(layers, styles)
+        self.__add_measurements(layers, styles)
         return layers, styles
+
+    def __add_measurements(self, layers, styles):
+        "Docstring."
+
+        measurements = models.SewerMeasurement.objects.filter(
+            sewer__sewerage__pk=self.id
+        )
+
+        style = mapnik.Style()
+
+        for _, _, min_pct, max_pct, color in CLASSES:
+
+            r, g, b, a = html_to_mapnik(color)
+
+            icon = SYMBOL_MANAGER.get_symbol_transformed(
+                RIOOL_ICON, color=(r, g, b, a)
+            )
+
+            rule = mapnik.Rule()
+            rule.filter = mapnik.Filter(
+                str("[flooded_pct] >= %s and [flooded_pct] < %s" % (min_pct, max_pct))
+            )
+            symbol = mapnik.PointSymbolizer(
+                os.path.join(GENERATED_ICONS, icon), "png", 16, 16
+            )
+            symbol.allow_overlap = True
+            rule.symbols.append(symbol)
+            style.rules.append(rule)
+
+        # Setup datasource.
+
+        params = default_database_params()
+        params['table'] = "({}) data".format(measurements.query)
+        datasource = mapnik.PostGIS(**params)
+        params = default_database_params()
+
+        # Define layer.
+
+        layer = mapnik.Layer('measurementLayer')
+        layer.datasource = datasource
+        layer.maxzoom = 35000
+        layer.styles.append('measurementStyle')
+
+        layers.append(layer)
+        styles['measurementStyle'] = style
 
     def __add_sewers(self, layers, styles):
         "Add sewer layer and styles."
@@ -263,7 +311,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
         style = mapnik.Style()
         stroke = mapnik.Stroke()
         stroke.opacity = 0.4
-        stroke.width = 4.0
+        stroke.width = 7.0
 
         # QUALITY_UNKNOWN
 
@@ -274,7 +322,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
         stroke.color = mapnik.Color("black")
         symbol = mapnik.LineSymbolizer(stroke)
         rule.symbols.append(symbol)
-        style.rules.append(rule)
+#       style.rules.append(rule)
 
         # QUALITY_RELIABLE
 
@@ -285,7 +333,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
         stroke.color = mapnik.Color('green')
         symbol = mapnik.LineSymbolizer(stroke)
         rule.symbols.append(symbol)
-        style.rules.append(rule)
+#       style.rules.append(rule)
 
         # QUALITY_UNRELIABLE
 
@@ -296,14 +344,43 @@ class SewerageAdapter(WorkspaceItemAdapter):
         stroke.color = mapnik.Color('red')
         symbol = mapnik.LineSymbolizer(stroke)
         rule.symbols.append(symbol)
-        style.rules.append(rule)
+#       style.rules.append(rule)
 
         # Add labels.
 
         rule = mapnik.Rule()
+        rule.filter = mapnik.Filter(
+            "[quality] = {}".format(models.Sewer.QUALITY_UNKNOWN)
+        )
         rule.max_scale = 1700
         symbol = mapnik.TextSymbolizer(
             'code', 'DejaVu Sans Book', 10, mapnik.Color('black')
+        )
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter(
+            "[quality] = {}".format(models.Sewer.QUALITY_RELIABLE)
+        )
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer(
+            'code', 'DejaVu Sans Book', 10, mapnik.Color('green')
+        )
+        symbol.allow_overlap = True
+        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
+
+        rule = mapnik.Rule()
+        rule.filter = mapnik.Filter(
+            "[quality] = {}".format(models.Sewer.QUALITY_UNRELIABLE)
+        )
+        rule.max_scale = 1700
+        symbol = mapnik.TextSymbolizer(
+            'code', 'DejaVu Sans Book', 10, mapnik.Color('red')
         )
         symbol.allow_overlap = True
         symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
