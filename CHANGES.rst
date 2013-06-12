@@ -5,7 +5,17 @@ Changelog of lizard-riool
 0.5.14 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- New upload screen (UploadsView); divides uploads in four categories
+  (not processed yet, being processed, errors, successful) and does all
+  processing in the background. Overview on the page uses Ajax and changes
+  as files are being processed. Has links to an error screen and uploads
+  can be removed.
+
+- An uploaded file can have a list of errors now that are all saved in
+  the database, to be shown on an error screen.
+
+- Parsing and initial processing of .RIB and .RMB files is moved into a new
+  library, sufriblib.
 
 
 0.5.13 (2013-05-22)

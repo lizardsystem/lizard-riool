@@ -9,7 +9,7 @@ $(function () {
         // General settings
         //runtimes : 'html5,flash,browserplus,silverlight,gears,html4',
         runtimes : 'html5,flash',
-        url : 'files/upload/',
+        url : '{% url upload_dialog_url %}',
         //max_file_size : '4mb',
         //max_file_count : 20, // user can add no more then 20 files at a time
         chunk_size : '50mb', // https://office.lizard.net/trac/ticket/3526
@@ -53,12 +53,6 @@ $(function () {
         u.settings.multipart_params.filename = f.name;
     });
 
-    //alert(foo.plupload('getUploader').runtime);
-    //alert(uploader.runtime);
-    //uploader.bind('beforeUpload', function(u, f) { alert(plupload.File.name); });
-    //uploader.settings.multipart_params.myfilename = 'xyz';
-    //uploader.settings.multipart_params['X-CSRFToken'] = '{{csrf_token}}';
-
     // Client side form validation
     $('form').submit(function (e) {
         var uploader = $('#uploader').plupload('getUploader');
@@ -97,9 +91,9 @@ $(function () {
     });
 
     //
-    uploader.bind('UploadComplete', function (up, files) {
-        $('#uploaded-files').load('files/');
-    });
+    uploader.bind(
+        'UploadComplete',
+        beheer_functions.schedule_update_file_list); // Defined in beheer.js
 
 });
 </script>

@@ -21,6 +21,7 @@ install_requires = [
     'lizard-ui >= 4.0, < 5.0',
     'pkginfo',
     'networkx',
+    'sufriblib',
     ],
 
 tests_require = [

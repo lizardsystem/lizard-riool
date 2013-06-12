@@ -1,10 +1,16 @@
-.upload {
+.upload h2 {
     cursor: pointer;
 }
 
 .upload .ss_sprite {
-	float: right;
-	margin: 4px;
+    float: right;
+    cursor: pointer;
+}
+.upload h2 .ss_sprite {
+    margin: 4px;
+}
+.upload li {
+    clear: both;
 }
 
 #uploaded-files .delete,
