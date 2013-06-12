@@ -1036,6 +1036,7 @@ class Manhole(models.Model):
     "A sewer manhole."
     code = models.CharField(max_length=30)
     sink = models.BooleanField()
+    ground_level = models.FloatField(blank=True, null=True)
     the_geom = models.PointField()
     objects = models.GeoManager()
 
