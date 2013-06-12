@@ -1,6 +1,6 @@
 # (c) Nelen & Schuurmans. GPL licensed, see LICENSE.txt.
 
-from django.conf.urls.defaults import include, patterns
+from django.conf.urls.defaults import include, patterns, url
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
@@ -11,9 +11,19 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^beheer/$', login_required(views.FileView.as_view())),
+    (r'^beheer/uploads/$', login_required(views.UploadsView.as_view())),
+    (r'^beheer/uploads/files/$', views.uploaded_file_list),
+    # The next line expects DELE requests
+    url('^beheer/uploads/files/uploaded-file-(?P<upload_id>\d+)/$',
+        login_required(views.delete_uploaded_file),
+        name='lizard_riool_delete_uploaded_file'),
+    url('^beheer/uploads/files/uploaded-file-(?P<upload_id>\d+)/errors/$',
+        login_required(views.UploadedFileErrorsView.as_view()),
+        name='lizard_riool_uploaded_file_error_view'),
     (r'^beheer/files/$', login_required(
             views.FileView.as_view(template_name="lizard_riool/files.html"))),
-    (r'^beheer/files/upload/$', login_required(views.UploadView.as_view())),
+    url(r'^beheer/files/upload/$', login_required(views.UploadView.as_view()),
+        name="upload_dialog_url"),
     (r'^beheer/files/download/(?P<id>\d+)/$', login_required(
             views.DownloadView.as_view())),
     (r'^beheer/files/delete/(?P<id>\d+)/$', login_required(

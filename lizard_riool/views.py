@@ -10,8 +10,7 @@ import urllib
 
 from django.contrib.gis.geos import Point
 from django.core.cache import get_cache
-from django.core.files import File
-from django.db import transaction
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.utils import simplejson as json
 from django.views.generic import TemplateView, View
@@ -22,13 +21,15 @@ import networkx as nx
 from lizard_map.matplotlib_settings import SCREEN_DPI
 from lizard_map.models import WorkspaceEdit
 from lizard_map.views import AppView
+from lizard_ui.views import ViewContextMixin
 
 from lizard_riool import parsers
 from lizard_riool import tasks
 from lizard_riool.datamodel import RMB
 from lizard_riool.layers import get_class_boundaries, RmbAdapter
-from lizard_riool.models import Put, Riool, Rioolmeting, Upload
+from lizard_riool.models import Riool, Rioolmeting, Upload
 from lizard_riool.models import Sewerage
+from lizard_riool.models import UploadedFileError
 from lizard_riool.waar import WAAR
 
 logger = logging.getLogger(__name__)
@@ -296,6 +297,11 @@ class UploadView(TemplateView):
         # These will be equal for small files only.
 
         filename = request.POST['filename']
+
+        if not (filename.lower().endswith('.rib') or
+                filename.lower().endswith('.rmb')):
+            raise Exception("Upload een .RIB of .RMB file.")
+
         fullpath = os.path.join(cls.dtemp, filename)
         chunks = int(request.POST.get('chunks', 1))
         chunk = int(request.POST.get('chunk', 0))
@@ -312,35 +318,9 @@ class UploadView(TemplateView):
         # well for convenience and performance. Roll back on any error.
 
         if chunk == chunks - 1:
-            with transaction.commit_on_success():
-
-                objects = []
-                parsers.parse(fullpath, objects)
-                f = open(fullpath)
-                upload = Upload()
-                upload.the_file.save(filename, File(f))
-                f.close()
-                for o in objects:
-                    o.upload = upload
-                    o.save()
-
-                # Exactly one PUT in a SUFRIB must have been designated
-                # as the sink. This is better handled by the parser?
-
-                if upload.suffix.lower() == ".rib":
-                    try:
-                        Put.objects.filter(upload=upload).get(_CAR='Xs')
-                    except:
-                        msg = ("Precies 1 put in %s moet als sink zijn " +
-                            "gedefinieerd (CAR=Xs).") % upload.filename
-                        logger.error(msg)
-                        # Delete from filesystem.
-                        upload.the_file.delete()
-                        # Trigger rollback.
-                        raise Exception(msg)
-
-            # Update the lost capacity percentages asynchronously
-            tasks.compute_lost_capacity_async()
+            upload = Upload()
+            upload.move_file(fullpath)
+            tasks.process_uploaded_file.delay(upload)
 
     @classmethod
     def post(cls, request, *args, **kwargs):
@@ -556,3 +536,93 @@ class Bar(View):
 
     def render_to_response(self, context):
         return HttpResponse(json.dumps(context), mimetype="application/json")
+
+
+class UploadsView(AppView):
+    template_name = 'lizard_riool/uploads.html'
+    javascript_click_handler = ''
+
+
+def uploaded_file_list(request):
+    return HttpResponse(json.dumps([
+                {
+                    "id": "uploaded-file-{0}".format(upload.pk),
+                    "name": upload.filename,
+                    "status": upload.status_string(),
+                    "error_description": upload.error_description(),
+                    "error_url": reverse(
+                        "lizard_riool_uploaded_file_error_view",
+                        kwargs={"upload_id": upload.id}),
+                    "delete_url": reverse(
+                        "lizard_riool_delete_uploaded_file",
+                        kwargs={"upload_id": upload.id})
+                    }
+                for upload in Upload.objects.all()
+                ]), mimetype="application/json")
+
+
+class UploadedFileErrorsView(ViewContextMixin, TemplateView):
+    template_name = 'lizard_riool/uploaded_file_error_page.html'
+
+    def get(self, request, upload_id):
+        self.uploaded_file = Upload.objects.get(pk=upload_id)
+        self.user = request.user
+
+        self.errors = self._errors()
+        self.general_errors = self._general_errors()
+        self.lines_and_errors = self._lines_and_errors()
+
+        return super(UploadedFileErrorsView, self).get(request)
+
+    def _errors(self):
+        return UploadedFileError.objects.filter(
+            uploaded_file=self.uploaded_file).order_by('line')
+
+    def _general_errors(self):
+        """Return the errors that have line number 0."""
+        return [error.error_message
+                for error in self.errors if error.line == 0]
+
+    def _lines_and_errors(self):
+        """Return a line-for-line of the file, with errors.
+
+        Each line is a dictionary:
+        - 'line_number' (1, ...)
+        - 'has_error' (boolean)
+        - 'file_line' (string)
+        - 'errors' (list of strings)
+        """
+
+        errordict = dict()
+        for error in self.errors:
+            if error.line > 0:
+                errordict.setdefault(error.line, []).append(
+                    error.error_message)
+
+        lines = []
+        path = self.uploaded_file.the_file
+        if errordict and os.path.exists(path):
+            for line_minus_one, line in enumerate(open(path)):
+                line_number = line_minus_one + 1
+                lines.append({
+                        'line_number': line_number,
+                        'has_error': line_number in errordict,
+                        'file_line': line.strip(),
+                        'errors': errordict.get(line_number)})
+
+        return lines
+
+
+def delete_uploaded_file(request, upload_id):
+    if request.method != "DELETE":
+        return
+
+    try:
+        upload = Upload.objects.get(pk=upload_id)
+    except Upload.DoesNotExist:
+        # Well, that's no problem here
+        return HttpResponse()
+
+    upload.delete()
+
+    return HttpResponse()

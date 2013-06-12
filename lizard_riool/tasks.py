@@ -1,8 +1,14 @@
+import logging
+import os
+import time
+
 from celery.task import task
 from celery.result import AsyncResult
+
 from django.core.cache import cache
 from django.db import transaction
-import logging
+
+from sufriblib import parsers
 
 from lizard_riool import datamodel
 from lizard_riool import models
@@ -20,6 +26,82 @@ LOCK_KEY = "lizard_riool_computing_all_lost_capacity_percentages"
 DURATION = 60 * 60  # If something happens, we want computing to be
                     # possible again after 60 minutes. In testing, the
                     # computation only takes around 10 minutes.
+
+MAX_RETRIES = 5
+
+
+@task
+def process_uploaded_file_when_ready(upload_id, retries=MAX_RETRIES):
+    if retries <= 0:
+        return  # Forget it
+    try:
+        upload = models.Upload.objects.get(pk=upload_id)
+    except models.Upload.DoesNotExist:
+        time.sleep(1)  # Wait one second, then try again
+        process_uploaded_file_when_ready.delay(upload_id, retries - 1)
+        return
+
+    if not os.path.exists(upload.full_path):
+        time.sleep(1)  # Wait one second, then try again
+        process_uploaded_file_when_ready.delay(upload_id, retries - 1)
+        return
+
+    process_uploaded_file.delay(upload)
+
+
+@task
+def process_uploaded_file(upload):
+    # If it's an RIB, ignore it, otherwise it's an RMB -- find its RIB.
+    if upload.suffix.lower() != ".rmb":
+        return
+
+    # Set "being processed" status
+    upload.set_being_processed()
+
+    rib = upload.find_relevant_rib()
+
+    if not rib:
+        upload.record_error("Bijbehorende RIB file niet gevonden.")
+        upload.set_unsuccessful()
+        return
+
+    rib.set_being_processed()
+
+    try:
+        ribinstance, riberrors = parsers.parse(rib.full_path)
+        rmbinstance, rmberrors = parsers.parse(upload.full_path)
+
+        if riberrors or rmberrors:
+            if riberrors:
+                for riberror in riberrors:
+                    rib.record_error(
+                        riberror.format(),
+                        line_number=riberror.line_number)
+            else:
+                rib.record_error(
+                    "Bestand afgekeurd omdat er problemen "
+                    "zijn met het RMB bestand.")
+            rib.set_unsuccessful()
+
+            if rmberrors:
+                for rmberror in rmberrors:
+                    upload.record_error(
+                        riberror.format(),
+                        line_number=rmberror.line_number)
+            else:
+                upload.record_error(
+                    "Bestand afgekeurd omdat er problemen "
+                    "zijn met het RIB bestand.")
+            upload.set_unsuccessful()
+        else:
+            rib.set_successful()
+            upload.set_successful()
+    except Exception as e:
+        # Record whatever happened
+        upload.record_error(unicode(e))
+        rib.record_error(unicode(e))
+        upload.set_unsuccessful()
+        rib.set_unsuccessful()
 
 
 @task

@@ -26,10 +26,13 @@ This serves as a long usage message.
 from os.path import basename, splitext
 import logging
 import math
+import numpy
+import os
+import shutil
 
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import LineString, Point
-import numpy
+from django.conf import settings
 
 RDNEW = 28992
 SRID = RDNEW
@@ -59,22 +62,70 @@ def failure_function(*argv, **kwargs):
 
 
 class Upload(models.Model):
+    STATUS_CHOICES = (
+        (1, "Nog niet verwerkt"),
+        (2, "Wordt verwerkt"),
+        (3, "Afgekeurd"),
+        (4, "Goedgekeurd"))
+
+    BASE_PATH = os.path.join(
+        settings.BUILDOUT_DIR, 'var', 'lizard_riool', 'uploads')
+
     "An uploaded file"
     objects = models.GeoManager()
-    the_file = models.FileField(upload_to='upload', verbose_name='File')
+    the_file = models.FilePathField(path=BASE_PATH, verbose_name='File')
     the_time = models.DateTimeField(auto_now=True, verbose_name='Time')
+
+    status = models.IntegerField(
+        choices=STATUS_CHOICES, default=1, null=True)
+
+    def status_string(self):
+        """For use in Javascript (beheer.js)"""
+        return {
+            1: "not_being_processed_yet",
+            2: "being_processed",
+            3: "with_errors",
+            4: "successful"
+            }.get(self.status, "unknown")
+
+    def move_file(self, path):
+        """Move file to a nice place to stay, where there won't be
+        other files with accidentally identical names. Saves this
+        object. Twice, if it doesn't have an id yet."""
+        if not self.id:
+            self.save()
+
+        directory = os.path.join(Upload.BASE_PATH, str(self.id))
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        newpath = os.path.join(directory, os.path.basename(path))
+
+        shutil.move(path, newpath)
+        self.the_file = newpath
+        self.save()
+
+    def delete(self):
+        """Delete this Upload including the file and directory"""
+        shutil.rmtree(
+            os.path.join(Upload.BASE_PATH, str(self.id)),
+            ignore_errors=True)
+
+        return super(Upload, self).delete()
 
     @property
     def full_path(self):
-        return str(self.the_file.file)
+        return str(self.the_file)
 
     @property
     def filename(self):
-        return basename(self.the_file.name)
+        return basename(self.the_file)
 
     @property
     def suffix(self):
-        return splitext(self.the_file.name)[1]
+        """Return extension including the ."""
+        return splitext(self.the_file)[1]
 
     @property
     def has_computed_percentages(self):
@@ -85,6 +136,81 @@ class Upload(models.Model):
 
     def __unicode__(self):
         return self.filename
+
+    def find_relevant_rib(self):
+        """Find an Upload with status 1 that has the same filename as this RMB,
+        case insensitive, except with .RIB instead of .RMB. Return it.
+
+        If no such Upload is found, return None.
+
+        If this is not a .RMB file, raise ValueError."""
+        if not self.filename.lower().endswith(".rmb"):
+            raise ValueError("find_relevant_rib() called on a non-rmb Upload")
+
+        filename = self.filename.lower()[:-4]
+
+        for upload in Upload.objects.filter(status=1):
+            if not upload.filename.lower().endswith(".rib"):
+                continue
+            if upload.filename.lower()[:-4] == filename:
+                return upload
+
+        return None
+
+    def record_error(self, error_message, line_number=0):
+        """Record error message. Does not set state yet, more errors
+        may come."""
+        UploadedFileError.objects.create(
+            uploaded_file=self,
+            line=line_number or 0,  # Save 0 if line_number is None
+            error_message=error_message)
+
+    def error_description(self):
+        if self.status != 3:
+            return None
+
+        errors = list(UploadedFileError.objects.filter(
+                uploaded_file=self))
+
+        if not errors:
+            return None
+        if len(errors) == 1:
+            return errors[0].message()
+        else:
+            return ("{0} fouten, eerste is: {1}"
+                    .format(len(errors), errors[0].message()))
+
+    def set_being_processed(self):
+        self.status = 2
+        self.save()
+
+    def set_unsuccessful(self):
+        self.status = 3
+        self.save()
+
+    def set_successful(self):
+        self.status = 4
+        self.save()
+
+
+class UploadedFileError(models.Model):
+    uploaded_file = models.ForeignKey(Upload)
+    line = models.IntegerField(default=0)
+    error_message = models.CharField(max_length=300)
+
+    def message(self):
+        if self.line > 0:
+            return (
+                "Regel {line}: {error_message}".
+                format(line=self.line,
+                       error_message=self.error_message))
+        else:
+            return self.error_message
+
+    def __unicode__(self):
+        return "{file}: {message}".format(
+            file=self.uploaded_file.the_file,
+            message=self.message())
 
 
 class RioolBestandObject(object):
