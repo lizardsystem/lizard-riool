@@ -1072,7 +1072,8 @@ class Sewer(models.Model):
 class SewerMeasurement(models.Model):
     "A measurement somewhere in a sewer pipe."
     sewer = models.ForeignKey(Sewer)
-    distance = models.FloatField()
+    # Use `dist` - `distance` clashes with the GEOS API.
+    dist = models.FloatField(db_column='distance')
     virtual = models.BooleanField(default=False)
     water_level = models.FloatField(null=True)
     flooded_pct = models.FloatField(null=True)
