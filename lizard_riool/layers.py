@@ -246,11 +246,39 @@ class SewerageAdapter(WorkspaceItemAdapter):
                 'east': box[1].x, 'north': box[1].y,  # xmax, ymax
             }
 
+    def search(self, x, y, radius=None):
+        """Find the nearest SewerMeasurement.
+
+        We only use this for the mouse hover function; return
+        the minimal amount of information necessary to show
+        the so-called `lost capacity`.
+
+        """
+        pnt = geos.Point(x, y, srid=3857)  # aka 900913
+
+        qs = (
+            models.SewerMeasurement.objects.
+            filter(sewer__sewerage__pk=self.id).
+            filter(the_geom__distance_lte=(pnt, radius)).
+            distance(pnt).order_by('distance')
+        )
+
+        try:
+            m = qs[0]  # SELECT ... LIMIT 1;
+        except:
+            logger.debug("Nothing found")
+            return []
+
+        return [{
+            'name': '{:.0%} verloren berging'.format(m.flooded_pct),
+            'distance': m.distance.m,
+        }]
+
     def layer(self, layer_ids=None, request=None):
         "Return Mapnik layers and styles."
         layers, styles = [], {}
-        self.__add_manholes(layers, styles)
         self.__add_sewers(layers, styles)
+        self.__add_manholes(layers, styles)
         self.__add_measurements(layers, styles)
         return layers, styles
 
@@ -273,7 +301,8 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
             rule = mapnik.Rule()
             rule.filter = mapnik.Filter(
-                str("[flooded_pct] >= %s and [flooded_pct] < %s" % (min_pct, max_pct))
+                str("[flooded_pct] >= %s and [flooded_pct] < %s"
+                % (min_pct, max_pct))
             )
             symbol = mapnik.PointSymbolizer(
                 os.path.join(GENERATED_ICONS, icon), "png", 16, 16
@@ -309,9 +338,6 @@ class SewerageAdapter(WorkspaceItemAdapter):
         # Define a style.
 
         style = mapnik.Style()
-        stroke = mapnik.Stroke()
-        stroke.opacity = 0.4
-        stroke.width = 7.0
 
         # QUALITY_UNKNOWN
 
@@ -319,47 +345,16 @@ class SewerageAdapter(WorkspaceItemAdapter):
         rule.filter = mapnik.Filter(
             "[quality] = {}".format(models.Sewer.QUALITY_UNKNOWN)
         )
-        stroke.color = mapnik.Color("black")
-        symbol = mapnik.LineSymbolizer(stroke)
-        rule.symbols.append(symbol)
-#       style.rules.append(rule)
-
-        # QUALITY_RELIABLE
-
-        rule = mapnik.Rule()
-        rule.filter = mapnik.Filter(
-            "[quality] = {}".format(models.Sewer.QUALITY_RELIABLE)
-        )
-        stroke.color = mapnik.Color('green')
-        symbol = mapnik.LineSymbolizer(stroke)
-        rule.symbols.append(symbol)
-#       style.rules.append(rule)
-
-        # QUALITY_UNRELIABLE
-
-        rule = mapnik.Rule()
-        rule.filter = mapnik.Filter(
-            "[quality] = {}".format(models.Sewer.QUALITY_UNRELIABLE)
-        )
-        stroke.color = mapnik.Color('red')
-        symbol = mapnik.LineSymbolizer(stroke)
-        rule.symbols.append(symbol)
-#       style.rules.append(rule)
-
-        # Add labels.
-
-        rule = mapnik.Rule()
-        rule.filter = mapnik.Filter(
-            "[quality] = {}".format(models.Sewer.QUALITY_UNKNOWN)
-        )
         rule.max_scale = 1700
         symbol = mapnik.TextSymbolizer(
-            'code', 'DejaVu Sans Book', 10, mapnik.Color('black')
+            'code', 'DejaVu Sans Book', 10, mapnik.Color('blue')
         )
         symbol.allow_overlap = True
-        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+#       symbol.label_placement = mapnik.label_placement.LINE_PLACEMENT
         rule.symbols.append(symbol)
         style.rules.append(rule)
+
+        # QUALITY_RELIABLE
 
         rule = mapnik.Rule()
         rule.filter = mapnik.Filter(
@@ -370,9 +365,13 @@ class SewerageAdapter(WorkspaceItemAdapter):
             'code', 'DejaVu Sans Book', 10, mapnik.Color('green')
         )
         symbol.allow_overlap = True
-        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+#       symbol.label_placement = mapnik.label_placement.LINE_PLACEMENT
+        symbol.allow_overlap = True
+        symbol.opacity = 1.0
         rule.symbols.append(symbol)
         style.rules.append(rule)
+
+        # QUALITY_UNRELIABLE
 
         rule = mapnik.Rule()
         rule.filter = mapnik.Filter(
@@ -383,7 +382,8 @@ class SewerageAdapter(WorkspaceItemAdapter):
             'code', 'DejaVu Sans Book', 10, mapnik.Color('red')
         )
         symbol.allow_overlap = True
-        symbol.label_placement = mapnik.label_placement.POINT_PLACEMENT
+#       symbol.label_placement = mapnik.label_placement.LINE_PLACEMENT
+#       symbol.displacement(16, 16)  # slightly above
         rule.symbols.append(symbol)
         style.rules.append(rule)
 
