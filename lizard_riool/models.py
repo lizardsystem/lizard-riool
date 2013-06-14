@@ -1058,11 +1058,26 @@ class Sewer(models.Model):
         (QUALITY_UNRELIABLE, 'Unreliable'),
     )
 
+    SHAPE_CIRCLE = 'A'
+    SHAPE_RECTANGULAR = 'B'
+    SHAPE_OTHER = 'Z'
+
+    SHAPE_CHOICES = (
+        (SHAPE_CIRCLE, 'Circular'),
+        (SHAPE_RECTANGULAR, 'Rectangular'),
+        (SHAPE_OTHER, 'Other'),
+    )
+
     sewerage = models.ForeignKey(Sewerage)
     code = models.CharField(max_length=30)
     quality = models.IntegerField(
         choices=QUALITY_CHOICES,
         default=QUALITY_UNKNOWN,
+    )
+    shape = models.CharField(
+        max_length=1,
+        choices=SHAPE_CHOICES,
+        default=SHAPE_CIRCLE,
     )
     diameter = models.FloatField()
     manhole1 = models.ForeignKey(Manhole, related_name="+")
