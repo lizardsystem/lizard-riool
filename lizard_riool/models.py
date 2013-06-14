@@ -1024,8 +1024,8 @@ class Sewerage(models.Model):
 
     """
     name = models.CharField(max_length=128)
-    rib = models.FileField(upload_to="upload")
-    rmb = models.FileField(upload_to="upload")
+    rib = models.FileField(upload_to="upload", null=True)
+    rmb = models.FileField(upload_to="upload", null=True)
     active = models.BooleanField(default=True)
 
     def __unicode__(self):
