@@ -1034,11 +1034,15 @@ class Sewerage(models.Model):
 
 class Manhole(models.Model):
     "A sewer manhole."
+    sewerage = models.ForeignKey(Sewerage)
     code = models.CharField(max_length=30)
     sink = models.BooleanField()
     ground_level = models.FloatField(blank=True, null=True)
     the_geom = models.PointField()
     objects = models.GeoManager()
+
+    def __unicode__(self):
+        return self.code
 
 
 class Sewer(models.Model):
