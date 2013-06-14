@@ -1036,10 +1036,15 @@ class Manhole(models.Model):
     "A sewer manhole."
     sewerage = models.ForeignKey(Sewerage)
     code = models.CharField(max_length=30)
-    sink = models.BooleanField()
+    sink = models.IntegerField(default=0)
     ground_level = models.FloatField(blank=True, null=True)
     the_geom = models.PointField()
     objects = models.GeoManager()
+
+    @property
+    def is_sink(self):
+        "Return True if this manhole is a sink."
+        return bool(self.sink)
 
     def __unicode__(self):
         return self.code
