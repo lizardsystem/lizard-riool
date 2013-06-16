@@ -165,6 +165,11 @@ class Upload(models.Model):
             line=line_number or 0,  # Save 0 if line_number is None
             error_message=error_message)
 
+    def record_errors(self, errorlist):
+        """Errorlist is an iterable of sufriblib.errors.Error objects."""
+        for e in errorlist:
+            self.record_error(e.message, e.line_number)
+
     def error_description(self):
         if self.status != 3:
             return None

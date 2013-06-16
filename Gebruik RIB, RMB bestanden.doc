@@ -1,0 +1,63 @@
+﻿Dit document omschrijft uit welke velden in de .RIB en .RMB files we de informatie halen die gebruikt wordt in de “Verloren Berging App”.
+
+1) Putten
+
+Regel: Alle informatie over de putten halen we uit *PUT regels in het .RIB bestand.
+
+Argumenten:
+
+1. Als er helemaal geen *PUT regels in een bestand aanwezig zijn, is het ook toegestaan coordinaten van putten te definieren in *RIOO regels. Maar aangezien wij altijd een gemaal nodig hebben, en we een veld in *PUT gebruiken om aan te geven dat er een gemaal in een put zit, hebben we altijd een *PUT regel nodig. Dus is het niet toegestaan putten te definieren dmv *RIOO.
+
+2. *PUT regels moeten overgenomen worden in het .RMB bestand. Maar als de regels in .RIB en .RMB verschillen, gaat de informatie uit .RIB voor. Daarnaast moeten we ook verloren berging berekenen voor strengen die alleen voorkomen in het .RIB bestand en niet in het .RMB bestand. Dus gaan we puur uit van het .RIB bestand.
+
+Regel: Als putcode gebruiken we het veld 'CAA' uit de *PUT regel.
+
+Regel: Als coordinaten gebruiken we het veld 'CAB' uit de *PUT regel, en we nemen aan dat dit Rijksdriehoek is.
+
+Regel: Een put bevat een gemaal als en alleen als het veld 'CAR' de code 'Xs' bevat.
+
+Regel: Een .RIB file moet voorlopig exact 1 gemaal-put bevatten. Dit is nog een limitatie van het verloren berging algoritme.
+
+Regel: Voor de maaiveldhoogte kijken we naar veld 'CCU' (“Peil deksel absoluut”). Indien niet ingevuld kan dit berekend worden uit de velden 'ACR' en 'ACH' (of 'ACS' en 'ACI', als deze put eindknoop is) van een van de relevante *RIOO regels. We kiezen hiervoor de eerste *RIOO regel uit de .RIB file waar deze put begin- of eindknoop is en die waarden ingevuld zijn. Anders is de maaiveldhoogte onbekend.
+
+2) Strengen
+
+Regel: We gebruiken hiervoor de *RIOO regels uit de .RIB file.
+
+Argument: ze mogen ook overgenomen worden in de .RMB file, maar in het geval van conflicten gaat de .RIB file voor, en we moeten ook verloren berging kunnen berekenen voor strengen die alleen in de .RIB file voorkomen en niet in de .RMB file.
+
+Regel: Als strengcode gebruiken we het veld 'AAA' uit de *RIOO regel.
+
+Regel: Voor de BOB's aan beide kanten gebruiken we de velden 'ACR' en 'ACS', dus de BOB absoluut. We proberen niet deze te berekenen uit 'ACH' en 'CCU' van de put.
+
+Argument: Het werkt tot nu toe, ACR en ACS lijken altijd ingevuld te zijn. Daarnaast hebben we al gesteld soms 'CCU' te berekenen, het kan niet allebei.
+
+Regel: Als knooppunten gebruiken we de putten die genoemd worden in veld 'AAD' en 'AAF'. De mogelijkheid coordinaten te noemen in veld 'AAE' en 'AAG' gebruiken we niet, want putten moeten met een *PUT regel gedefinieerd worden.
+
+Regel: Als diameter van de buis gebruiken we veld 'ACB'. De breedte van de buis is niet relevant voor ons.
+
+Regel: bij het berekenen van het percentage verloren berging is de vorm van de buis van belang. Deze wordt genoemd in veld 'ACA'. Bij waarde “2” gaan we uit van een rechthoekige buis, in alle andere gevallen gaan we uit van een cirkelvormige buis.
+
+Regel: De kwaliteit van een streng is “Onbekend” als er geen *MRIO regels voor voorkomen in de .RMB file, en “Onbetrouwbaar” als er meer dan 10% verschil zit tussen twee waarden uit:
+a) De afstand tussen begin en eind van de streng, op basis van de coordinaten
+b) De lengte van het buisdeel zoals aangegeven in 'ACG' van de *RIOO regel
+c) De maximale afstand van de metingen (veld 'ZYA' in *MPUT in de .RMB file)
+
+
+3) Hellingsmetingen
+
+Regel: We gebruiken hiervoor de *MRIO regels uit de .RMB file.
+
+Regel: De streng waar het om gaat staat aangegeven in het veld 'ZYE'. Deze zoeken we dus op in de .RIB file, zie boven.
+
+Regel: In veld 'ZYB' staat aangegeven of de afstanden (veld 'ZYA') gerekend worden vanaf knooppunt 1 of knooppunt 2. Intern rekenen we dit om zodat het altijd vanaf knooppunt 1 is, en daarbij gebruiken we de afstand tussen de coordinaten van beide putten als lengte van de buis. Als nu de twee putten zeg 100m van elkaar af liggen en er komen afstanden in voor groter dan 100m, levert dit problemen op. In dit geval worden de punten die een afstand groter dan 100m hebben weggegooid.
+
+Argumenten: De omrekening gebeurt het datamodel eenvoudig en snel te houden. Het weggooien is jammer maar op dit moment hebben we nog geen betere oplossing.
+
+Regel: Als een streng wel voorkomt in de .RIB file maar niet in de *MRIO regels in de .RMB file, vullen we virtuele metingen in ten behoeve van de verloren berging berekening. Er worden dan iedere 50cm punten op de ideaallijn ingevoegd.
+
+Voor het berekenen van de BOB's op ieder punt in de buis zijn meerdere mogelijkheden. Als veld 'ZYR' “A” is (Helling), dan worden voor veld 'ZYS' de waarden “E” (graden) en “F” (percentage) ondersteund. Als 'ZYR' “C” is, wordt 'ZYS' “B” ondersteund (relatieve hoogte t.o.v. de ideaallijn).
+
+In de praktijk is gebleken dat de hellingsmetingen vaak een systematische fout hebben. Hiervoor wordt gecorrigeerd, het profiel wordt rechtgetrokken t.o.v. de ideaallijn.
+
+Regel: De OBB van de buis wordt berekend als de BOB, plus de diameter (hoogte) van de buis. Dit is wiskundig niet helemaal correct omdat de buis onder een helling kan liggen. Dit effect is meestal erg klein en wordt genegeerd.
