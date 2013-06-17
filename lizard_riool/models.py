@@ -1089,6 +1089,7 @@ class Sewer(models.Model):
     manhole2 = models.ForeignKey(Manhole, related_name="+")
     bob1 = models.FloatField()
     bob2 = models.FloatField()
+    the_geom_length = models.FloatField()  # in meters
     the_geom = models.LineStringField()
     objects = models.GeoManager()
 
