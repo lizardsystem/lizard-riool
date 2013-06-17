@@ -395,16 +395,17 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
     # Files are copied only at the end
     sewerage = models.Sewerage.objects.create(
         name=sewerage_name,
-        rib="dummy",
-        rmb="dummy",
+        rib=None,  # Filled in later
+        rmb=None,
         active=True)
 
     # Save the puts, keep a dictionary
     saved_puts = dict()
     for put_id, putinfo in putdict.items():
         saved_puts[put_id] = models.Manhole.objects.create(
+            sewerage=sewerage,
             code=put_id,
-            sink=putinfo['is_sink'],
+            sink=int(putinfo['is_sink']),
             ground_level=putinfo['surface_level'],
             the_geom=Point(*putinfo['coordinate']))
 
