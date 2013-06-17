@@ -18,16 +18,21 @@ from matplotlib import figure, transforms
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import networkx as nx
 
+from lizard_map.coordinates import RD
 from lizard_map.matplotlib_settings import SCREEN_DPI
 from lizard_map.models import WorkspaceEdit
+from lizard_map.models import WorkspaceEditItem
 from lizard_map.views import AppView
 from lizard_ui.views import ViewContextMixin
 
 from lizard_riool import parsers
 from lizard_riool import tasks
 from lizard_riool.datamodel import RMB
+from lizard_riool.layers import SewerageAdapter
 from lizard_riool.layers import get_class_boundaries, RmbAdapter
+from lizard_riool.models import Manhole
 from lizard_riool.models import Riool, Rioolmeting, Upload
+from lizard_riool.models import Sewer
 from lizard_riool.models import Sewerage
 from lizard_riool.models import UploadedFileError
 from lizard_riool.waar import WAAR
@@ -99,7 +104,7 @@ class SewerageView(AppView):
 
     """
     template_name = 'lizard_riool/sewerage.html'
-#   javascript_click_handler = 'put_click_handler'
+    javascript_click_handler = 'put_click_handler'
 
     def sewerages(self):
         return Sewerage.objects.filter(active=True).order_by('name')
@@ -496,6 +501,131 @@ class PutFinder(View):
 
     def render_to_response(self, context):
         return HttpResponse(json.dumps(context), mimetype="application/json")
+
+
+class JSONResponseMixin(object):
+
+    def render_to_response(self, context={}):
+        return HttpResponse(json.dumps(context), mimetype="application/json")
+
+
+class ManholeFinder(View, JSONResponseMixin):
+    "Find the nearest manhole within a certain radius around a point."
+
+    def get(self, request, *args, **kwargs):
+
+        # Initialize variables with request parameters.
+
+        x = float(request.GET.get('x'))
+        y = float(request.GET.get('y'))
+        radius = float(request.GET.get('radius'))
+        srs = request.GET.get('srs')  # e.g. EPSG:28992
+        workspace_id = int(request.GET.get('workspace_id'))
+
+        # Which sewerages are we looking at?
+
+        sewerage_pks = []
+
+        workspace_items = (
+            WorkspaceEditItem.objects.
+            filter(workspace__pk=workspace_id).
+            filter(visible=True)
+        )
+
+        for workspace_item in workspace_items:
+            if isinstance(workspace_item.adapter, SewerageAdapter):
+                sewerage_pks.append(workspace_item.adapter.id)
+
+        if not sewerage_pks:
+            return self.render_to_response()
+
+        # What is the nearest manhole?
+
+        srid = int(srs.split(':')[1])  # e.g. 28992
+        pnt = Point(x, y, srid=srid)
+
+        manholes = (
+            Manhole.objects.
+            filter(sewerage__pk__in=sewerage_pks).
+            filter(the_geom__distance_lte=(pnt, radius)).
+            distance(pnt).order_by('distance')
+        )
+
+        try:
+            manhole = manholes[0]  # SELECT ... LIMIT 1;
+        except:
+            return self.render_to_response()
+
+        # GEOS transform() is not accurate for 28992.
+        # The infamous towgs84 parameter is missing?
+
+        if srid == 28992:
+            manhole.the_geom.transform(RD)
+        else:
+            manhole.the_geom.transform(srid)
+
+        context = {
+            'x': manhole.the_geom.x,
+            'y': manhole.the_geom.y,
+            'put': manhole.code,
+            'upload_id': manhole.sewerage.pk,
+        }
+
+        return self.render_to_response(context)
+
+
+class PathFinder(View, JSONResponseMixin):
+    "Find the shortest path between two manholes."
+
+    def get(self, request, *args, **kwargs):
+
+        # Initialize variables with request parameters.
+
+        sewerage_pk = int(request.GET.get('upload_id'))
+        source = request.GET.get('source')
+        target = request.GET.get('target')
+
+        # Create an empty graph.
+
+        G = nx.Graph()
+
+        # Create nodes (manholes) and edges (sewers).
+
+        sewers = (
+            Sewer.objects.filter(sewerage__pk=sewerage_pk).
+            select_related('manhole1', 'manhole2')
+        )
+
+        for sewer in sewers:
+            manhole1, manhole2 = sewer.manhole1, sewer.manhole2
+            G.add_edge(manhole1.code, manhole2.code, streng=sewer.code)
+            G.node[manhole1.code]['location'] = manhole1.the_geom
+            G.node[manhole2.code]['location'] = manhole2.the_geom
+
+        try:
+            path = nx.shortest_path(G, source, target)
+        except Exception, e:
+            logger.error(e)
+            context = {'strengen': [], 'putten': []}
+            return self.render_to_response(context)
+
+        strengen = []
+
+        for i in range(len(path) - 1):
+            streng = G.edge[path[i]][path[i + 1]]['streng']
+            strengen.append(streng)
+
+        putten = []
+
+        for put in path:
+            location = G.node[put]['location']
+            location.transform(RD)  # TODO
+            put = {'put': put, 'x': location.x, 'y': location.y}
+            putten.append(put)
+
+        context = {'strengen': strengen, 'putten': putten}
+
+        return self.render_to_response(context)
 
 
 class Bar(View):

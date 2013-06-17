@@ -32,6 +32,8 @@ $.lizard_riool.init = function () {
         z_max = Math.max.apply(Math, z_indices);
         $.lizard_riool.routeLayer.setZIndex(z_max + 10);
     }
+
+    $.lizard_riool.routeLayer.setZIndex(1000000); // TODO
 };
 
 $(function () {

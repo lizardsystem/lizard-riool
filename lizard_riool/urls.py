@@ -35,8 +35,10 @@ urlpatterns = patterns('',
     (r'^langsprofielen/popup/$', login_required(
             views.SideProfilePopup.as_view())),
     (r'^putten/$', login_required(views.PutList.as_view())),
-    (r'^put/$', login_required(views.PutFinder.as_view())),
-    (r'^bar/$', login_required(views.Bar.as_view())),
+#   (r'^put/$', login_required(views.PutFinder.as_view())),
+    (r'^put/$', login_required(views.ManholeFinder.as_view())),
+#   (r'^bar/$', login_required(views.Bar.as_view())),
+    (r'^bar/$', login_required(views.PathFinder.as_view())),
 )
 
 if settings.DEBUG:

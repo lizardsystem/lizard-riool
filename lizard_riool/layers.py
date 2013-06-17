@@ -14,7 +14,10 @@ from lizard_map.models import ICON_ORIGINALS
 from lizard_map.symbol_manager import SymbolManager
 from lizard_map.workspace import WorkspaceItemAdapter
 
-from lizard_riool import models
+from lizard_riool.models import Manhole
+from lizard_riool.models import Sewer
+from lizard_riool.models import SewerMeasurement
+from lizard_riool.models import StoredGraph
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +208,7 @@ class RmbAdapter(WorkspaceItemAdapter):
         minimal amount of information necessary to show it."""
 
         pnt = geos.Point(x, y, srid=900913)
-        points = (models.StoredGraph.objects.filter(rmb__id=self.id).
+        points = (StoredGraph.objects.filter(rmb__id=self.id).
                   filter(xy__distance_lte=(pnt, radius)).
                   distance(pnt).
                   order_by('distance'))
@@ -233,7 +236,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
     def extent(self, identifiers=None):
         "Return the sewerage extent in Google projection."
 
-        qs = models.Sewer.objects.filter(sewerage__pk=self.id)
+        qs = Manhole.objects.filter(sewerage__pk=self.id)
 
         if qs.count() < 1:
             return super(SewerageAdapter, self).extent(identifiers)
@@ -257,7 +260,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
         pnt = geos.Point(x, y, srid=3857)  # aka 900913
 
         qs = (
-            models.SewerMeasurement.objects.
+            SewerMeasurement.objects.
             filter(sewer__sewerage__pk=self.id).
             filter(the_geom__distance_lte=(pnt, radius)).
             distance(pnt).order_by('distance')
@@ -266,12 +269,12 @@ class SewerageAdapter(WorkspaceItemAdapter):
         try:
             m = qs[0]  # SELECT ... LIMIT 1;
         except:
-            logger.debug("Nothing found")
             return []
 
         return [{
             'name': '{:.0%} verloren berging'.format(m.flooded_pct),
             'distance': m.distance.m,
+            'stored_graph_id': m.pk,
         }]
 
     def layer(self, layer_ids=None, request=None):
@@ -285,7 +288,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
     def __add_measurements(self, layers, styles):
         "Docstring."
 
-        measurements = models.SewerMeasurement.objects.filter(
+        measurements = SewerMeasurement.objects.filter(
             sewer__sewerage__pk=self.id
         )
 
@@ -333,7 +336,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
         # Get all sewer pipes that constitute to this sewerage.
 
-        sewers = models.Sewer.objects.filter(sewerage__pk=self.id)
+        sewers = Sewer.objects.filter(sewerage__pk=self.id)
 
         # Define a style.
 
@@ -343,7 +346,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
         rule = mapnik.Rule()
         rule.filter = mapnik.Filter(
-            "[quality] = {}".format(models.Sewer.QUALITY_UNKNOWN)
+            "[quality] = {}".format(Sewer.QUALITY_UNKNOWN)
         )
         rule.max_scale = 1700
         symbol = mapnik.TextSymbolizer(
@@ -358,7 +361,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
         rule = mapnik.Rule()
         rule.filter = mapnik.Filter(
-            "[quality] = {}".format(models.Sewer.QUALITY_RELIABLE)
+            "[quality] = {}".format(Sewer.QUALITY_RELIABLE)
         )
         rule.max_scale = 1700
         symbol = mapnik.TextSymbolizer(
@@ -375,7 +378,7 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
         rule = mapnik.Rule()
         rule.filter = mapnik.Filter(
-            "[quality] = {}".format(models.Sewer.QUALITY_UNRELIABLE)
+            "[quality] = {}".format(Sewer.QUALITY_UNRELIABLE)
         )
         rule.max_scale = 1700
         symbol = mapnik.TextSymbolizer(
@@ -405,6 +408,12 @@ class SewerageAdapter(WorkspaceItemAdapter):
 
     def __add_manholes(self, layers, styles):
         "Add manhole layer and styles."
+
+        # Select the manholes that are part of this sewerage.
+
+        manholes = Manhole.objects.filter(sewerage__pk=self.id)
+
+        # Define a style.
 
         style = mapnik.Style()
 
@@ -442,31 +451,10 @@ class SewerageAdapter(WorkspaceItemAdapter):
         rule.symbols.append(symbol)
         style.rules.append(rule)
 
-        # Select the manholes that are part of this sewerage.
-        # The query returns a unique set of manholes.
-
-        query = """(
-
-            SELECT code, sink::integer, the_geom
-            FROM lizard_riool_manhole
-            WHERE id IN (
-
-            SELECT manhole1_id AS id
-            FROM lizard_riool_sewer
-            WHERE sewerage_id = {0}
-
-            UNION
-
-            SELECT manhole2_id AS id
-            FROM lizard_riool_sewer
-            WHERE sewerage_id = {0}
-
-            )) data"""
-
         # Setup datasource.
 
         params = default_database_params()
-        params['table'] = query.format(self.id)
+        params['table'] = "({}) data".format(manholes.query)
         datasource = mapnik.PostGIS(**params)
 
         # Define layer.
