@@ -163,7 +163,7 @@ class Upload(models.Model):
         UploadedFileError.objects.create(
             uploaded_file=self,
             line=line_number or 0,  # Save 0 if line_number is None
-            error_message=error_message)
+            error_message=error_message[:300])
 
     def record_errors(self, errorlist):
         """Errorlist is an iterable of sufriblib.errors.Error objects."""
@@ -1098,6 +1098,10 @@ class Sewer(models.Model):
     the_geom = models.LineStringField()
     objects = models.GeoManager()
 
+    @property
+    def is_rectangular(self):
+        return (self.shape == Sewer.SHAPE_RECTANGULAR)
+
 
 class SewerMeasurement(models.Model):
     "A measurement somewhere in a sewer pipe."
@@ -1105,9 +1109,73 @@ class SewerMeasurement(models.Model):
     # Use `dist` - `distance` clashes with the GEOS API.
     dist = models.FloatField()
     virtual = models.BooleanField(default=False)
-    water_level = models.FloatField(null=True)
+    water_level = models.FloatField(null=True)  # Relative to NAP.
     flooded_pct = models.FloatField(null=True)
-    bob = models.FloatField()
+    bob = models.FloatField()   # bob <= water_level <= obb
     obb = models.FloatField()
     the_geom = models.PointField()
     objects = models.GeoManager()
+
+    def set_water_level(self, water_level):
+        # Restrict water_level so that it's in between bob and obb
+        self.water_level = min(
+            self.bob,
+            max(self.obb, water_level))
+
+    def compute_flooded_pct(self, use_sewer=None):
+        if self.water_level is None:
+            return
+
+        depth = self.water_level - self.bob
+
+        if depth <= 0.0:
+            self.flooded_pct = 0
+            return
+
+        diameter = self.obb - self.bob
+
+        if depth >= diameter:
+            self.flooded_pct = 1
+            return
+
+        # Sewer to use can be passed as an argument for speed
+        sewer = use_sewer or self.sewer
+        if sewer.is_rectangular:
+            self.flooded_pct = depth / diameter
+            return
+
+        # Assume circular
+        area = math.pi * ((diameter / 2) ** 2)
+        if depth == diameter / 2:
+            percentage = 0.5
+        elif depth < diameter / 2:
+            percentage = disc_segment(
+                radius=diameter / 2, height=depth) / area
+        else:
+            percentage = (area - disc_segment(
+                    radius=diameter / 2,
+                    height=diameter - depth)) / area
+
+        self.flooded_pct = percentage
+
+
+def disc_segment(radius, height):
+    """Compute the area of a disc segment with height 'height' in a
+    circle of radius 'radius', when height < radius"""
+
+    assert height < radius
+    assert height != 0
+    assert radius != 0
+
+    radius = float(radius)
+    height = float(height)
+
+    # Using Wikipedia, http://en.wikipedia.org/wiki/Circular_segment .
+
+    # The angle is 2 arccos (d/R)   (and d = R-h).
+    angle = 2 * math.acos((radius - height) / radius)
+
+    # And the area is R^2/2 (angle - sin angle)
+    area = ((radius ** 2) / 2) * (angle - math.sin(angle))
+
+    return area

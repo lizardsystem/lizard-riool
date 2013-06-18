@@ -17,6 +17,7 @@ Changelog of lizard-riool
 - Parsing and initial processing of .RIB and .RMB files is moved into a new
   library, sufriblib.
 
+- Reimplement lost capacity algorithm. It doesn't seem to work correctly yet.
 
 0.5.13 (2013-05-22)
 -------------------

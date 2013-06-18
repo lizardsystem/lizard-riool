@@ -1,11 +1,11 @@
 import logging
 import os
 import time
+import traceback
 
 from celery.task import task
 from celery.result import AsyncResult
 
-from django.contrib.gis.geos import GEOSGeometry
 from django.core.cache import cache
 from django.db import transaction
 
@@ -132,8 +132,11 @@ def process_uploaded_file(upload):
 
     except Exception as e:
         # Record whatever happened
-        upload.record_error(unicode(e))
-        rib.record_error(unicode(e))
+        error_message = (
+            "Exception: {e} {t}"
+            .format(e=e, t=traceback.format_exc()[-250:]))
+        upload.record_error(error_message)
+        rib.record_error(error_message)
         upload.set_unsuccessful()
         rib.set_unsuccessful()
 

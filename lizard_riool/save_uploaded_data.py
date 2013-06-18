@@ -2,12 +2,14 @@
 
 import math
 import os.path
+from itertools import chain
 
 from django.contrib.gis.geos import LineString, Point
 
 from sufriblib.errors import Error
 from sufriblib import util
 
+from . import lost_capacity
 from . import models
 
 
@@ -42,10 +44,6 @@ def get_puts(ribfile, riberrors):
         is_sink = putline.is_sink
 
         if is_sink:
-            if found_first_sink:
-                riberrors.append(Error(
-                        line_number=putline.line_number,
-                        message="Meer dan 1 put als gemaal gemarkeerd"))
             found_first_sink = True
 
         # putline.CCU is not a required field, but if it's there, it
@@ -72,6 +70,11 @@ def get_puts(ribfile, riberrors):
             'is_sink': is_sink,
             'surface_level': surface_level
             }
+
+    if not found_first_sink:
+        riberrors.append(Error(
+                line_number=0,
+                message="Markeer minsten 1 put als gemaal!"))
 
     return putdict
 
@@ -426,15 +429,16 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
             the_geom=LineString(manhole1.the_geom, manhole2.the_geom))
 
     # Save the measurements
-    sewer_measurements = []
+    sewer_measurements_dict = dict()
     for sewer_id, sewerinfo in sewerdict.items():
+        sewer_measurements_dict[sewer_id] = []
         measurements = sewerinfo['measurements']
 
         for m in measurements:
-            sewer_measurements.append(
+            sewer_measurements_dict[sewer_id].append(
                 models.SewerMeasurement(
                     sewer=saved_sewers[sewer_id],
-                    distance=m['dist'],
+                    dist=m['dist'],
                     virtual=False,
                     water_level=None,
                     flooded_pct=None,
@@ -442,4 +446,9 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
                     obb=m['bob'] + sewerinfo['diameter'],
                     the_geom=Point(*m['coordinate'])))
 
-    models.SewerMeasurement.objects.bulk_create(sewer_measurements)
+    # Actually compute the lost capacity, the point of this app
+    lost_capacity.compute_lost_capacity(
+        saved_puts, saved_sewers, sewer_measurements_dict)
+
+    models.SewerMeasurement.objects.bulk_create(list(chain(
+                *sewer_measurements_dict.values())))
