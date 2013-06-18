@@ -2,7 +2,7 @@
 
 import math
 import os.path
-from itertools import chain
+from itertools import chain, count
 
 from django.contrib.gis.geos import LineString, Point
 
@@ -332,6 +332,36 @@ def get_mrio(lines, putdict, sewerinfo, rmberrors):
     return mrios
 
 
+def virtual_measurements(sewer):
+    startx = sewer.manhole1.the_geom.x  # These are WGS84
+    starty = sewer.manhole1.the_geom.y
+    startbob = sewer.bob1
+
+    dx = sewer.manhole2.the_geom.x - startx
+    dy = sewer.manhole2.the_geom.y - starty
+    dbob = sewer.bob2
+
+    total_length = sewer.the_geom_length  # m
+
+    distance = 0.3  # Every 30cm
+
+    for dist in count(start=distance, step=distance):
+        if dist > total_length:
+            break
+
+        factor = dist / total_length
+
+        yield models.SewerMeasurement(
+            sewer=sewer,
+            dist=dist,
+            virtual=True,
+            water_level=None,
+            flooded_pct=None,
+            bob=(startbob + factor * dbob),
+            obb=(startbob + factor * dbob) + sewer.diameter,
+            the_geom=Point(startx + factor * dx, starty + factor * dy))
+
+
 def distance(p1, p2):
     return math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
 
@@ -438,11 +468,10 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
     # Save the measurements
     sewer_measurements_dict = dict()
     for sewer_id, sewerinfo in sewerdict.items():
-        sewer_measurements_dict[sewer_id] = []
         measurements = sewerinfo['measurements']
 
-        for m in measurements:
-            sewer_measurements_dict[sewer_id].append(
+        if measurements:
+            sewer_measurements_dict[sewer_id] = [
                 models.SewerMeasurement(
                     sewer=saved_sewers[sewer_id],
                     dist=m['dist'],
@@ -451,7 +480,11 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
                     flooded_pct=None,
                     bob=m['bob'],
                     obb=m['bob'] + sewerinfo['diameter'],
-                    the_geom=Point(*m['coordinate'])))
+                    the_geom=Point(*m['coordinate']))
+                for m in measurements]
+        else:
+            sewer_measurements_dict[sewer_id] = list(
+                virtual_measurements(saved_sewers[sewer_id]))
 
     # Actually compute the lost capacity, the point of this app
     lost_capacity.compute_lost_capacity(

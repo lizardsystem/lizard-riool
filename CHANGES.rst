@@ -19,6 +19,9 @@ Changelog of lizard-riool
 
 - Reimplement lost capacity algorithm. It doesn't seem to work correctly yet.
 
+- Add "virtual sewers" if a sewer is present in the RIB file, but not
+  in the RMB file.
+
 0.5.13 (2013-05-22)
 -------------------
 
