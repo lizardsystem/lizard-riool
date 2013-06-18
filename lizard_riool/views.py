@@ -357,7 +357,7 @@ class SideProfileGraph2(View):
             bobx.append(0)
             boby.append(sewer.bob1)
             obby.append(sewer.bob1 + sewer.diameter)
-            ##water.append(?)
+#           water.append(?)  # What level here?
 
             for measurement in sewer.measurements.order_by('dist'):
                 bobx.append(measurement.dist)
@@ -368,24 +368,24 @@ class SideProfileGraph2(View):
             bobx.append(sewer.the_geom_length)
             boby.append(sewer.bob2)
             obby.append(sewer.bob2 + sewer.diameter)
-            ##water.append(?)
+#           water.append(?)  # What level here?
 
             if sewer.manhole1.code == manholes[i]:
                 # Direction manhole1 => manhole2
                 bobx = [x + xs[i] for x in bobx]
             else:
                 # Direction manhole2 => manhole1
-                bobx.reverse()
-                bobx = [sewer.the_geom_length - x for x in bobx]
-                bobx = [x + xs[i] for x in bobx]
-                boby.reverse()
-                obby.reverse()
-                water.reverse()
+                bobx = [xs[i + 1] - x for x in bobx]
 
             ax1.plot(bobx, boby, color='brown')
             ax1.plot(bobx, obby, color='brown')
+
+            # Remove the first and last value until
+            # until we have a water level there.
+
             bobx.pop(0), bobx.pop()
             boby.pop(0), boby.pop()
+
             ax1.fill_between(bobx, boby, water, interpolate=False, alpha=0.5)
 
         # Return image as png.
