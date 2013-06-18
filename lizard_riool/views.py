@@ -2,14 +2,12 @@
 
 from __future__ import division
 
-from math import sqrt
 import logging
 import os.path
 import tempfile
 import urllib
 
 from django.contrib.gis.geos import Point
-from django.core.cache import get_cache
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.utils import simplejson as json
@@ -24,21 +22,18 @@ from lizard_map.models import WorkspaceEditItem
 from lizard_map.views import AppView
 from lizard_ui.views import ViewContextMixin
 
-from lizard_riool import parsers
 from lizard_riool import tasks
 from lizard_riool.datamodel import RMB
 from lizard_riool.layers import SewerageAdapter
 from lizard_riool.layers import get_class_boundaries
 from lizard_riool.models import Manhole
-from lizard_riool.models import Riool, Rioolmeting, Upload
+from lizard_riool.models import Rioolmeting, Upload
 from lizard_riool.models import Sewer
 from lizard_riool.models import Sewerage
 from lizard_riool.models import UploadedFileError
 from lizard_riool.waar import WAAR
 
 logger = logging.getLogger(__name__)
-
-cache = get_cache('file_based_cache')
 
 
 class ScreenFigure(figure.Figure):
@@ -143,146 +138,6 @@ class SideProfilePopup(TemplateView):
         return self.render_to_response(context)
 
 
-class SideProfileGraph(View):
-    """Create and return a side profile ("langsprofiel") as png.
-    """
-
-    def get(self, request, *args, **kwargs):
-        # Get request parameters.
-        upload_id = int(request.GET['upload_id'])
-        putten = json.loads(request.GET['putten'])
-        strengen = json.loads(request.GET['strengen'])
-        width = int(request.GET['width'])
-        height = int(request.GET['height'])
-
-        # Init RMB object
-        rmb = RMB(upload_id)
-        rmb.compute_lost_water_depth(putten[0])
-
-        mrios = parsers.string_of_riool_to_string_of_rioolmeting(
-            rmb.pool, strengen)
-
-        data = {}
-
-        for suf_id in strengen:
-            data[suf_id] = []
-
-        for mrio in mrios:
-            data[mrio.suf_fk_edge].append(mrio)
-
-        # Store the index and label of each manhole,
-        # so a vertical line can be drawn.
-
-        verticals = []
-
-        # bobs: "Bovenkant Onderkant Buizen"
-        # obbs: "Onderkant Bovenkant Buizen"
-
-        bobs, obbs, water, coordinates = [], [], [], []
-        for idx, suf_id in enumerate(strengen):
-            # The RIOO record.
-            riool = rmb.get_riool(suf_id)
-
-            # Append PUT to start from.
-            put_source = putten[idx]
-            obj = parsers.get_obj_from_graph(rmb.graph, put_source)
-            if obj:
-                put_source_xy = riool.get_knooppuntcoordinaten(put_source)
-                coordinates.append(put_source_xy)
-                verticals.append((len(coordinates) - 1, put_source))
-                bobs.append(obj.z)
-                if obj.is_put and hasattr(obj, 'maxz'):
-                    # Instead of obj.z, use the maximum z value of the
-                    # strengs connected to this put
-                    obbs.append(obj.maxz + riool.height)
-                else:
-                    obbs.append(obj.z + riool.height)
-                water.append(obj.z + obj.flooded)
-
-            # Append MRIO measurements.
-
-            for mrio in data[suf_id]:
-                # Skip objects not having a "flooded" attribute.
-                # https://office.lizard.net/trac/ticket/3547.
-                # TODO: this has to be solved properly.
-                if hasattr(mrio, 'flooded'):
-                    coordinates.append(Point(mrio.point[0], mrio.point[1]))
-                    bobs.append(mrio.point[2])
-                    obbs.append(mrio.point[2] + riool.height)  # Too simple!
-                    water.append(mrio.point[2] + mrio.flooded)
-
-            # Append PUT to end with.
-
-            put_target = putten[idx + 1]
-            obj = parsers.get_obj_from_graph(rmb.graph, put_target)
-            if obj:
-                put_target_xy = riool.get_knooppuntcoordinaten(put_target)
-                coordinates.append(put_target_xy)
-
-                bobs.append(obj.z)
-                # Top of the line
-
-                # For a put, the top isn't necessarily above this
-                # particular bottom, but above the bottom of the
-                # highest streng leading up to it, saved in obj.height
-                # if it's a put. Then riool.height may be the wrong
-                # height, but it will have to do for now.
-                if obj.is_put and hasattr(obj, 'maxz'):
-                    # Instead of obj.z, use the maximum z value of the
-                    # strengs connected to this put
-                    obbs.append(obj.maxz + riool.height)
-                else:
-                    obbs.append(obj.z + riool.height)
-                water.append(obj.z + obj.flooded)
-#                bobs.append(put_target_bob)
-#                obbs.append(put_target_bob + riool.height)
-#                water.append(put_target_bob + obj.flooded)
-
-        if obj:
-            verticals.append((len(coordinates) - 1, put_target))
-
-        #
-        distances = [0.0]
-        for i in range(len(coordinates) - 1):
-            distance = distances[i] + sqrt(
-                (coordinates[i].x - coordinates[i + 1].x) ** 2 +
-                (coordinates[i].y - coordinates[i + 1].y) ** 2
-            )
-            distances.append(distance)
-
-        # Create matplotlib figure.
-
-        fig = ScreenFigure(width, height)
-        fig.subplots_adjust(top=0.85)  # Space for labels
-        ax1 = fig.add_subplot(111)
-        ax1.plot(distances, bobs, color='brown')
-        ax1.plot(distances, obbs, color='brown')
-        ax1.fill_between(distances, bobs, water, interpolate=False, alpha=0.5)
-        ax1.set_xlim(0)
-        ax1.set_xlabel('Afstand (m)')
-        ax1.set_ylabel('Diepte t.o.v. NAP (m)')
-        ax1.grid(True)
-
-        # Plot PUT labels.
-
-        transform = transforms.blended_transform_factory(
-            ax1.transData, ax1.transAxes)
-
-        for vertical in verticals:
-            x = distances[vertical[0]]
-            ax1.axvline(x=x, color='green')
-            ax1.text(x, 1.01, vertical[1], rotation='vertical',
-                transform=transform, va='bottom', fontsize=9)
-
-        # Return image as png.
-
-        response = HttpResponse(content_type='image/png')
-        canvas = FigureCanvas(fig)
-        canvas.print_png(response)
-
-        return response
-
-
 class SideProfileGraph2(View):
 
     def get(self, request, *args, **kwargs):
@@ -291,7 +146,7 @@ class SideProfileGraph2(View):
 
         sewerage_pk = int(request.GET['upload_id'])
         manholes = json.loads(request.GET['putten'])
-#       sewers = json.loads(request.GET['strengen'])
+#       sewers = json.loads(request.GET['strengen'])  # TODO
         width = int(request.GET['width'])
         height = int(request.GET['height'])
 
@@ -309,34 +164,22 @@ class SideProfileGraph2(View):
         for sewer in sewers:
             G.add_edge(sewer.manhole1, sewer.manhole2, sewer=sewer)
 
+        # Create a convience dict, mapping a manhole to its code.
+
         d = {manhole.code: manhole for manhole in G.nodes()}
 
         # Create matplotlib figure.
 
         fig = ScreenFigure(width, height)
-        fig.subplots_adjust(top=0.84)  # Space for labels
         ax1 = fig.add_subplot(111)
-        ax1.set_xlabel('Afstand (m)')
-        ax1.set_ylabel('Diepte t.o.v. NAP (m)')
-        ax1.grid(True)
 
-        # Visualize manholes as vertical lines with labels.
+        # Place the manholes being traversed on a straight line.
 
         xs = [0]
 
         for i in range(len(manholes) - 1):
             sewer = G[d[manholes[i]]][d[manholes[i + 1]]]['sewer']
             xs.append(xs[-1] + sewer.the_geom_length)
-
-#       transform = transforms.blended_transform_factory(
-#           ax1.transData, ax1.transAxes
-#       )
-
-#       for x, label in zip(xs, manholes):
-#           ax1.axvline(x, color='red')
-#           ax1.text(x, 1.01, label, rotation='vertical',
-#               transform=transform, va='bottom', fontsize=9
-#           )
 
         # Visualize ground level.
 
@@ -345,7 +188,7 @@ class SideProfileGraph2(View):
         for manhole in manholes:
             ground_levels.append(d[manhole].ground_level)
 
-#       ax1.plot(xs, ground_levels, color='green')
+        ax1.plot(xs, ground_levels, color='green')
 
         # Visualize measurements.
 
@@ -387,6 +230,26 @@ class SideProfileGraph2(View):
             boby.pop(0), boby.pop()
 
             ax1.fill_between(bobx, boby, water, interpolate=False, alpha=0.5)
+
+        # Visualize manholes as labeled, vertical lines.
+
+        transform = transforms.blended_transform_factory(
+            ax1.transData, ax1.transAxes
+        )
+
+        for x, label in zip(xs, manholes):
+            ax1.axvline(x, color='red')
+            ax1.text(x, 1.01, label, rotation='vertical',
+                transform=transform, va='bottom', fontsize=9
+            )
+
+        # Finalize matplotlib figure.
+
+        fig.subplots_adjust(top=0.84)  # Space for labels
+        ax1.set_xlim(0)
+        ax1.set_xlabel('Afstand (m)')
+        ax1.set_ylabel('Diepte t.o.v. NAP (m)')
+        ax1.grid(True)
 
         # Return image as png.
 
@@ -648,46 +511,6 @@ class PathFinder(View, JSONResponseMixin):
         context = {'strengen': strengen, 'putten': putten}
 
         return self.render_to_response(context)
-
-
-class Bar(View):
-    ""
-
-    def get(self, request, *args, **kwargs):
-        ""
-        upload_id = int(request.GET.get('upload_id'))
-        source = request.GET.get('source')
-        target = request.GET.get('target')
-
-        G = nx.Graph()
-        for riool in Riool.objects.filter(upload__pk=upload_id):
-            G.add_edge(riool.AAD, riool.AAF, streng=riool.AAA)
-            G.node[riool.AAD]['location'] = riool.AAE
-            G.node[riool.AAF]['location'] = riool.AAG
-
-        try:
-            path = nx.shortest_path(G, source, target)
-        except nx.NetworkXNoPath:
-            logger.warning("No path from %s to %s" % (source, target))
-            path = []
-
-        strengen = []
-        for i in range(len(path) - 1):
-            streng = G.edge[path[i]][path[i + 1]]['streng']
-            strengen.append(streng)
-
-        putten = []
-        for put in path:
-            location = G.node[put]['location']
-            put = {'put': put, 'x': location.x, 'y': location.y}
-            putten.append(put)
-
-        context = {'strengen': strengen, 'putten': putten}
-
-        return self.render_to_response(context)
-
-    def render_to_response(self, context):
-        return HttpResponse(json.dumps(context), mimetype="application/json")
 
 
 class UploadsView(AppView):
