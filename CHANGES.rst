@@ -25,6 +25,10 @@ Changelog of lizard-riool
 - Save a Sewerage's files once it has been imported successfully, to a
   directory that is independent of the Upload.
 
+- Implemented quality criteria; missing measurements result in
+  "quality unknown", sufficient measurements in "quality reliable" and
+  too few measurements in "quality unreliable".
+
 0.5.13 (2013-05-22)
 -------------------
 

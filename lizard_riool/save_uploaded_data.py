@@ -469,11 +469,12 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
     sewer_measurements_dict = dict()
     for sewer_id, sewerinfo in sewerdict.items():
         measurements = sewerinfo['measurements']
+        sewer = saved_sewers[sewer_id]
 
         if measurements:
             sewer_measurements_dict[sewer_id] = [
                 models.SewerMeasurement(
-                    sewer=saved_sewers[sewer_id],
+                    sewer=sewer,
                     dist=m['dist'],
                     virtual=False,
                     water_level=None,
@@ -482,9 +483,14 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
                     obb=m['bob'] + sewerinfo['diameter'],
                     the_geom=Point(*m['coordinate']))
                 for m in measurements]
+            sewer.judge_quality(sewer_measurements_dict[sewer_id])
+            sewer.save()
         else:
+            # Create "virtual measurements"
             sewer_measurements_dict[sewer_id] = list(
-                virtual_measurements(saved_sewers[sewer_id]))
+                virtual_measurements(sewer))
+            sewer.quality = models.Sewer.QUALITY_UNKNOWN
+            sewer.save()
 
     # Actually compute the lost capacity, the point of this app
     lost_capacity.compute_lost_capacity(

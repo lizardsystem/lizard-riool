@@ -1139,6 +1139,38 @@ class Sewer(models.Model):
     def is_rectangular(self):
         return (self.shape == Sewer.SHAPE_RECTANGULAR)
 
+    def judge_quality(self, measurements):
+        """We need some measure of quality. We use:
+        - The range from min(dist of measurements) to the max
+          must be at least 90% of the length of this sewer
+        - Over that range, there must be at least 1 measurement
+          per meter
+
+        If both those are satisfied, this sewer is reliable, otherwise
+        unreliable."""
+        if not measurements:
+            self.quality = Sewer.QUALITY_UNKNOWN
+            return
+
+        mindist = min(m.dist for m in measurements)
+        maxdist = max(m.dist for m in measurements)
+
+        # Restrict it to only inside the sewer's length, to prevent
+        # strange dists resulting in good quality
+        mindist = max(0.0, mindist)
+        maxdist = min(maxdist, self.the_geom_length)
+
+        measurements_length = maxdist - mindist
+
+        proportion = measurements_length / self.the_geom_length
+
+        measurements_per_m = len(measurements) / measurements_length
+
+        if proportion >= 0.9 and measurements_per_m >= 1:
+            self.quality = Sewer.QUALITY_RELIABLE
+        else:
+            self.quality = Sewer.QUALITY_UNRELIABLE
+
 
 class SewerMeasurement(models.Model):
     "A measurement somewhere in a sewer pipe."
