@@ -1,4 +1,4 @@
-# (c) Nelen & Schuurmans.  GPL licensed, see LICENSE.txt.
+# (c) Nelen & Schuurmans. GPL licensed, see LICENSE.txt.
 
 from __future__ import division
 
@@ -20,7 +20,6 @@ import networkx as nx
 
 from lizard_map.coordinates import RD
 from lizard_map.matplotlib_settings import SCREEN_DPI
-from lizard_map.models import WorkspaceEdit
 from lizard_map.models import WorkspaceEditItem
 from lizard_map.views import AppView
 from lizard_ui.views import ViewContextMixin
@@ -29,7 +28,7 @@ from lizard_riool import parsers
 from lizard_riool import tasks
 from lizard_riool.datamodel import RMB
 from lizard_riool.layers import SewerageAdapter
-from lizard_riool.layers import get_class_boundaries, RmbAdapter
+from lizard_riool.layers import get_class_boundaries
 from lizard_riool.models import Manhole
 from lizard_riool.models import Riool, Rioolmeting, Upload
 from lizard_riool.models import Sewer
@@ -284,6 +283,107 @@ class SideProfileGraph(View):
         return response
 
 
+class SideProfileGraph2(View):
+
+    def get(self, request, *args, **kwargs):
+
+        # Initialize variables with request parameters.
+
+        sewerage_pk = int(request.GET['upload_id'])
+        manholes = json.loads(request.GET['putten'])
+#       sewers = json.loads(request.GET['strengen'])
+        width = int(request.GET['width'])
+        height = int(request.GET['height'])
+
+        # Create an empty graph.
+
+        G = nx.Graph()
+
+        # Create nodes (manholes) and edges (sewers).
+
+        sewers = (
+            Sewer.objects.filter(sewerage__pk=sewerage_pk).
+            select_related('manhole1', 'manhole2')
+        )
+
+        for sewer in sewers:
+            G.add_edge(sewer.manhole1, sewer.manhole2, sewer=sewer)
+
+        d = {manhole.code: manhole for manhole in G.nodes()}
+
+        # Create matplotlib figure.
+
+        fig = ScreenFigure(width, height)
+        ax1 = fig.add_subplot(111)
+        ax1.set_xlabel('Afstand (m)')
+        ax1.set_ylabel('Diepte t.o.v. NAP (m)')
+        ax1.grid(True)
+
+        # Visualize manholes as vertical lines with labels.
+
+        xs = [0]
+
+        for i in range(len(manholes) - 1):
+            sewer = G[d[manholes[i]]][d[manholes[i + 1]]]['sewer']
+            xs.append(xs[-1] + sewer.the_geom_length)
+
+        transform = transforms.blended_transform_factory(
+            ax1.transData, ax1.transAxes
+        )
+
+        for x, label in zip(xs, manholes):
+            ax1.axvline(x, color='red')
+            ax1.text(x, 1.01, label, rotation='vertical',
+                transform=transform, va='bottom', fontsize=9
+            )
+
+        # Visualize ground level.
+
+        ground_levels = []
+
+        for manhole in manholes:
+            ground_levels.append(d[manhole].ground_level)
+
+        ax1.plot(xs, ground_levels, color='green')
+
+        # Visualize measurements.
+
+        for i in range(len(manholes) - 1):
+
+            bobx, boby = [], []
+            sewer = G[d[manholes[i]]][d[manholes[i + 1]]]['sewer']
+
+            bobx.append(0)
+            boby.append(sewer.bob1)
+
+            for measurement in sewer.measurements.order_by('dist'):
+                bobx.append(measurement.dist)
+                boby.append(measurement.bob)
+
+            bobx.append(sewer.the_geom_length)
+            boby.append(sewer.bob2)
+
+            if sewer.manhole1.code == manholes[i]:
+                # Direction manhole1 => manhole2
+                bobx = [x + xs[i] for x in bobx]
+            else:
+                # Direction manhole2 => manhole1
+                bobx.reverse()
+                bobx = [sewer.the_geom_length - x for x in bobx]
+                bobx = [x + xs[i] for x in bobx]
+                boby.reverse()
+
+            ax1.plot(bobx, boby, color='brown')
+
+        # Return image as png.
+
+        response = HttpResponse(content_type='image/png')
+        canvas = FigureCanvas(fig)
+        canvas.print_png(response)
+
+        return response
+
+
 class UploadView(TemplateView):
     "Process file uploads."
     template_name = "lizard_riool/plupload.html"
@@ -410,97 +510,6 @@ class DownloadView(View):
                     results.append(str(waar))
                     prev_klasse = klasse
         return results
-
-
-class PutList(View):
-    ""
-
-    def get(self, request, *args, **kwargs):
-        context = {'location': 'The Sea', 'description': 'Here be dragons'}
-        return self.render_to_response(context)
-
-    def render_to_response(self, context):
-        return HttpResponse(json.dumps(context), mimetype="application/json")
-
-
-class PutFinder(View):
-    """Find the nearest "put" within a certain radius around a point.
-    """
-
-    def get(self, request, *args, **kwargs):
-
-        x = float(request.GET.get('x'))
-        y = float(request.GET.get('y'))
-        radius = float(request.GET.get('radius'))
-        srs = request.GET.get('srs')
-        workspace_id = int(request.GET.get('workspace_id'))
-
-        # So far, only RD New has been tested.
-        # Return [] for other projections.
-
-        if srs != "EPSG:28992":
-            logger.error("%s projection not yet supported" % srs)
-            return self.render_to_response([])
-
-        workspace = WorkspaceEdit.objects.get(pk=workspace_id)
-
-        upload_ids = []
-        for workspace_item in workspace.workspace_items.filter(visible=True):
-            if isinstance(workspace_item.adapter, RmbAdapter):
-                upload_ids.append(workspace_item.adapter.id)
-
-        pnt = Point(x, y)
-        riolen = []
-
-        # Cannot reliably use the QuerySet's distance method, because it will
-        # always use the first geometry field for its distance calculations?
-
-        # We are only interested in "putten" that are connected, i.e. that
-        # are part of a "streng", so only Riool not Put is queried.
-
-        # Investigate AAD, i.e. "Knooppuntreferentie 1".
-
-        for riool in Riool.objects.\
-            filter(upload__pk__in=upload_ids).\
-            filter(_AAE__distance_lte=(pnt, radius)):
-            riool._put_distance = \
-                sqrt((riool.AAE.x - pnt.x) ** 2 + (riool.AAE.y - pnt.y) ** 2)
-            riool._put_label = riool.AAD
-            riool._put_xy = riool.AAE
-            riolen.append(riool)
-
-        # Investigate AAF, i.e. "Knooppuntreferentie 2".
-
-        for riool in Riool.objects.\
-            filter(upload__pk__in=upload_ids).\
-            filter(_AAG__distance_lte=(pnt, radius)):
-            riool._put_distance = \
-                sqrt((riool.AAG.x - pnt.x) ** 2 + (riool.AAG.y - pnt.y) ** 2)
-            riool._put_label = riool.AAF
-            riool._put_xy = riool.AAG
-            riolen.append(riool)
-
-        # Sort by distance.
-
-        riolen = sorted(riolen, key=lambda riool: riool._put_distance)
-
-        # Return the nearest "put".
-
-        if len(riolen) > 0:
-            riool = riolen[0]
-            context = {
-                'x': riool._put_xy.x,
-                'y': riool._put_xy.y,
-                'put': riool._put_label,
-                'upload_id': riool.upload.pk,
-            }
-        else:
-            context = {}
-
-        return self.render_to_response(context)
-
-    def render_to_response(self, context):
-        return HttpResponse(json.dumps(context), mimetype="application/json")
 
 
 class JSONResponseMixin(object):

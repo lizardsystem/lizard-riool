@@ -1096,7 +1096,7 @@ class Sewer(models.Model):
 
 class SewerMeasurement(models.Model):
     "A measurement somewhere in a sewer pipe."
-    sewer = models.ForeignKey(Sewer)
+    sewer = models.ForeignKey(Sewer, related_name="measurements")
     # Use `dist` - `distance` clashes with the GEOS API.
     dist = models.FloatField()
     virtual = models.BooleanField(default=False)
