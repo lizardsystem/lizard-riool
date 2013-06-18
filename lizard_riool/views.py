@@ -146,7 +146,6 @@ class SideProfileGraph2(View):
 
         sewerage_pk = int(request.GET['upload_id'])
         manholes = json.loads(request.GET['putten'])
-#       sewers = json.loads(request.GET['strengen'])  # TODO
         width = int(request.GET['width'])
         height = int(request.GET['height'])
 
