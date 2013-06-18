@@ -314,6 +314,7 @@ class SideProfileGraph2(View):
         # Create matplotlib figure.
 
         fig = ScreenFigure(width, height)
+        fig.subplots_adjust(top=0.84)  # Space for labels
         ax1 = fig.add_subplot(111)
         ax1.set_xlabel('Afstand (m)')
         ax1.set_ylabel('Diepte t.o.v. NAP (m)')
@@ -327,15 +328,15 @@ class SideProfileGraph2(View):
             sewer = G[d[manholes[i]]][d[manholes[i + 1]]]['sewer']
             xs.append(xs[-1] + sewer.the_geom_length)
 
-        transform = transforms.blended_transform_factory(
-            ax1.transData, ax1.transAxes
-        )
+#       transform = transforms.blended_transform_factory(
+#           ax1.transData, ax1.transAxes
+#       )
 
-        for x, label in zip(xs, manholes):
-            ax1.axvline(x, color='red')
-            ax1.text(x, 1.01, label, rotation='vertical',
-                transform=transform, va='bottom', fontsize=9
-            )
+#       for x, label in zip(xs, manholes):
+#           ax1.axvline(x, color='red')
+#           ax1.text(x, 1.01, label, rotation='vertical',
+#               transform=transform, va='bottom', fontsize=9
+#           )
 
         # Visualize ground level.
 
@@ -344,24 +345,30 @@ class SideProfileGraph2(View):
         for manhole in manholes:
             ground_levels.append(d[manhole].ground_level)
 
-        ax1.plot(xs, ground_levels, color='green')
+#       ax1.plot(xs, ground_levels, color='green')
 
         # Visualize measurements.
 
         for i in range(len(manholes) - 1):
 
-            bobx, boby = [], []
+            bobx, boby, obby, water = [], [], [], []
             sewer = G[d[manholes[i]]][d[manholes[i + 1]]]['sewer']
 
             bobx.append(0)
             boby.append(sewer.bob1)
+            obby.append(sewer.bob1 + sewer.diameter)
+            ##water.append(?)
 
             for measurement in sewer.measurements.order_by('dist'):
                 bobx.append(measurement.dist)
                 boby.append(measurement.bob)
+                obby.append(measurement.obb)
+                water.append(measurement.water_level)
 
             bobx.append(sewer.the_geom_length)
             boby.append(sewer.bob2)
+            obby.append(sewer.bob2 + sewer.diameter)
+            ##water.append(?)
 
             if sewer.manhole1.code == manholes[i]:
                 # Direction manhole1 => manhole2
@@ -372,8 +379,14 @@ class SideProfileGraph2(View):
                 bobx = [sewer.the_geom_length - x for x in bobx]
                 bobx = [x + xs[i] for x in bobx]
                 boby.reverse()
+                obby.reverse()
+                water.reverse()
 
             ax1.plot(bobx, boby, color='brown')
+            ax1.plot(bobx, obby, color='brown')
+            bobx.pop(0), bobx.pop()
+            boby.pop(0), boby.pop()
+            ax1.fill_between(bobx, boby, water, interpolate=False, alpha=0.5)
 
         # Return image as png.
 
