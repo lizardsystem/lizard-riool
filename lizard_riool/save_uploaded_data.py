@@ -6,6 +6,8 @@ from itertools import chain
 
 from django.contrib.gis.geos import LineString, Point
 
+from lizard_map.coordinates import RD
+
 from sufriblib.errors import Error
 from sufriblib import util
 
@@ -417,6 +419,10 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
     for sewer_id, sewerinfo in sewerdict.items():
         manhole1 = saved_puts[sewerinfo['manhole_code_1']]
         manhole2 = saved_puts[sewerinfo['manhole_code_2']]
+        sewer_line_rd = LineString(manhole1.the_geom, manhole2.the_geom)
+        sewer_line_rd.set_srid(4326)
+        sewer_line_rd.transform(RD)
+
         saved_sewers[sewer_id] = models.Sewer.objects.create(
             sewerage=sewerage,
             code=sewer_id,
@@ -426,7 +432,8 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
             manhole2=manhole2,
             bob1=sewerinfo['bob_1'],
             bob2=sewerinfo['bob_2'],
-            the_geom=LineString(manhole1.the_geom, manhole2.the_geom))
+            the_geom=LineString(manhole1.the_geom, manhole2.the_geom),
+            the_geom_length=sewer_line_rd.length)
 
     # Save the measurements
     sewer_measurements_dict = dict()
