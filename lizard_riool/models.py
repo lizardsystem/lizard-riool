@@ -1028,10 +1028,47 @@ class Sewerage(models.Model):
     present in the database).
 
     """
+    BASE_PATH = os.path.join(
+        settings.BUILDOUT_DIR, 'var', 'lizard_riool', 'sewerages')
+
     name = models.CharField(max_length=128)
-    rib = models.FileField(upload_to="upload", null=True)
-    rmb = models.FileField(upload_to="upload", null=True)
+    rib = models.FilePathField(
+        path=BASE_PATH, verbose_name='RIB File', null=True)
+    rmb = models.FilePathField(
+        path=BASE_PATH, verbose_name='RMB File', null=True)
+
     active = models.BooleanField(default=True)
+
+    def move_files(self, rib_path, rmb_path):
+        """Move file to a nice place to stay, where there won't be
+        other files with accidentally identical names. Saves this
+        object. Twice, if it doesn't have an id yet."""
+        if not self.id:
+            self.save()
+
+        directory = os.path.join(Sewerage.BASE_PATH, str(self.id))
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        new_rib_path = os.path.join(directory, os.path.basename(rib_path))
+        shutil.move(rib_path, new_rib_path)
+        self.rib = new_rib_path
+
+        new_rmb_path = os.path.join(directory, os.path.basename(rmb_path))
+        shutil.move(rmb_path, new_rmb_path)
+        self.rmb = new_rmb_path
+
+        self.save()
+
+    def delete(self):
+        """Delete this Sewerage -- also deletes the entire directory
+        that contains its files!"""
+        shutil.rmtree(
+            os.path.join(Sewerage.BASE_PATH, str(self.id)),
+            ignore_errors=True)
+
+        return super(Sewerage, self).delete()
 
     def __unicode__(self):
         return self.name

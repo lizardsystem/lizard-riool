@@ -492,3 +492,6 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
 
     models.SewerMeasurement.objects.bulk_create(list(chain(
                 *sewer_measurements_dict.values())))
+
+    # Success -- copy files
+    sewerage.move_files(rib_path, rmb_path)

@@ -22,6 +22,9 @@ Changelog of lizard-riool
 - Add "virtual sewers" if a sewer is present in the RIB file, but not
   in the RMB file.
 
+- Save a Sewerage's files once it has been imported successfully, to a
+  directory that is independent of the Upload.
+
 0.5.13 (2013-05-22)
 -------------------
 

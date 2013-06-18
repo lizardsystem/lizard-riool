@@ -96,15 +96,8 @@ def process_uploaded_file(upload):
 
         if putdict and sewerdict and not riberrors and not rmberrors:
             # From here on, no more errors are added, we assume all the
-            # data is correct. A bit of further processing is needed
-            # and then we save everything to the database.
-            # Drop unused puts
-
-            # Find missing surface levels
-
-            # Fill virtual sewers
-
-            # Compute lost capacity
+            # data is correct. We save everything to the database, doing
+            # some further processing along the way.
 
             # Save everything into the database
             save_uploaded_data.save_into_database(
