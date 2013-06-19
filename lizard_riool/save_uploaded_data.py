@@ -8,11 +8,71 @@ from django.contrib.gis.geos import LineString, Point
 
 from lizard_map.coordinates import RD
 
+from sufriblib import parsers
 from sufriblib.errors import Error
 from sufriblib import util
 
 from . import lost_capacity
 from . import models
+
+
+def protected_file_processing(rib_upload, rmb_upload):
+    """Called from tasks.py, and wrapped there in a
+    transaction.commit_on_success; in case of an exception in here,
+    nothing is committed."""
+
+    # Initial parse of RIB and RMB file
+    ribinstance, riberrors = parsers.parse(rib_upload.full_path)
+    rmbinstance, rmberrors = parsers.parse(rmb_upload.full_path)
+
+    putdict = None
+    sewerdict = None
+    if ribinstance:
+        # Get PUT data from the RIB and put it in a dictionary
+        putdict = get_puts(ribinstance, riberrors)
+        # Get RIOOL data from the RIB and put it in a dictionary
+        sewerdict = get_sewers(
+            ribinstance, putdict, riberrors)
+
+        if rmbinstance:
+            # Add MRIO information from the RMB to the sewerdict
+            lines = mrio_lines_by_sewer_id(rmbinstance)
+            for sewer in sewerdict:
+                sewerdict[sewer]['measurements'] = (
+                    get_mrio(
+                        lines,
+                        putdict,
+                        sewerdict[sewer],
+                        rmberrors))
+
+    if putdict and sewerdict and not riberrors and not rmberrors:
+        # From here on, no more errors are added, we assume all the
+        # data is correct. We save everything to the database, doing
+        # some further processing along the way.
+
+        # Save everything into the database
+        save_into_database(
+            rib_upload.full_path, rmb_upload.full_path,
+            putdict, sewerdict, rmberrors)
+        rib_upload.set_successful()
+        rmb_upload.set_successful()
+    else:
+        # Something went wrong.
+        if riberrors:
+            rib_upload.record_errors(riberrors)
+        else:
+            rib_upload.record_error(
+                "Bestand afgekeurd omdat er problemen "
+                "zijn met het RMB bestand.")
+
+        if rmberrors:
+            rmb_upload.record_errors(rmberrors)
+        else:
+            rmb_upload.record_error(
+                "Bestand afgekeurd omdat er problemen "
+                "zijn met het RIB bestand.")
+        rib_upload.set_unsuccessful()
+        rmb_upload.set_unsuccessful()
 
 
 def get_puts(ribfile, riberrors):
@@ -214,6 +274,20 @@ def get_sewers(ribfile, putdict, riberrors):
             'diameter': diameter,
             'shape': "rectangle" if sewerline.ACA == "2" else "circle"
             }
+
+        # If surface_level of the put is missing, we might be able to
+        # compute it from this sewer's BOB and ACH/ACI fields (distance
+        # from BOB to manhole cover). Those fields aren't required though.
+        if (sewerline.manhole1_id in putdict and
+            putdict[sewerline.manhole1_id].get('surface_level') is None
+            and sewerline.ACH is not None):
+            putdict[sewerline.manhole1_id]['surface_level'] = (
+                bob_1 + sewerline.ACH)
+        if (sewerline.manhole2_id in putdict and
+            putdict[sewerline.manhole2_id].get('surface_level') is None
+            and sewerline.ACI is not None):
+            putdict[sewerline.manhole2_id]['surface_level'] = (
+                bob_2 + sewerline.ACI)
 
     return sewerdict
 

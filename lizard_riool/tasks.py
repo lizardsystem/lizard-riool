@@ -9,8 +9,6 @@ from celery.result import AsyncResult
 from django.core.cache import cache
 from django.db import transaction
 
-from sufriblib import parsers
-
 from lizard_riool import datamodel
 from lizard_riool import models
 from lizard_riool import save_uploaded_data
@@ -69,59 +67,32 @@ def process_uploaded_file(upload):
 
     rib.set_being_processed()
 
-    try:
-        # Initial parse of RIB and RMB file
-        ribinstance, riberrors = parsers.parse(rib.full_path)
-        rmbinstance, rmberrors = parsers.parse(upload.full_path)
+    sewerage_name = os.path.basename(upload.the_file)[:-4]  # Minus ".RMB"
 
-        putdict = None
-        sewerdict = None
-        if ribinstance:
-            # Get PUT data from the RIB and put it in a dictionary
-            putdict = save_uploaded_data.get_puts(ribinstance, riberrors)
-            # Get RIOOL data from the RIB and put it in a dictionary
-            sewerdict = save_uploaded_data.get_sewers(
-                ribinstance, putdict, riberrors)
+    if models.Sewerage.objects.filter(name=sewerage_name).exists():
+        upload.record_error(
+            ("Er bestaat al een stelsel met de naam '{name}'. "
+             "Verwijder het op de archiefpagina, of gebruik "
+             "een andere naam.").format(name=sewerage_name))
+        upload.set_unsuccessful()
+        rib.set_unsuccessful()
+        return
 
-            if rmbinstance:
-                # Add MRIO information from the RMB to the sewerdict
-                lines = save_uploaded_data.mrio_lines_by_sewer_id(rmbinstance)
-                for sewer in sewerdict:
-                    sewerdict[sewer]['measurements'] = (
-                        save_uploaded_data.get_mrio(
-                            lines,
-                            putdict,
-                            sewerdict[sewer],
-                            rmberrors))
-
-        if putdict and sewerdict and not riberrors and not rmberrors:
-            # From here on, no more errors are added, we assume all the
-            # data is correct. We save everything to the database, doing
-            # some further processing along the way.
-
-            # Save everything into the database
-            save_uploaded_data.save_into_database(
-                rib.full_path, upload.full_path,
-                putdict, sewerdict, rmberrors)
-            rib.set_successful()
-            upload.set_successful()
-        else:
-            # Something went wrong.
-            if riberrors:
-                rib.record_errors(riberrors)
-            else:
-                rib.record_error(
-                    "Bestand afgekeurd omdat er problemen "
-                    "zijn met het RMB bestand.")
-
-            if rmberrors:
-                upload.record_errors(rmberrors)
-            else:
-                upload.record_error(
-                    "Bestand afgekeurd omdat er problemen "
-                    "zijn met het RIB bestand.")
-            rib.set_unsuccessful()
+    for other_upload in models.Upload.objects.filter(status=2):
+        if other_upload == upload or other_upload == rib:
+            continue
+        if other_upload.filename.lower() == upload.filename.lower():
+            upload.record_error(
+                ("Er wordt al een bestand met de naam '{name}' verwerkt. "
+                 ).format(name=upload.filename))
             upload.set_unsuccessful()
+            rib.set_unsuccessful()
+            return
+
+    try:
+        with transaction.commit_on_success():
+            # All the actual processing
+            save_uploaded_data.protected_file_processing(rib, upload)
 
     except Exception as e:
         # Record whatever happened

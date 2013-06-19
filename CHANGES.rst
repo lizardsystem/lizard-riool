@@ -35,6 +35,12 @@ Changelog of lizard-riool
 - Tweak the error screen: show only errors, show only part of the
   line.
 
+- Try to reconstruct a manhole's surface level using a sewer's bob and
+  distance from bob to cover
+
+- Improve check if some RMB name already exists; error out if a file of the
+  same name is already being processed.
+
 
 0.5.13 (2013-05-22)
 -------------------
