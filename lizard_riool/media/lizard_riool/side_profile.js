@@ -197,7 +197,7 @@ $(function () {
                 {
                     upload_id: upload_id,
                     putten: putten,
-                    strengen: strengen,
+                    //strengen: strengen,
                     width: $dialog_content.width(),
                     height: $dialog_content.height()
                 },
