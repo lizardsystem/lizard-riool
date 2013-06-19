@@ -36,6 +36,23 @@ from lizard_riool.waar import WAAR
 logger = logging.getLogger(__name__)
 
 
+def transform(the_geom, srid):
+    """Perform an in-place geometry transformation.
+
+    the_geom: a GEOSGeometry
+    srid: an integer SRID
+
+    GEOS transform() is not accurate for 28992.
+    The infamous towgs84 parameter is missing?
+
+    """
+
+    if srid == 28992:
+        the_geom.transform(RD)
+    else:
+        the_geom.transform(srid)
+
+
 class ScreenFigure(figure.Figure):
     """A convenience class for creating matplotlib figures.
 
@@ -440,13 +457,7 @@ class ManholeFinder(View, JSONResponseMixin):
         except:
             return self.render_to_response()
 
-        # GEOS transform() is not accurate for 28992.
-        # The infamous towgs84 parameter is missing?
-
-        if srid == 28992:
-            manhole.the_geom.transform(RD)
-        else:
-            manhole.the_geom.transform(srid)
+        transform(manhole.the_geom, srid)
 
         context = {
             'x': manhole.the_geom.x,
@@ -468,6 +479,9 @@ class PathFinder(View, JSONResponseMixin):
         sewerage_pk = int(request.GET.get('upload_id'))
         source = request.GET.get('source')
         target = request.GET.get('target')
+        srs = request.GET.get('srs')  # e.g. EPSG:28992
+
+        srid = int(srs.split(':')[1])  # e.g. 28992
 
         # Create an empty graph.
 
@@ -503,7 +517,7 @@ class PathFinder(View, JSONResponseMixin):
 
         for put in path:
             location = G.node[put]['location']
-            location.transform(RD)  # TODO
+            transform(location, srid)
             put = {'put': put, 'x': location.x, 'y': location.y}
             putten.append(put)
 

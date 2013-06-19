@@ -123,7 +123,16 @@ $.lizard_riool.mark_put = function (put) {
         } else if (put.upload_id === $.lizard_riool.upload_id) {
             url = '/riolering/bar/';
             prev_put = layer.features[layer.features.length - 1];
-            $.getJSON(url, {upload_id: put.upload_id, source: prev_put.attributes.label, target: put.put}, draw_path);
+            $.getJSON(
+                url,
+                {
+                    upload_id: put.upload_id,
+                    source: prev_put.attributes.label,
+                    target: put.put,
+                    srs: map.getProjection()
+                },
+                draw_path
+            );
         }
 
     }
