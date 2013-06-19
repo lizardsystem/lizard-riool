@@ -7,11 +7,15 @@ Then we compute lost capacity in the graph.
 Then the numbers from the graph are stored in the relevant database models.
 """
 
+import logging
+
 from collections import defaultdict
 from heapq import heappush, heappop
 from itertools import chain
 
 import networkx as nx
+
+logger = logging.getLogger(__name__)
 
 
 def compute_lost_capacity(saved_puts, saved_sewers, measurements_dict):

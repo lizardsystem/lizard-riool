@@ -582,7 +582,8 @@ class UploadedFileErrorsView(ViewContextMixin, TemplateView):
                 lines.append({
                         'line_number': line_number,
                         'has_error': line_number in errordict,
-                        'file_line': line.strip(),
+                        'file_line': line.strip("\r\n"),
+                        'file_line_short': line.strip("\r\n")[:300],
                         'errors': errordict.get(line_number)})
 
         return lines

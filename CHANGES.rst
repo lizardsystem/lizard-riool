@@ -22,12 +22,19 @@ Changelog of lizard-riool
 - Add "virtual sewers" if a sewer is present in the RIB file, but not
   in the RMB file.
 
+- Add virtual measurements at the locations of the manholes, height
+  equal to the sewer's BOBs
+
 - Save a Sewerage's files once it has been imported successfully, to a
   directory that is independent of the Upload.
 
 - Implemented quality criteria; missing measurements result in
   "quality unknown", sufficient measurements in "quality reliable" and
   too few measurements in "quality unreliable".
+
+- Tweak the error screen: show only errors, show only part of the
+  line.
+
 
 0.5.13 (2013-05-22)
 -------------------

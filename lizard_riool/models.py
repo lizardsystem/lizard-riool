@@ -203,6 +203,9 @@ class UploadedFileError(models.Model):
     line = models.IntegerField(default=0)
     error_message = models.CharField(max_length=300)
 
+    class Meta:
+        ordering = ('uploaded_file', 'line')
+
     def message(self):
         if self.line > 0:
             return (

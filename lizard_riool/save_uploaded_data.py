@@ -339,14 +339,14 @@ def virtual_measurements(sewer):
 
     dx = sewer.manhole2.the_geom.x - startx
     dy = sewer.manhole2.the_geom.y - starty
-    dbob = sewer.bob2
+    dbob = sewer.bob2 - startbob
 
     total_length = sewer.the_geom_length  # m
 
     distance = 0.3  # Every 30cm
 
-    for dist in count(start=distance, step=distance):
-        if dist > total_length:
+    for dist in count(start=0, step=distance):
+        if dist >= total_length:
             break
 
         factor = dist / total_length
@@ -360,6 +360,17 @@ def virtual_measurements(sewer):
             bob=(startbob + factor * dbob),
             obb=(startbob + factor * dbob) + sewer.diameter,
             the_geom=Point(startx + factor * dx, starty + factor * dy))
+
+    # Add last point
+    yield models.SewerMeasurement(
+        sewer=sewer,
+        dist=total_length,
+        virtual=True,
+        water_level=None,
+        flooded_pct=None,
+        bob=sewer.bob2,
+        obb=sewer.bob2 + sewer.diameter,
+        the_geom=sewer.manhole2.the_geom)
 
 
 def distance(p1, p2):
@@ -472,7 +483,9 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
         sewer = saved_sewers[sewer_id]
 
         if measurements:
-            sewer_measurements_dict[sewer_id] = [
+            sewer_measurements = [
+                # Create the SewerMeasurement objects, but don't save
+                # them yet!
                 models.SewerMeasurement(
                     sewer=sewer,
                     dist=m['dist'],
@@ -483,8 +496,36 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
                     obb=m['bob'] + sewerinfo['diameter'],
                     the_geom=Point(*m['coordinate']))
                 for m in measurements]
-            sewer.judge_quality(sewer_measurements_dict[sewer_id])
+
+            # Quality
+            sewer.judge_quality(sewer_measurements)
             sewer.save()
+
+            # BOB correction ("sawtooth" phenomenon)
+            correct_bob_values(sewer, sewer_measurements)
+
+            # Create two virtual sewer measurements for the start and
+            # end of the sewer
+            virtual_start = models.SewerMeasurement(
+                sewer=sewer, dist=0, virtual=True, water_level=None,
+                flooded_pct=None, bob=sewer.bob1,
+                obb=sewer.bob1 + sewerinfo['diameter'],
+                the_geom=sewer.manhole1.the_geom)
+            virtual_end = models.SewerMeasurement(
+                sewer=sewer, dist=sewer.the_geom_length,
+                virtual=True, water_level=None,
+                flooded_pct=None, bob=sewer.bob2,
+                obb=sewer.bob2 + sewerinfo['diameter'],
+                the_geom=sewer.manhole2.the_geom)
+
+            # Note: we MUST add those two virtual points only after
+            # doing the sawtooth correction, otherwise the sawtooth
+            # correction will think that everything is fine already
+            # since the first and end points would be equal to the
+            # bobs of the sewer...
+            sewer_measurements = (
+                [virtual_start] + sewer_measurements + [virtual_end])
+            sewer_measurements_dict[sewer_id] = sewer_measurements
         else:
             # Create "virtual measurements"
             sewer_measurements_dict[sewer_id] = list(
@@ -496,8 +537,59 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
     lost_capacity.compute_lost_capacity(
         saved_puts, saved_sewers, sewer_measurements_dict)
 
+    # Save all the SewerMeasurement objects to the database. Since
+    # there are thousands of them, it is essential to use bulk_create.
     models.SewerMeasurement.objects.bulk_create(list(chain(
                 *sewer_measurements_dict.values())))
 
     # Success -- copy files
     sewerage.move_files(rib_path, rmb_path)
+
+
+class Line(object):
+    """A straight-line (i.e. linear) equation.
+
+    This naive implementation cannot handle vertical lines (x = constant),
+    but suffices for our purpose (since x1 != x2 for all segments).
+    """
+
+    def __init__(self, point1, point2):
+        "Points are (x, y) tuples."
+        x1, y1 = point1
+        x2, y2 = point2
+        self.a = (y1 - y2) / (x1 - x2)
+        self.b = y1 - self.a * x1
+
+    def y(self, x):
+        "Return y for a given x."
+        return self.a * x + self.b
+
+
+def correct_bob_values(sewer, measurements):
+    """Correct MRIO measurements via known BOBs.
+
+    MRIO measurements appear to have significant errors. In particular,
+    ZYS = E (degrees) and ZYS = F (%) tend to end too deep, resulting
+    in a sawtooth wave in the final side profile graph. Depths can
+    be corrected using the known BOB values.
+    """
+
+    if len(measurements) < 3:
+        # Nothing to correct
+        return
+
+    ideal_line = Line((0, sewer.bob1), (sewer.the_geom_length, sewer.bob2))
+
+    min_measurement = min(measurements, key=lambda m: m.dist)
+    max_measurement = max(measurements, key=lambda m: m.dist)
+
+    apparent_line = Line((min_measurement.dist, min_measurement.bob),
+                         (max_measurement.dist, max_measurement.bob))
+
+    # Correct bob values
+    for measurement in measurements[1:]:
+        ideal_bob = ideal_line.y(measurement.dist)
+        apparent_bob = apparent_line.y(measurement.dist)
+        correction = ideal_bob - apparent_bob
+        measurement.bob = measurement.bob + correction
+        measurement.obb = measurement.obb + correction

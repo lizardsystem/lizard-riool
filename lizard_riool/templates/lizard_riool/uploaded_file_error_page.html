@@ -20,18 +20,20 @@
 
 {% if view.lines_and_errors %}
 <h3>Fouten per regel</h3>
-<table class="file-errors" cellpadding="1" cellspacing="0">
+<table class="file-errors" cellpadding="1" cellspacing="8">
 {% for line in view.lines_and_errors %}
+{% if line.has_error %} {% comment %} We skip all other lines {% endcomment %}
   <tr class="file-errors">
     <td>{{ line.line_number }}</td>
     <td class="{% if line.has_error %}error{% else %}noerror{% endif %}">
-    {{ line.file_line }}</td>
+    {{ line.file_line_short }}</td>
     <td>
     {% for error in line.errors %}
     {{ error }}
     {% endfor %}
     </td>
   </tr>
+{% endif %}
 {% endfor %}
 </table>
 {% endif %}
