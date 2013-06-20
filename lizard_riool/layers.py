@@ -25,6 +25,7 @@ CLASSES = (
     ('C', '25%-50%',  0.25, 0.50, '7f7f00'),
     ('D', '50%-75%',  0.50, 0.75, 'bf3f00'),
     ('E', '75%-100%', 0.75, 1.01, 'ff0000'),  # red
+    ('?', 'Onbekend', 1.00, 0.00, '000000'),  # black
 )
 
 
@@ -171,6 +172,23 @@ class SewerageAdapter(WorkspaceItemAdapter):
             symbol.allow_overlap = True
             rule.symbols.append(symbol)
             style.rules.append(rule)
+
+        # Style else rule.
+
+        r, g, b, a = html_to_mapnik('00000')
+
+        icon = SYMBOL_MANAGER.get_symbol_transformed(
+            RIOOL_ICON, color=(r, g, b, a)
+        )
+
+        rule = mapnik.Rule()
+        rule.set_else(True)
+        symbol = mapnik.PointSymbolizer(
+            os.path.join(GENERATED_ICONS, icon), "png", 16, 16
+        )
+        symbol.allow_overlap = True
+        rule.symbols.append(symbol)
+        style.rules.append(rule)
 
         # Setup datasource.
 
