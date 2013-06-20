@@ -213,21 +213,11 @@ class SideProfileGraph2(View):
             bobx, boby, obby, water = [], [], [], []
             sewer = G[d[manholes[i]]][d[manholes[i + 1]]]['sewer']
 
-            bobx.append(0)
-            boby.append(sewer.bob1)
-            obby.append(sewer.bob1 + sewer.diameter)
-#           water.append(?)  # What level here?
-
             for measurement in sewer.measurements.order_by('dist'):
                 bobx.append(measurement.dist)
                 boby.append(measurement.bob)
                 obby.append(measurement.obb)
                 water.append(measurement.water_level)
-
-            bobx.append(sewer.the_geom_length)
-            boby.append(sewer.bob2)
-            obby.append(sewer.bob2 + sewer.diameter)
-#           water.append(?)  # What level here?
 
             if sewer.manhole1.code == manholes[i]:
                 # Direction manhole1 => manhole2
@@ -238,13 +228,6 @@ class SideProfileGraph2(View):
 
             ax1.plot(bobx, boby, color='brown')
             ax1.plot(bobx, obby, color='brown')
-
-            # Remove the first and last value until
-            # until we have a water level there.
-
-            bobx.pop(0), bobx.pop()
-            boby.pop(0), boby.pop()
-
             ax1.fill_between(bobx, boby, water, interpolate=False, alpha=0.5)
 
         # Visualize manholes as labeled, vertical lines.
