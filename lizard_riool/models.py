@@ -60,11 +60,16 @@ def failure_function(*argv, **kwargs):
 
 
 class Upload(models.Model):
+    NOT_PROCESSED_YET = 1
+    BEING_PROCESSED = 2
+    UNSUCCESSFUL = 3
+    SUCCESSFUL = 4
+
     STATUS_CHOICES = (
-        (1, "Nog niet verwerkt"),
-        (2, "Wordt verwerkt"),
-        (3, "Afgekeurd"),
-        (4, "Goedgekeurd"))
+        (NOT_PROCESSED_YET, "Nog niet verwerkt"),
+        (BEING_PROCESSED, "Wordt verwerkt"),
+        (UNSUCCESSFUL, "Afgekeurd"),
+        (SUCCESSFUL, "Goedgekeurd"))
 
     BASE_PATH = os.path.join(
         settings.BUILDOUT_DIR, 'var', 'lizard_riool', 'uploads')

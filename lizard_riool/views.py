@@ -28,6 +28,8 @@ from lizard_map.models import WorkspaceEditItem
 from lizard_map.views import AppView
 from lizard_ui.views import ViewContextMixin
 
+from sufriblib.parsers import enumerate_file
+
 from lizard_riool import tasks
 from lizard_riool import models
 from lizard_riool.layers import SewerageAdapter
@@ -329,39 +331,36 @@ class UploadView(TemplateView):
 
 
 class DownloadView(View):
-    "Return computed results in a SUFRIB-like format."
+    """Return computed results in a SUFRIB-like format. The old code
+    was rewritten to work with the new data model, but most of it
+    remains the same."""
 
-    def get(self, request, *args, **kwargs):
-
-        # The SUFRMB file for which results have been computed.
-        upload = Upload.objects.get(pk=kwargs['id'])
+    def get(self, request, sewerage_id, *args, **kwargs):
+        sewerage = Sewerage.objects.get(pk=sewerage_id)
 
         # A list of SUFRIB records (i.e. strings).
         results = []
 
-        # The computation has to be finished.
-        if upload.has_computed_percentages:
-            self.storedgraph_dict = dict((obj.suf_id, obj) for obj in upload.
-                storedgraph_set.only('suf_id', 'flooded_percentage'))
-            self.rmb = models.RMB(upload.pk)
-            with upload.the_file.file as f:
-                for line in f:
-                    if line.startswith('*ALGE|'):
-                        # Just copy it.
-                        results.append(line.strip('\r\n'))
-                    elif line.startswith('*RIOO|'):
-                        # Just copy it.
-                        results.append(line.strip('\r\n'))
-                        # Add *WAAR.
-                        riool = line[6:36].strip()
-                        results.extend(self.__get_results(riool))
+        for line_number, line in enumerate_file(sewerage.rmb):
+            if line.startswith("*ALGE"):
+                results.append(line)
+            elif line.startswith("*RIOO"):
+                results.append(line)
+                sewer_code = line[6:36].strip()
+                try:
+                    sewer = Sewer.objects.get(
+                        sewerage=sewerage, code=sewer_code)
+                    results.extend(self.__get_results(sewer))
+                except Sewer.DoesNotExist:
+                    pass  # Don't print *WAAR records for this one
 
         response = HttpResponse('\n'.join(results), content_type='text/plain')
-        filename = os.path.splitext(upload.filename)[0] + '_results.txt'
+        filename = os.path.splitext(
+            os.path.filename(sewerage.rmb))[0] + '_results.txt'
         response['Content-Disposition'] = 'attachment; filename=%s' % filename
         return response
 
-    def __get_results(self, riool):
+    def __get_results(self, sewer):
         """Construct and return *WAAR records.
 
         Each *MRIO can be classified according to its percentage flooded.
@@ -369,30 +368,32 @@ class DownloadView(View):
         the *WAAR record. Only *WAAR records that mark a change of
         class are returned.
         """
+
         results = []
         prev_klasse = None
-        for obj in self.rmb.pool[riool]:
-            if isinstance(obj, models.Rioolmeting):
-                try:
-                    node = self.storedgraph_dict[obj.suf_id]
-                except KeyError:
-                    msg = "Skipping %s (not in stored graph)." % obj.suf_id
-                    logger.debug(msg)
-                    continue
-                pct = node.flooded_percentage
-                klasse, min_pct, max_pct = get_class_boundaries(pct)
-                if klasse != prev_klasse:
-                    waar = WAAR()
-                    waar.ZZA = obj.ZYA
-                    waar.ZZB = obj.ZYB
-                    waar.ZZE = riool
-                    waar.ZZF = 'BDD'
-                    waar.ZZI = min_pct
-                    waar.ZZJ = max_pct
-                    waar.ZZV = 'Door Lizard Riool Toolkit'
-                    results.append(str(waar))
-                    prev_klasse = klasse
-        return results
+        # for obj in SewerMeasurement.objects.filter(sewer=sewer, order_by=('dist',)):
+        #     self.rmb.pool[riool]:
+        #     if isinstance(obj, Rioolmeting):
+        #         try:
+        #             node = self.storedgraph_dict[obj.suf_id]
+        #         except KeyError:
+        #             msg = "Skipping %s (not in stored graph)." % obj.suf_id
+        #             logger.debug(msg)
+        #             continue
+        #         pct = node.flooded_percentage
+        #         klasse, min_pct, max_pct = get_class_boundaries(pct)
+        #         if klasse != prev_klasse:
+        #             waar = WAAR()
+        #             waar.ZZA = obj.ZYA
+        #             waar.ZZB = obj.ZYB
+        #             waar.ZZE = riool
+        #             waar.ZZF = 'BDD'
+        #             waar.ZZI = min_pct
+        #             waar.ZZJ = max_pct
+        #             waar.ZZV = 'Door Lizard Riool Toolkit'
+        #             results.append(str(waar))
+        #             prev_klasse = klasse
+        # return results
 
 
 class JSONResponseMixin(object):
@@ -603,7 +604,9 @@ def delete_uploaded_file(request, upload_id):
         # Well, that's no problem here
         return HttpResponse()
 
-    upload.delete()
+    if upload.status != Upload.BEING_PROCESSED:
+        # Only delete if not processing
+        upload.delete()
 
     return HttpResponse()
 
