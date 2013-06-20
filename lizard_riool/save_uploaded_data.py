@@ -106,7 +106,14 @@ def get_puts(ribfile, riberrors):
         is_sink = putline.is_sink
 
         if is_sink:
-            found_first_sink = True
+            if found_first_sink:
+                riberrors.append(Error(
+                        line_number=putline.line_number,
+                        message=(
+                            "Er is meer dan een put als gemaal gemarkeerd!")))
+                continue
+            else:
+                found_first_sink = True
 
         # putline.CCU is not a required field, but if it's there, it
         # must be a float. Otherwise we'll try to compute the surface
