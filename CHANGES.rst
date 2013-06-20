@@ -2,8 +2,8 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.5.14 (unreleased)
--------------------
+0.9 (2013-06-20)
+----------------
 
 - New upload screen (UploadsView); divides uploads in four categories
   (not processed yet, being processed, errors, successful) and does all
