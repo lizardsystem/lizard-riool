@@ -53,7 +53,14 @@ def process_uploaded_file_when_ready(upload_id, retries=MAX_RETRIES):
 def process_uploaded_file(upload):
     # If it's an RIB, ignore it, otherwise it's an RMB -- find its RIB.
     if upload.suffix.lower() != ".rmb":
-        return
+        if upload.suffix.lower() != ".rib":
+            upload.record_error(
+                "Alleen .RIB en .RMB bestanden kunnen verwerkt worden")
+            upload.set_unsuccessful()
+            return
+        else:
+            # Just let it wait for the .RMB
+            return
 
     # Set "being processed" status
     upload.set_being_processed()

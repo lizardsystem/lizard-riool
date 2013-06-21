@@ -12,7 +12,7 @@ $(function () {
         url : '{% url upload_dialog_url %}',
         //max_file_size : '4mb',
         //max_file_count : 20, // user can add no more then 20 files at a time
-        chunk_size : '50mb', // https://office.lizard.net/trac/ticket/3526
+        chunk_size : '1000mb', // https://office.lizard.net/trac/ticket/3526
         unique_names : true,
         multiple_queues : true,
 
@@ -29,12 +29,6 @@ $(function () {
 
         // Sort files
         sortable: true,
-
-        // Specify what files to browse for
-        filters : [
-            {title : "rioolinspectiebestanden", extensions : "rib"},
-            {title : "rioolmeetbestanden", extensions : "rmb"}
-        ],
 
         // Flash settings
         flash_swf_url : '{{ STATIC_URL }}plupload/js/plupload.flash.swf',

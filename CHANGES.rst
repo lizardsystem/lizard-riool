@@ -13,6 +13,11 @@ Changelog of lizard-riool
 
 - Increased max length of file path fields, we sometimes ran into them.
 
+- Make sure no error messages occur in the upload window, it sometimes
+  gets confused
+
+- Increase chunk size, uploading files > 50mb went wrong
+
 
 0.9 (2013-06-20)
 ----------------

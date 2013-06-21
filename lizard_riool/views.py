@@ -285,10 +285,6 @@ class UploadView(TemplateView):
 
         filename = request.POST['filename']
 
-        if not (filename.lower().endswith('.rib') or
-                filename.lower().endswith('.rmb')):
-            raise Exception("Upload een .RIB of .RMB file.")
-
         fullpath = os.path.join(cls.dtemp, filename)
         chunks = int(request.POST.get('chunks', 1))
         chunk = int(request.POST.get('chunk', 0))
