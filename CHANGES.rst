@@ -18,6 +18,8 @@ Changelog of lizard-riool
 
 - Increase chunk size, uploading files > 50mb went wrong
 
+- Improved error messages.
+
 
 0.9 (2013-06-20)
 ----------------
