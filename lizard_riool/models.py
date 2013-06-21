@@ -1073,6 +1073,14 @@ class Sewerage(models.Model):
 
         return super(Sewerage, self).delete()
 
+    @property
+    def rib_filename(self):
+        return os.path.basename(self.rib)
+
+    @property
+    def rmb_filename(self):
+        return os.path.basename(self.rmb)
+
     def __unicode__(self):
         return self.name
 

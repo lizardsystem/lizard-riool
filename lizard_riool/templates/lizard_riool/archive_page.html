@@ -1,0 +1,63 @@
+{% extends "lizard_ui/lizardbase.html" %}
+{% load workspaces %}
+
+{% block css %}
+{{ block.super }}
+<link rel="stylesheet"
+      type="text/css"
+      href="{{ STATIC_URL }}lizard_riool/lizard_riool.css" />
+{% endblock css %}
+
+{% block map-javascript %}
+{{ block.super }}
+<script type="text/javascript"
+        src="{{ STATIC_URL }}lizard_riool/archive_page.js"></script>
+{% endblock map-javascript %}
+
+{% block sidebar %}
+
+<div class="sidebarbox sidebarbox-stretched">
+  <h2>Archiefpagina</h2>
+
+  <p>Op deze pagina kan aangegeven worden welke stelsels zichtbaar
+  zijn op de "Dwarsprofielen" pagina.</p>
+  <p>Ook kunnen stelsels hier verwijderd worden, originale bestanden
+  gedownload worden en een gegenereerd RIB bestand met verloren
+  berging klasses gegenereerd worden.</p>
+</div>
+
+{% endblock sidebar %}
+
+{% block content %}
+<div class="archive_page">
+  <h2>Archiefpagina {{ view.page_number }}</h2>
+
+  {% with page=view.page %}
+  <form autocomplete="off">
+  <table class="archive_page table table-bordered">
+  <thead>
+    <th>Actief</th>
+    <th>Naam</th>
+    <th>Originele bestanden</th>
+    <th>Gegenereerde RIB</th>
+    <th>Verwijderen</th>
+  </thead>
+  {% for sewerage in page.object_list %}
+    <tr {% if sewerage.active %}class="success"{% endif %}>
+      <td><input type="checkbox" class="toggle-active" data-activate-url="{% url lizard_riool_activate_sewerage sewerage_id=sewerage.id %}" {% if sewerage.active %}checked="checked"{% endif %}></td>
+      <td><strong>{{ sewerage.name }}</strong></td>
+      <td><a href="{% url lizard_riool_download_original sewerage_id=sewerage.id filename=sewerage.rib_filename %}">{{ sewerage.rib_filename }}</a>, <a href="{% url lizard_riool_download_original sewerage_id=sewerage.id filename=sewerage.rmb_filename %}">{{ sewerage.rmb_filename }}</a></td>
+      <td></td>
+      <td><button class="remove-sewerage btn btn-danger" data-sewerage-name="{{ sewerage.name }}" data-delete-url="{% url lizard_riool_activate_sewerage sewerage_id=sewerage.id %}">Verwijder</button></td>
+    </tr>
+  {% endfor %}
+  </table>
+  </form>
+  <ul class="pages">
+  <li>{% if page.has_previous %}<a href="{{ view.previous_page_url }}">Vorige pagina</a>{% else %}Vorige pagina{% endif %}</li>
+  {% for page_number in view.page_range %}<li>{% if page_number == view.page_number %}{{ page_number }}{% else %}<a href="{% url lizard_riool_archive_page_numbered page_number=page_number %}">{{ page_number }}</a>{% endif %}</li>{% endfor %}
+  <li>{% if page.has_next %}<a href="{{ view.next_page_url }}">Volgende pagina</a>{% else %}Volgende pagina{% endif %}</li>
+  </ul>
+  {% endwith %}
+</div>
+{% endblock content %}

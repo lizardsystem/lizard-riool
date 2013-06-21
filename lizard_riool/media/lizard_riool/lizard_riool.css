@@ -46,3 +46,15 @@ div#acties {
     min-height: 2em;
 }
 
+div.archive_page {
+    width: 1200px;
+    margin: 10px;
+}
+
+ul.pages {
+    list-style-type: none;
+}
+ul.pages li {
+    display: inline;
+    margin: 5px;
+}

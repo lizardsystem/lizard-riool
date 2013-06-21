@@ -7,11 +7,17 @@ import os.path
 import tempfile
 import urllib
 
+from django.conf import settings
 from django.contrib.gis.geos import Point
+from django.core.paginator import Paginator
 from django.core.urlresolvers import reverse
+from django.http import Http404
 from django.http import HttpResponse
 from django.utils import simplejson as json
+from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView, View
+from django.views.static import serve
+
 from matplotlib import figure, transforms
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import networkx as nx
@@ -23,6 +29,7 @@ from lizard_map.views import AppView
 from lizard_ui.views import ViewContextMixin
 
 from lizard_riool import tasks
+from lizard_riool import models
 from lizard_riool.datamodel import RMB
 from lizard_riool.layers import SewerageAdapter
 from lizard_riool.layers import get_class_boundaries
@@ -598,3 +605,92 @@ def delete_uploaded_file(request, upload_id):
     upload.delete()
 
     return HttpResponse()
+
+
+class ArchivePage(AppView):
+    template_name = "lizard_riool/archive_page.html"
+
+    def get(self, request, page_number=1):
+        try:
+            self.page_number = int(page_number)
+        except ValueError:
+            self.page_number = 1
+
+        self.paginator = Paginator(
+            models.Sewerage.objects.all().order_by("name"), 15)
+
+        return super(ArchivePage, self).get(request)
+
+    def page(self):
+        return self.paginator.page(self.page_number)
+
+    def page_range(self):
+        return self.paginator.page_range
+
+    def previous_page_url(self):
+        return reverse('lizard_riool_archive_page_numbered',
+                       kwargs={'page_number': str(self.page_number - 1)})
+
+    def next_page_url(self):
+        return reverse('lizard_riool_archive_page_numbered',
+                       kwargs={'page_number': str(self.page_number + 1)})
+
+
+@require_http_methods(["POST", "DELETE"])
+def activate_sewerage_view(request, sewerage_id):
+    """The archive page POSTs to this. Posting "active=1" to a sewerage id
+    activates it, "active=0" deactivates it. All errors are ignored and
+    nothing is returned.
+
+    The delete button on the archive page sends a DELETE request to this
+    view. It deletes the sewerage and its files without further ado."""
+    if request.method == "POST":
+        if 'active' in request.POST:
+            active = (request.POST['active'] == u'1')
+            try:
+                sewerage = Sewerage.objects.get(pk=sewerage_id)
+                sewerage.active = active
+                sewerage.save()
+            except Sewerage.DoesNotExist:
+                pass
+
+    if request.method == "DELETE":
+        try:
+            sewerage = Sewerage.objects.get(pk=sewerage_id)
+            sewerage.delete()
+        except Sewerage.DoesNotExist:
+            pass
+        
+    return HttpResponse()
+    
+
+def download_original_view(request, sewerage_id, filename):
+    try:
+        sewerage = Sewerage.objects.get(pk=sewerage_id)
+    except Sewerage.DoesNotExist:
+        raise Http404
+
+    if filename == sewerage.rib_filename:
+        path = sewerage.rib
+    elif filename == sewerage.rmb_filename:
+        path = sewerage.rmb
+    else:
+        raise Http404
+
+    if settings.DEBUG or '+' in path:
+        # Nginx fails to serve files with a '+' in their name. Encoding
+        # the '+' doesn't work, because there is an Nginx issue that says
+        # it doesn't decode X-Accel-Redirect paths.
+        # In short, we just do these ourselves...
+        # XXX
+        return serve(request, path, '/')
+
+    response = HttpResponse()
+    response['X-Accel-Redirect'] = (
+        '/riolering/stelsels/nginx_download/{sewerage_id}/{filename}'
+        .format(sewerage_id=sewerage.id, filename=filename))
+    response['Content-Disposition'] = (
+            'attachment; filename="{filename}"'.format(filename))
+    # content-type is set in nginx.
+    response['Content-Type'] = ''
+    return response
