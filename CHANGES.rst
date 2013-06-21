@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.9.1 (unreleased)
+0.9.1 (2013-06-21)
 ------------------
 
 - Added an "archive page" at riolering/archief/
