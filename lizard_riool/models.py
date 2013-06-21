@@ -1198,12 +1198,16 @@ class SewerMeasurement(models.Model):
 
     def set_water_level(self, water_level):
         # Restrict water_level so that it's in between bob and obb
-        self.water_level = max(
-            self.bob,
-            min(self.obb, water_level))
+        if water_level is None:
+            self.water_level = None
+        else:
+            self.water_level = max(
+                self.bob,
+                min(self.obb, water_level))
 
     def compute_flooded_pct(self, use_sewer=None):
         if self.water_level is None:
+            self.flooded_pct = None
             return
 
         depth = self.water_level - self.bob

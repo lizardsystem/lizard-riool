@@ -7,6 +7,10 @@ Changelog of lizard-riool
 
 - Added an "archive page" at riolering/archief/
 
+- Non computed water levels (because part of the system is not
+  connected to the rest) are now stored as NULL values, and therefore
+  drawing them in black now works.
+
 
 0.9 (2013-06-20)
 ----------------
