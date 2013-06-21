@@ -11,6 +11,8 @@ Changelog of lizard-riool
   connected to the rest) are now stored as NULL values, and therefore
   drawing them in black now works.
 
+- Increased max length of file path fields, we sometimes ran into them.
+
 
 0.9 (2013-06-20)
 ----------------

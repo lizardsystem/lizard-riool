@@ -73,7 +73,12 @@ class Upload(models.Model):
 
     "An uploaded file"
     objects = models.GeoManager()
-    the_file = models.FilePathField(path=BASE_PATH, verbose_name='File')
+    the_file = models.FilePathField(
+        path=BASE_PATH, verbose_name='File',
+        max_length=400)  # Note this is including the path, and we
+                         # really really don't want to run into the
+                         # limit
+    
     the_time = models.DateTimeField(auto_now=True, verbose_name='Time')
 
     status = models.IntegerField(
@@ -1036,9 +1041,17 @@ class Sewerage(models.Model):
 
     name = models.CharField(max_length=128)
     rib = models.FilePathField(
-        path=BASE_PATH, verbose_name='RIB File', null=True)
+        path=BASE_PATH, verbose_name='RIB File', null=True,
+        max_length=400)  # Note this is including the path, and we
+                         # really really don't want to run into the
+                         # limit
+
     rmb = models.FilePathField(
-        path=BASE_PATH, verbose_name='RMB File', null=True)
+        path=BASE_PATH, verbose_name='RMB File', null=True,
+        max_length=400)  # Note this is including the path, and we
+                         # really really don't want to run into the
+                         # limit
+
 
     active = models.BooleanField(default=True)
 
