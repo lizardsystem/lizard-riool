@@ -37,6 +37,7 @@ def get_class_boundaries(pct):
 
 
 MEDIA_URL = settings.MEDIA_URL
+STATIC_URL = settings.STATIC_URL
 GENERATED_ICONS = os.path.join(settings.MEDIA_ROOT, 'generated_icons')
 SYMBOL_MANAGER = SymbolManager(ICON_ORIGINALS, GENERATED_ICONS)
 RIOOL_ICON = 'pixel2.png'
@@ -124,6 +125,8 @@ class SewerageAdapter(WorkspaceItemAdapter):
         """
         legend = []
 
+        # Lost capacity classes
+
         for name, description, _, _, color in CLASSES:
             r, g, b, a = html_to_mapnik(color)
             icon = SYMBOL_MANAGER.get_symbol_transformed(
@@ -133,6 +136,33 @@ class SewerageAdapter(WorkspaceItemAdapter):
                 'img_url': os.path.join(MEDIA_URL, 'generated_icons', icon),
                 'description': "klasse {0} ({1})".format(name, description),
             })
+
+        # Insufficient measurements
+
+        legend.append({
+            'img_url': os.path.join(
+                STATIC_URL, 'lizard_riool/sewer-label-red.png'
+             ),
+            'description': 'Onvoldoende metingen'
+        })
+
+        # Sufficient measurements
+
+        legend.append({
+            'img_url': os.path.join(
+                STATIC_URL, 'lizard_riool/sewer-label-green.png'
+             ),
+            'description': 'Voldoende metingen'
+        })
+
+        # No measurements
+
+        legend.append({
+            'img_url': os.path.join(
+                STATIC_URL, 'lizard_riool/sewer-label-blue.png'
+             ),
+            'description': 'Geen metingen'
+        })
 
         return legend
 

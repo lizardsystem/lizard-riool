@@ -238,8 +238,8 @@ class SideProfileGraph2(View):
 
         for x, label in zip(xs, manholes):
             ax1.axvline(x, color='red')
-            ax1.text(x, 1.01, label, rotation='vertical',
-                transform=transform, va='bottom', fontsize=9
+            ax1.text(x, 1.01, label, rotation='vertical', transform=transform,
+                fontsize=9, ha='center', va='bottom',
             )
 
         # Finalize matplotlib figure.
