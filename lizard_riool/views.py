@@ -224,7 +224,14 @@ class SideProfileGraph2(View):
                 bobx.append(measurement.dist)
                 boby.append(measurement.bob)
                 obby.append(measurement.obb)
-                water.append(measurement.water_level)
+                # Sewers that are not connected to a sink,
+                # either directly or indirectly, have a
+                # water_level of `None`.
+                if measurement.water_level is not None:
+                    water_level = measurement.water_level
+                else:
+                    water_level = measurement.bob
+                water.append(water_level)
 
             if sewer.manhole1.code == manholes[i]:
                 # Direction manhole1 => manhole2
@@ -656,9 +663,9 @@ def activate_sewerage_view(request, sewerage_id):
             sewerage.delete()
         except Sewerage.DoesNotExist:
             pass
-        
+
     return HttpResponse()
-    
+
 
 def download_original_view(request, sewerage_id, filename):
     try:
