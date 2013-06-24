@@ -73,7 +73,12 @@ class Upload(models.Model):
 
     "An uploaded file"
     objects = models.GeoManager()
-    the_file = models.FilePathField(path=BASE_PATH, verbose_name='File')
+    the_file = models.FilePathField(
+        path=BASE_PATH, verbose_name='File',
+        max_length=400)  # Note this is including the path, and we
+                         # really really don't want to run into the
+                         # limit
+    
     the_time = models.DateTimeField(auto_now=True, verbose_name='Time')
 
     status = models.IntegerField(
@@ -1036,9 +1041,17 @@ class Sewerage(models.Model):
 
     name = models.CharField(max_length=128)
     rib = models.FilePathField(
-        path=BASE_PATH, verbose_name='RIB File', null=True)
+        path=BASE_PATH, verbose_name='RIB File', null=True,
+        max_length=400)  # Note this is including the path, and we
+                         # really really don't want to run into the
+                         # limit
+
     rmb = models.FilePathField(
-        path=BASE_PATH, verbose_name='RMB File', null=True)
+        path=BASE_PATH, verbose_name='RMB File', null=True,
+        max_length=400)  # Note this is including the path, and we
+                         # really really don't want to run into the
+                         # limit
+
 
     active = models.BooleanField(default=True)
 
@@ -1072,6 +1085,14 @@ class Sewerage(models.Model):
             ignore_errors=True)
 
         return super(Sewerage, self).delete()
+
+    @property
+    def rib_filename(self):
+        return os.path.basename(self.rib)
+
+    @property
+    def rmb_filename(self):
+        return os.path.basename(self.rmb)
 
     def __unicode__(self):
         return self.name
@@ -1190,12 +1211,16 @@ class SewerMeasurement(models.Model):
 
     def set_water_level(self, water_level):
         # Restrict water_level so that it's in between bob and obb
-        self.water_level = max(
-            self.bob,
-            min(self.obb, water_level))
+        if water_level is None:
+            self.water_level = None
+        else:
+            self.water_level = max(
+                self.bob,
+                min(self.obb, water_level))
 
     def compute_flooded_pct(self, use_sewer=None):
         if self.water_level is None:
+            self.flooded_pct = None
             return
 
         depth = self.water_level - self.bob

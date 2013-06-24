@@ -1,7 +1,7 @@
 // (c) Nelen & Schuurmans.  GPL licensed, see LICENSE.txt.
 
 // jslint configuration
-/*global $ */
+/*global $, window, setTimeout */
 
 "use strict";
 
@@ -108,9 +108,12 @@ var beheer_functions = beheer_functions || (function () {
         var name = uploaded_file.name;
 
         var li = $("<li>").attr("data-file-id", id).append(name);
+        
+        var sprite_remove;
+        var sprite_errors;
 
         if (status === "not_being_processed_yet") {
-            var sprite_remove = ($("<span>")
+            sprite_remove = ($("<span>")
                                  .attr("class", "remove ss_sprite ss_delete")
                                  .attr("rel", "tipsy-south")
                                  .attr("title", "Bestand verwijderen")
@@ -119,17 +122,17 @@ var beheer_functions = beheer_functions || (function () {
         }
 
         if (status === "with_errors") {
-            var sprite_remove = ($("<span>")
-                                 .attr("class", "remove ss_sprite ss_delete")
-                                 .attr("rel", "tipsy-south")
-                                 .attr("title", "Verwijderen")
-                                 .attr("data-delete-url", uploaded_file.delete_url)
-                                );
-            var sprite_errors = ($("<span>")
-                                 .attr("class", "ss_sprite ss_help error_link")
-                                 .attr("rel", "tipsy-south")
-                                 .attr("title", uploaded_file.error_description)
-                                 .attr("data-error-url", uploaded_file.error_url));
+            sprite_remove = ($("<span>")
+                             .attr("class", "remove ss_sprite ss_delete")
+                             .attr("rel", "tipsy-south")
+                             .attr("title", "Verwijderen")
+                             .attr("data-delete-url", uploaded_file.delete_url)
+                            );
+            sprite_errors = ($("<span>")
+                             .attr("class", "ss_sprite ss_help error_link")
+                             .attr("rel", "tipsy-south")
+                             .attr("title", uploaded_file.error_description)
+                             .attr("data-error-url", uploaded_file.error_url));
 
             li = li.append(sprite_remove).append(sprite_errors);
         }
@@ -150,7 +153,7 @@ var beheer_functions = beheer_functions || (function () {
     var record_id_to_keep = function (ids_to_keep, status, id) {
         ids_to_keep[status] = ids_to_keep[status] || {};
         ids_to_keep[status][id] = true;
-    }
+    };
 
     var repeat_update_file_list = true;
 
@@ -187,7 +190,7 @@ var beheer_functions = beheer_functions || (function () {
                 record_id_to_keep(ids_to_keep, status, id);
 
                 if (!id_present_in(status, id)) {
-                    add_to_list(uploaded_file)
+                    add_to_list(uploaded_file);
                 }
             });
 
@@ -196,8 +199,8 @@ var beheer_functions = beheer_functions || (function () {
             remove_ids("with_errors", ids_to_keep);
             remove_ids("successful", ids_to_keep);
 
-            if (($("#uploaded_files_not_being_processed_yet ul li").length != 0) ||
-                ($("#uploaded_files_being_processed ul li").length != 0)) {
+            if (($("#uploaded_files_not_being_processed_yet ul li").length !== 0) ||
+                ($("#uploaded_files_being_processed ul li").length !== 0)) {
                 // Keep refreshing until these tables are empty
                 repeat_update_file_list = true;
             }
@@ -227,7 +230,7 @@ var beheer_functions = beheer_functions || (function () {
                 }
             });
         }
-    }
+    };
 
     return {
         schedule_update_file_list: schedule_update_file_list,

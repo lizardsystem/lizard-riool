@@ -2,10 +2,29 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.9.1 (unreleased)
+0.9.2 (unreleased)
 ------------------
 
 - Nothing changed yet.
+
+
+0.9.1 (2013-06-21)
+------------------
+
+- Added an "archive page" at riolering/archief/
+
+- Non computed water levels (because part of the system is not
+  connected to the rest) are now stored as NULL values, and therefore
+  drawing them in black now works.
+
+- Increased max length of file path fields, we sometimes ran into them.
+
+- Make sure no error messages occur in the upload window, it sometimes
+  gets confused
+
+- Increase chunk size, uploading files > 50mb went wrong
+
+- Improved error messages.
 
 
 0.9 (2013-06-20)

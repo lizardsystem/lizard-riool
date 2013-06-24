@@ -99,7 +99,7 @@ def get_puts(ribfile, riberrors):
         if putid in putdict:
             riberrors.append(Error(
                     line_number=putline.line_number,
-                    message=("Put referentie {putid} komt meerdere keren voor"
+                    message=("Put referentie {putid} komt meerdere keren voor."
                              .format(putid=putid))))
             continue
 
@@ -143,7 +143,7 @@ def get_puts(ribfile, riberrors):
     if not found_first_sink:
         riberrors.append(Error(
                 line_number=0,
-                message="Markeer minsten 1 put als gemaal!"))
+                message="Markeer minstens 1 put als gemaal!"))
 
     return putdict
 
@@ -172,7 +172,7 @@ def get_sewers(ribfile, putdict, riberrors):
             riberrors.append(Error(
                     line_number=sewerline.line_number,
                     message=(
-               "Veld ACR (BOB bij beginknoop absoluut) is niet ingevuld")))
+               "Veld ACR (BOB bij beginknoop absoluut) is niet ingevuld.")))
             bob_1 = 0.0
         else:
             try:
@@ -183,7 +183,7 @@ def get_sewers(ribfile, putdict, riberrors):
                         line_number=sewerline.line_number,
                         message=(
                             "Waarde ingevuld bij ACR (BOB bij beginknoop"
-                            " absoluut), '{acr}', is geen decimaal getal")
+                            " absoluut), '{acr}', is geen decimaal getal.")
                         .format(acr=sewerline.ACR)))
 
         # Get bob2 from ACS
@@ -191,7 +191,7 @@ def get_sewers(ribfile, putdict, riberrors):
             riberrors.append(Error(
                     line_number=sewerline.line_number,
                     message=(
-               "Veld ACS (BOB bij eindknoop absoluut) is niet ingevuld")))
+               "Veld ACS (BOB bij eindknoop absoluut) is niet ingevuld.")))
             bob_2 = 0.0
         else:
             try:
@@ -202,7 +202,7 @@ def get_sewers(ribfile, putdict, riberrors):
                         line_number=sewerline.line_number,
                         message=(
                             "Waarde ingevuld bij ACS (BOB bij eindknoop"
-                            " absoluut), '{acs}', is geen decimaal getal")
+                            " absoluut), '{acs}', is geen decimaal getal.")
                         .format(acs=sewerline.ACS)))
 
         # Get diameter from ACB
@@ -210,7 +210,7 @@ def get_sewers(ribfile, putdict, riberrors):
             riberrors.append(Error(
                     line_number=sewerline.line_number,
                     message=(
-               "Veld ACB (Hoogte) is niet ingevuld")))
+               "Veld ACB (Hoogte) is niet ingevuld.")))
             diameter = 0.0
         else:
             try:
@@ -221,7 +221,7 @@ def get_sewers(ribfile, putdict, riberrors):
                         line_number=sewerline.line_number,
                         message=(
                             "Waarde ingevuld bij ACB (Hoogte)"
-                            ", '{acb}', is geen decimaal getal")
+                            ", '{acb}', is geen decimaal getal.")
                         .format(acb=sewerline.ACB)))
 
         if sewerline.manhole1_id not in putdict:
@@ -326,22 +326,22 @@ def get_mrio(lines, putdict, sewerinfo, rmberrors):
         if mrio_line.ZYR is None:
             rmberrors.append(Error(
                     line_number=mrio_line.line_number,
-                    message="Veld ZYR (Type meting) ontbreekt"))
+                    message="Veld ZYR (Type meting) ontbreekt."))
             continue
         if mrio_line.ZYS is None:
             rmberrors.append(Error(
                     line_number=mrio_line.line_number,
-                    message="Veld ZYS (Eenheid meetwaarde) ontbreekt"))
+                    message="Veld ZYS (Eenheid meetwaarde) ontbreekt."))
             continue
         if mrio_line.ZYB is None:
             rmberrors.append(Error(
                     line_number=mrio_line.line_number,
-                    message="Veld ZYB (Referentie) ontbreekt"))
+                    message="Veld ZYB (Referentie) ontbreekt."))
             continue
         if mrio_line.ZYB not in "12":
             rmberrors.append(Error(
                     line_number=mrio_line.line_number,
-                    message="Veld ZYB (Referentie) moet waarde 1 of 2 hebben"))
+                    message="Veld ZYB (Referentie) moet waarde 1 of 2 hebben."))
             continue
 
         if (mrio_line.ZYR.upper() + mrio_line.ZYS.upper() not in
