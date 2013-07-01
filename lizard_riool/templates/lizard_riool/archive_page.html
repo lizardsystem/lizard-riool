@@ -47,7 +47,7 @@
       <td><input type="checkbox" class="toggle-active" data-activate-url="{% url lizard_riool_activate_sewerage sewerage_id=sewerage.id %}" {% if sewerage.active %}checked="checked"{% endif %}></td>
       <td><strong>{{ sewerage.name }}</strong></td>
       <td><a href="{% url lizard_riool_download_original sewerage_id=sewerage.id filename=sewerage.rib_filename %}">{{ sewerage.rib_filename }}</a>, <a href="{% url lizard_riool_download_original sewerage_id=sewerage.id filename=sewerage.rmb_filename %}">{{ sewerage.rmb_filename }}</a></td>
-      <td></td>
+      <td><a href="{% url lizard_riool_download_generated_rib sewerage_id=sewerage.id %}">{{ sewerage.generated_rib_filename }}</a></td>
       <td><button class="remove-sewerage btn btn-danger" data-sewerage-name="{{ sewerage.name }}" data-delete-url="{% url lizard_riool_activate_sewerage sewerage_id=sewerage.id %}">Verwijder</button></td>
     </tr>
   {% endfor %}

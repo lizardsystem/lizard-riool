@@ -7,6 +7,8 @@ Changelog of lizard-riool
 
 - Remove unused models, old code for computing lost capacity.
 
+- Generate RIB files. Add a link to the Archive page.
+
 
 0.9.1 (2013-06-21)
 ------------------

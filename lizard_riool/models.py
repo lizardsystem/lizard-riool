@@ -295,6 +295,11 @@ class Sewerage(models.Model):
     def rmb_filename(self):
         return os.path.basename(self.rmb)
 
+    @property
+    def generated_rib_filename(self):
+        return os.path.splitext(
+            os.path.basename(self.rmb))[0] + '_results.rib'
+
     def __unicode__(self):
         return self.name
 

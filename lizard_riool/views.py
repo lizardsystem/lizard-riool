@@ -333,34 +333,38 @@ class UploadView(TemplateView):
 class DownloadView(View):
     """Return computed results in a SUFRIB-like format. The old code
     was rewritten to work with the new data model, but most of it
-    remains the same."""
+    remains the same. See waar.py."""
 
     def get(self, request, sewerage_id, *args, **kwargs):
         sewerage = Sewerage.objects.get(pk=sewerage_id)
 
-        # A list of SUFRIB records (i.e. strings).
-        results = []
+        generated_rib = '\n'.join(
+            list(self.generated_rib_generator(
+                    sewerage, enumerate_file(sewerage.rmb))))
 
-        for line_number, line in enumerate_file(sewerage.rmb):
-            if line.startswith("*ALGE"):
-                results.append(line)
-            elif line.startswith("*RIOO"):
-                results.append(line)
-                sewer_code = line[6:36].strip()
-                try:
-                    sewer = Sewer.objects.get(
-                        sewerage=sewerage, code=sewer_code)
-                    results.extend(self.__get_results(sewer))
-                except Sewer.DoesNotExist:
-                    pass  # Don't print *WAAR records for this one
-
-        response = HttpResponse('\n'.join(results), content_type='text/plain')
-        filename = os.path.splitext(
-            os.path.filename(sewerage.rmb))[0] + '_results.txt'
+        response = HttpResponse(generated_rib, content_type='text/plain')
+        filename = sewerage.generated_rib_filename
         response['Content-Disposition'] = 'attachment; filename=%s' % filename
         return response
 
-    def __get_results(self, sewer):
+    def generated_rib_generator(self, sewerage, file_enumerator):
+        for line_number, line in file_enumerator:
+            if line.startswith("*ALGE"):
+                yield line  # Copy *ALGE lines
+            elif line.startswith("*RIOO"):
+                yield line  # Copy *RIOO lines
+
+                # After the *RIOO lines, add the relevant *WAAR lines
+                sewer_code = line[6:36].strip()
+                try:
+                    sewer = models.Sewer.objects.get(
+                        sewerage=sewerage, code=sewer_code)
+                    for extra_waar_line in self.get_waar_lines(sewer):
+                        yield extra_waar_line
+                except Sewer.DoesNotExist:
+                    pass  # Don't print *WAAR records for this one
+
+    def get_waar_lines(self, sewer):
         """Construct and return *WAAR records.
 
         Each *MRIO can be classified according to its percentage flooded.
@@ -369,31 +373,22 @@ class DownloadView(View):
         class are returned.
         """
 
-        results = []
         prev_klasse = None
-        # for obj in SewerMeasurement.objects.filter(sewer=sewer, order_by=('dist',)):
-        #     self.rmb.pool[riool]:
-        #     if isinstance(obj, Rioolmeting):
-        #         try:
-        #             node = self.storedgraph_dict[obj.suf_id]
-        #         except KeyError:
-        #             msg = "Skipping %s (not in stored graph)." % obj.suf_id
-        #             logger.debug(msg)
-        #             continue
-        #         pct = node.flooded_percentage
-        #         klasse, min_pct, max_pct = get_class_boundaries(pct)
-        #         if klasse != prev_klasse:
-        #             waar = WAAR()
-        #             waar.ZZA = obj.ZYA
-        #             waar.ZZB = obj.ZYB
-        #             waar.ZZE = riool
-        #             waar.ZZF = 'BDD'
-        #             waar.ZZI = min_pct
-        #             waar.ZZJ = max_pct
-        #             waar.ZZV = 'Door Lizard Riool Toolkit'
-        #             results.append(str(waar))
-        #             prev_klasse = klasse
-        # return results
+        for measurement in models.SewerMeasurement.objects.filter(
+            sewer=sewer).order_by('dist'):
+            pct = measurement.flooded_pct
+            klasse, min_pct, max_pct = get_class_boundaries(pct)
+            if klasse != prev_klasse:
+                waar = WAAR()
+                waar.ZZA = measurement.dist
+                waar.ZZB = "1"
+                waar.ZZE = sewer.code
+                waar.ZZF = 'BDD'
+                waar.ZZI = min_pct
+                waar.ZZJ = max_pct
+                waar.ZZV = 'Door Lizard Riool Toolkit'
+                yield str(waar)
+                prev_klasse = klasse
 
 
 class JSONResponseMixin(object):

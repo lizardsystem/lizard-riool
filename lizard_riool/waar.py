@@ -126,4 +126,3 @@ class WAAR(object):
             + "|" + self.__ZZU
             + "|" + self.__ZZV
         )
-
