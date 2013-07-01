@@ -30,11 +30,9 @@ from lizard_ui.views import ViewContextMixin
 
 from lizard_riool import tasks
 from lizard_riool import models
-from lizard_riool.datamodel import RMB
 from lizard_riool.layers import SewerageAdapter
 from lizard_riool.layers import get_class_boundaries
-from lizard_riool.models import Manhole
-from lizard_riool.models import Rioolmeting, Upload
+from lizard_riool.models import Upload
 from lizard_riool.models import Sewer
 from lizard_riool.models import Sewerage
 from lizard_riool.models import UploadedFileError
@@ -345,7 +343,7 @@ class DownloadView(View):
         if upload.has_computed_percentages:
             self.storedgraph_dict = dict((obj.suf_id, obj) for obj in upload.
                 storedgraph_set.only('suf_id', 'flooded_percentage'))
-            self.rmb = RMB(upload.pk)
+            self.rmb = models.RMB(upload.pk)
             with upload.the_file.file as f:
                 for line in f:
                     if line.startswith('*ALGE|'):
@@ -374,7 +372,7 @@ class DownloadView(View):
         results = []
         prev_klasse = None
         for obj in self.rmb.pool[riool]:
-            if isinstance(obj, Rioolmeting):
+            if isinstance(obj, models.Rioolmeting):
                 try:
                     node = self.storedgraph_dict[obj.suf_id]
                 except KeyError:
@@ -439,7 +437,7 @@ class ManholeFinder(View, JSONResponseMixin):
         pnt = Point(x, y, srid=srid)
 
         manholes = (
-            Manhole.objects.
+            models.Manhole.objects.
             filter(sewerage__pk__in=sewerage_pks).
             filter(the_geom__distance_lte=(pnt, radius)).
             distance(pnt).order_by('distance')

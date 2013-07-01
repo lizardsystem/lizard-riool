@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     #'lizard_map',
     'lizard_riool',
     'lizard_ui',
+    'lizard_security',
     'staticfiles',
     'compressor',
     'south',
