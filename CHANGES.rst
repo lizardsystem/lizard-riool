@@ -2,8 +2,8 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.9.3 (unreleased)
-------------------
+1.0 (2013-07-01)
+----------------
 
 - Don't show the download generate RIB link if the file isn't there.
 
