@@ -135,13 +135,6 @@ class Upload(models.Model):
         """Return extension including the ."""
         return splitext(self.the_file)[1]
 
-    @property
-    def has_computed_percentages(self):
-        """Test whether the lost capacity percentages for this file
-        are availabe in the StoredGraph table."""
-        return ((self.suffix.lower() == '.rmb') and
-                StoredGraph.is_stored(self.pk))
-
     def __unicode__(self):
         return self.filename
 
@@ -157,7 +150,7 @@ class Upload(models.Model):
 
         filename = self.filename.lower()[:-4]
 
-        for upload in Upload.objects.filter(status=1):
+        for upload in Upload.objects.filter(status=Upload.NOT_PROCESSED_YET):
             if not upload.filename.lower().endswith(".rib"):
                 continue
             if upload.filename.lower()[:-4] == filename:
