@@ -2,7 +2,7 @@ Changelog of lizard-riool
 ===================================================
 
 
-0.9.2 (unreleased)
+0.9.2 (2013-07-01)
 ------------------
 
 - Remove unused models, old code for computing lost capacity.
