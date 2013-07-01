@@ -5,7 +5,9 @@ Changelog of lizard-riool
 0.9.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Don't show the download generate RIB link if the file isn't there.
+
+- 1.0 release, customer says it's OK to go to production!
 
 
 0.9.2 (2013-07-01)
