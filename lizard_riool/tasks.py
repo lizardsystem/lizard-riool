@@ -82,7 +82,8 @@ def process_uploaded_file(upload):
         rib.set_unsuccessful()
         return
 
-    for other_upload in models.Upload.objects.filter(status=2):
+    for other_upload in models.Upload.objects.filter(
+        status=models.Upload.BEING_PROCESSED):
         if other_upload == upload or other_upload == rib:
             continue
         if other_upload.filename.lower() == upload.filename.lower():
