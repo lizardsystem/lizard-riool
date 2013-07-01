@@ -9,6 +9,9 @@ Changelog of lizard-riool
 
 - Generate RIB files. Add a link to the Archive page.
 
+- Generate the RIB files in the background, after processinged upload
+  files.
+
 
 0.9.1 (2013-06-21)
 ------------------

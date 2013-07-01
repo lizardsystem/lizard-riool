@@ -33,7 +33,6 @@ from sufriblib.parsers import enumerate_file
 from lizard_riool import tasks
 from lizard_riool import models
 from lizard_riool.layers import SewerageAdapter
-from lizard_riool.layers import get_class_boundaries
 from lizard_riool.models import Upload
 from lizard_riool.models import Sewer
 from lizard_riool.models import Sewerage
@@ -330,67 +329,6 @@ class UploadView(TemplateView):
         return HttpResponse(json.dumps(result), mimetype="application/json")
 
 
-class DownloadView(View):
-    """Return computed results in a SUFRIB-like format. The old code
-    was rewritten to work with the new data model, but most of it
-    remains the same. See waar.py."""
-
-    def get(self, request, sewerage_id, *args, **kwargs):
-        sewerage = Sewerage.objects.get(pk=sewerage_id)
-
-        generated_rib = '\n'.join(
-            list(self.generated_rib_generator(
-                    sewerage, enumerate_file(sewerage.rmb))))
-
-        response = HttpResponse(generated_rib, content_type='text/plain')
-        filename = sewerage.generated_rib_filename
-        response['Content-Disposition'] = 'attachment; filename=%s' % filename
-        return response
-
-    def generated_rib_generator(self, sewerage, file_enumerator):
-        for line_number, line in file_enumerator:
-            if line.startswith("*ALGE"):
-                yield line  # Copy *ALGE lines
-            elif line.startswith("*RIOO"):
-                yield line  # Copy *RIOO lines
-
-                # After the *RIOO lines, add the relevant *WAAR lines
-                sewer_code = line[6:36].strip()
-                try:
-                    sewer = models.Sewer.objects.get(
-                        sewerage=sewerage, code=sewer_code)
-                    for extra_waar_line in self.get_waar_lines(sewer):
-                        yield extra_waar_line
-                except Sewer.DoesNotExist:
-                    pass  # Don't print *WAAR records for this one
-
-    def get_waar_lines(self, sewer):
-        """Construct and return *WAAR records.
-
-        Each *MRIO can be classified according to its percentage flooded.
-        The class boundaries are printed in the ZZI and ZZJ fields of
-        the *WAAR record. Only *WAAR records that mark a change of
-        class are returned.
-        """
-
-        prev_klasse = None
-        for measurement in models.SewerMeasurement.objects.filter(
-            sewer=sewer).order_by('dist'):
-            pct = measurement.flooded_pct
-            klasse, min_pct, max_pct = get_class_boundaries(pct)
-            if klasse != prev_klasse:
-                waar = WAAR()
-                waar.ZZA = measurement.dist
-                waar.ZZB = "1"
-                waar.ZZE = sewer.code
-                waar.ZZF = 'BDD'
-                waar.ZZI = min_pct
-                waar.ZZJ = max_pct
-                waar.ZZV = 'Door Lizard Riool Toolkit'
-                yield str(waar)
-                prev_klasse = klasse
-
-
 class JSONResponseMixin(object):
 
     def render_to_response(self, context={}):
@@ -673,6 +611,8 @@ def download_original_view(request, sewerage_id, filename):
         path = sewerage.rib
     elif filename == sewerage.rmb_filename:
         path = sewerage.rmb
+    elif filename == sewerage.generated_rib_filename:
+        path = sewerage.generated_rib
     else:
         raise Http404
 

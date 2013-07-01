@@ -36,9 +36,6 @@ urlpatterns = patterns(
     url(r'^archief/(?P<page_number>\d+)/$',
         login_required(views.ArchivePage.as_view()),
         name='lizard_riool_archive_page_numbered'),
-    url(r'^stelsels/(?P<sewerage_id>\d+)/generated_rib/$',
-        login_required(views.DownloadView.as_view()),
-        name='lizard_riool_download_generated_rib'),
 
     # Activate / deactivate and also deletion. One uses POST the other DELETE
     url(r'^stelsels/(?P<sewerage_id>\d+)/$',
@@ -48,7 +45,7 @@ urlpatterns = patterns(
     url(r'^stelsels/(?P<sewerage_id>\d+)/(?P<filename>.+)$',
         login_required(views.download_original_view),
         name='lizard_riool_download_original'),
-    # Oud
+
     (r'^beheer/files/$', login_required(
             views.FileView.as_view(template_name="lizard_riool/files.html"))),
     url(r'^beheer/files/upload/$', login_required(views.UploadView.as_view()),
@@ -57,10 +54,7 @@ urlpatterns = patterns(
             views.DeleteFileView.as_view())),
     (r'^langsprofielen/$', login_required(views.SideProfileView.as_view())),
     (r'^beheer/$', login_required(views.FileView.as_view())),
-#   (r'^putten/$', login_required(views.PutList.as_view())),
-#   (r'^put/$', login_required(views.PutFinder.as_view())),
     (r'^put/$', login_required(views.ManholeFinder.as_view())),
-#   (r'^bar/$', login_required(views.Bar.as_view())),
     (r'^bar/$', login_required(views.PathFinder.as_view())),
 )
 

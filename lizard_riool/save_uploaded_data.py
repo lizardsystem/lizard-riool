@@ -626,6 +626,9 @@ def save_into_database(rib_path, rmb_path, putdict, sewerdict, rmberrors):
     # Success -- copy files
     sewerage.move_files(rib_path, rmb_path)
 
+    # The clap on the fireworks
+    sewerage.generate_rib()
+
 
 class Line(object):
     """A straight-line (i.e. linear) equation.

@@ -14,26 +14,9 @@ from lizard_map.workspace import WorkspaceItemAdapter
 from lizard_riool.models import Manhole
 from lizard_riool.models import Sewer
 from lizard_riool.models import SewerMeasurement
+from lizard_riool.models import CLASSES
 
 logger = logging.getLogger(__name__)
-
-# Colors from http://www.herethere.net/~samson/php/color_gradient/
-
-CLASSES = (
-    ('A', '0%-10%',   0.00, 0.10, '00ff00'),  # green
-    ('B', '10%-25%',  0.10, 0.25, '3fbf00'),
-    ('C', '25%-50%',  0.25, 0.50, '7f7f00'),
-    ('D', '50%-75%',  0.50, 0.75, 'bf3f00'),
-    ('E', '75%-100%', 0.75, 1.01, 'ff0000'),  # red
-    ('?', 'Onbekend', 1.00, 0.00, '000000'),  # black
-)
-
-
-def get_class_boundaries(pct):
-    "Return the class and its boundaries for a given fraction."
-    for klasse, _, min_pct, max_pct, _ in CLASSES:
-        if pct >= min_pct and pct < max_pct:
-            return klasse, min_pct, max_pct
 
 
 MEDIA_URL = settings.MEDIA_URL

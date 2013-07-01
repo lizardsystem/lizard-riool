@@ -32,10 +32,33 @@ import shutil
 from django.contrib.gis.db import models
 from django.conf import settings
 
+from sufriblib.parsers import enumerate_file
+
+from lizard_riool.waar import WAAR
+
+
 RDNEW = 28992
 SRID = RDNEW
 
 logger = logging.getLogger(__name__)
+
+# Colors from http://www.herethere.net/~samson/php/color_gradient/
+
+CLASSES = (
+    ('A', '0%-10%',   0.00, 0.10, '00ff00'),  # green
+    ('B', '10%-25%',  0.10, 0.25, '3fbf00'),
+    ('C', '25%-50%',  0.25, 0.50, '7f7f00'),
+    ('D', '50%-75%',  0.50, 0.75, 'bf3f00'),
+    ('E', '75%-100%', 0.75, 1.01, 'ff0000'),  # red
+    ('?', 'Onbekend', 1.00, 0.00, '000000'),  # black
+)
+
+
+def get_class_boundaries(pct):
+    "Return the class and its boundaries for a given fraction."
+    for klasse, _, min_pct, max_pct, _ in CLASSES:
+        if pct >= min_pct and pct < max_pct:
+            return klasse, min_pct, max_pct
 
 
 def circular_surface(obj):
@@ -172,7 +195,7 @@ class Upload(models.Model):
             self.record_error(e.message, e.line_number)
 
     def error_description(self):
-        if self.status != 3:
+        if self.status != Upload.UNSUCCESSFUL:
             return None
 
         errors = list(UploadedFileError.objects.filter(
@@ -187,15 +210,15 @@ class Upload(models.Model):
                     .format(len(errors), errors[0].message()))
 
     def set_being_processed(self):
-        self.status = 2
+        self.status = Upload.BEING_PROCESSED
         self.save()
 
     def set_unsuccessful(self):
-        self.status = 3
+        self.status = Upload.UNSUCCESSFUL
         self.save()
 
     def set_successful(self):
-        self.status = 4
+        self.status = Upload.SUCCESSFUL
         self.save()
 
 
@@ -246,6 +269,9 @@ class Sewerage(models.Model):
                          # really really don't want to run into the
                          # limit
 
+    generated_rib = models.FilePathField(
+        path=BASE_PATH, verbose_name='Generated RIB File', null=True,
+        max_length=400)
 
     active = models.BooleanField(default=True)
 
@@ -271,6 +297,37 @@ class Sewerage(models.Model):
 
         self.save()
 
+    def generate_rib(self):
+        """When everything is saved and moved, a "result" RIB file is
+        generated."""
+        self.generated_rib = os.path.join(
+            os.path.dirname(self.rib),
+            os.path.splitext(os.path.basename(self.rmb))[0] + '_results.rib')
+
+        with open(self.generated_rib, 'w') as rib:
+            for line in self._generate_generated_rib_lines(
+                enumerate_file(self.rmb)):
+                rib.write(line + "\n")
+
+        self.save()
+
+    def _generate_generated_rib_lines(self, file_enumerator):
+        for line_number, line in file_enumerator:
+            if line.startswith("*ALGE"):
+                yield line  # Copy *ALGE lines
+            elif line.startswith("*RIOO"):
+                yield line  # Copy *RIOO lines
+
+                # After the *RIOO lines, add the relevant *WAAR lines
+                sewer_code = line[6:36].strip()
+                try:
+                    sewer = Sewer.objects.get(
+                        sewerage=self, code=sewer_code)
+                    for extra_waar_line in sewer.generate_waar_lines():
+                        yield extra_waar_line
+                except Sewer.DoesNotExist:
+                    pass  # Don't print *WAAR records for this one
+
     def delete(self):
         """Delete this Sewerage -- also deletes the entire directory
         that contains its files!"""
@@ -282,16 +339,15 @@ class Sewerage(models.Model):
 
     @property
     def rib_filename(self):
-        return os.path.basename(self.rib)
+        return self.rib and os.path.basename(self.rib)
 
     @property
     def rmb_filename(self):
-        return os.path.basename(self.rmb)
+        return self.rmb and os.path.basename(self.rmb)
 
     @property
     def generated_rib_filename(self):
-        return os.path.splitext(
-            os.path.basename(self.rmb))[0] + '_results.rib'
+        return self.generated_rib and os.path.basename(self.generated_rib)
 
     def __unicode__(self):
         return self.name
@@ -393,6 +449,32 @@ class Sewer(models.Model):
             self.quality = Sewer.QUALITY_RELIABLE
         else:
             self.quality = Sewer.QUALITY_UNRELIABLE
+
+    def generate_waar_lines(self):
+        """Construct and return *WAAR records for in a RIB file.
+
+        Each *MRIO can be classified according to its percentage flooded.
+        The class boundaries are printed in the ZZI and ZZJ fields of
+        the *WAAR record. Only *WAAR records that mark a change of
+        class are returned.
+        """
+
+        prev_klasse = None
+        for measurement in SewerMeasurement.objects.filter(
+            sewer=self).order_by('dist'):
+            pct = measurement.flooded_pct
+            klasse, min_pct, max_pct = get_class_boundaries(pct)
+            if klasse != prev_klasse:
+                waar = WAAR()
+                waar.ZZA = measurement.dist
+                waar.ZZB = "1"
+                waar.ZZE = self.code
+                waar.ZZF = 'BDD'
+                waar.ZZI = min_pct
+                waar.ZZJ = max_pct
+                waar.ZZV = 'Door Lizard Riool Toolkit'
+                yield str(waar)
+                prev_klasse = klasse
 
 
 class SewerMeasurement(models.Model):
