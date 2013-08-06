@@ -50,8 +50,19 @@ CLASSES = (
     ('C', '25%-50%',  0.25, 0.50, '7f7f00'),
     ('D', '50%-75%',  0.50, 0.75, 'bf3f00'),
     ('E', '75%-100%', 0.75, 1.01, 'ff0000'),  # red
+    # Note: the trick below, using 1.0 as lower and 0.0 as upper boundary
+    # doesn't actually work when used like this:
+    #
+    # >>> pct >= min_pct and pct < max_pct
+    # False
+    #
+    # Please deal with None, NULL, NaN, -Infinity, in some other way :-)
     ('?', 'Onbekend', 1.00, 0.00, '000000'),  # black
 )
+
+# Note: min_pct and max_pct have a value for UNKNOWN_CLASS, but
+# it has no meaning!
+UNKNOWN_CLASS = CLASSES[-1]
 
 
 def get_class_boundaries(pct):
@@ -59,6 +70,8 @@ def get_class_boundaries(pct):
     for klasse, _, min_pct, max_pct, _ in CLASSES:
         if pct >= min_pct and pct < max_pct:
             return klasse, min_pct, max_pct
+    # No valid class was found for the given fraction. Apply the "Unknown" class.
+    return UNKNOWN_CLASS[0], UNKNOWN_CLASS[2], UNKNOWN_CLASS[3]
 
 
 def circular_surface(obj):
