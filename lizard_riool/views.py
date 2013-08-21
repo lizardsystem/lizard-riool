@@ -629,7 +629,7 @@ def download_original_view(request, sewerage_id, filename):
         '/riolering/stelsels/nginx_download/{sewerage_id}/{filename}'
         .format(sewerage_id=sewerage.id, filename=filename))
     response['Content-Disposition'] = (
-            'attachment; filename="{filename}"'.format(filename))
+            'attachment; filename="{filename}"'.format(filename=filename))
     # content-type is set in nginx.
     response['Content-Type'] = ''
     return response

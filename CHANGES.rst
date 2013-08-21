@@ -5,7 +5,7 @@ Changelog of lizard-riool
 1.1 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Fix bug with serving files over X-Accel-Redirect.
 
 
 1.0 (2013-07-01)
