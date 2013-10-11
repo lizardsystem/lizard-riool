@@ -219,7 +219,7 @@ class Upload(models.Model):
         if len(errors) == 1:
             return errors[0].message()
         else:
-            return ("{0} fouten, eerste is: {1}"
+            return (u"{0} fouten, eerste is: {1}"
                     .format(len(errors), errors[0].message()))
 
     def set_being_processed(self):
@@ -246,14 +246,14 @@ class UploadedFileError(models.Model):
     def message(self):
         if self.line > 0:
             return (
-                "Regel {line}: {error_message}".
+                u"Regel {line}: {error_message}".
                 format(line=self.line,
                        error_message=self.error_message))
         else:
             return self.error_message
 
     def __unicode__(self):
-        return "{file}: {message}".format(
+        return u"{file}: {message}".format(
             file=self.uploaded_file.the_file,
             message=self.message())
 
