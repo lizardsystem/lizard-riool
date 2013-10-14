@@ -5,7 +5,7 @@ Changelog of lizard-riool
 1.1 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Fix bug with unicode string in error messages.
 
 
 1.0.1 (2013-08-21)
